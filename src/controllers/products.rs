@@ -1,0 +1,103 @@
+#![allow(clippy::missing_errors_doc)]
+#![allow(clippy::unnecessary_struct_initialization)]
+#![allow(clippy::unused_async)]
+
+use loco_rs::prelude::*;
+use sea_orm::prelude::Decimal;
+use serde::{Deserialize, Serialize};
+use sea_orm::ActiveValue;
+
+use crate::models::_entities::products::{ActiveModel, Entity, Model};
+use crate::views::product::ProductResponse;
+use crate::models::_entities::users;
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Params {
+    pub category: String,
+    pub title: String,
+    pub description: String,
+    pub price: Decimal,
+    pub dimension_width: f32,
+    pub dimension_height: f32,
+    pub dimension_length: f32,
+    pub dimension_weight: f32,
+    pub brand: String,
+    pub material: String,
+    pub stock: i32,
+    pub sku: String,
+    pub seller_id: Option<i32>,
+}
+
+impl Params {
+    fn update(&self, item: &mut ActiveModel) {
+        item.title = Set(self.title.clone());
+        item.category = Set(self.category.clone());
+        item.description = Set(self.description.clone());
+        item.price = Set(self.price);
+        item.dimension_width = Set(self.dimension_width);
+        item.dimension_height = Set(self.dimension_height);
+        item.dimension_length = Set(self.dimension_length);
+        item.dimension_weight = Set(self.dimension_weight);
+        item.brand = Set(self.brand.clone());
+        item.material = Set(self.material.clone());
+        item.stock = Set(self.stock);
+        item.sku = Set(self.sku.clone());
+    }
+}
+
+async fn load_item(ctx: &AppContext, id: i32) -> Result<Model> {
+    let item = Entity::find_by_id(id).one(&ctx.db).await?;
+    item.ok_or_else(|| Error::NotFound)
+}
+
+pub async fn list(auth: auth::JWT, State(ctx): State<AppContext>) -> Result<Json<Vec<Model>>> {
+    let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    let products = user.find_related(Entity).all(&ctx.db).await?;
+    format::json(products)
+}
+
+pub async fn add(auth: auth::JWT, State(ctx): State<AppContext>, Json(params): Json<Params>) -> Result<Json<ProductResponse>> {
+    let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    let mut item = ActiveModel {
+        seller_id: ActiveValue::Set(user.id),
+        ..Default::default()
+    };
+    params.update(&mut item);
+    let item = item.insert(&ctx.db).await?;
+    format::json(ProductResponse::new(&item))
+}
+
+pub async fn update(
+    auth: auth::JWT,
+    Path(id): Path<i32>,
+    State(ctx): State<AppContext>,
+    Json(params): Json<Params>,
+) -> Result<Json<Model>> {
+    let _user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    let item = load_item(&ctx, id).await?;
+    let mut item = item.into_active_model();
+    params.update(&mut item);
+    let item = item.update(&ctx.db).await?;
+    format::json(item)
+}
+
+pub async fn remove(auth: auth::JWT, Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<()> {
+    let _user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    load_item(&ctx, id).await?.delete(&ctx.db).await?;
+    format::empty()
+}
+
+pub async fn get_one(auth: auth::JWT, Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Json<Model>> {
+    let _user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    format::json(load_item(&ctx, id).await?)
+}
+
+pub fn routes() -> Routes {
+    Routes::new()
+        .prefix("products")
+        .add("/", get(list))
+        .add("/", post(add))
+        .add("/:id", get(get_one))
+        .add("/:id", delete(remove))
+        .add("/:id", post(update))
+}
