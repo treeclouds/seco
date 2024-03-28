@@ -5,11 +5,12 @@
 use loco_rs::prelude::*;
 use sea_orm::prelude::Decimal;
 use serde::{Deserialize, Serialize};
-use sea_orm::ActiveValue;
+use sea_orm::{ActiveValue, ColumnTrait, QueryFilter};
 
-use crate::models::_entities::products::{ActiveModel, Entity, Model};
+use crate::models::_entities::products::{self, ActiveModel, Entity, Model};
 use crate::views::product::ProductResponse;
 use crate::models::_entities::users;
+
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Params {
@@ -45,8 +46,8 @@ impl Params {
     }
 }
 
-async fn load_item(ctx: &AppContext, id: i32) -> Result<Model> {
-    let item = Entity::find_by_id(id).one(&ctx.db).await?;
+async fn load_item(ctx: &AppContext, user: users::Model, id: i32) -> Result<Model> {
+    let item = user.find_related(Entity).filter(products::Column::Id.eq(id)).one(&ctx.db).await?;
     item.ok_or_else(|| Error::NotFound)
 }
 
@@ -78,8 +79,8 @@ pub async fn update(
     State(ctx): State<AppContext>,
     Json(params): Json<Params>,
 ) -> Result<Json<Model>> {
-    let _user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
-    let item = load_item(&ctx, id).await?;
+    let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    let item = load_item(&ctx, user, id).await?;
     let mut item = item.into_active_model();
     params.update(&mut item);
     let item = item.update(&ctx.db).await?;
@@ -87,14 +88,15 @@ pub async fn update(
 }
 
 pub async fn remove(auth: auth::JWT, Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<()> {
-    let _user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
-    load_item(&ctx, id).await?.delete(&ctx.db).await?;
+    let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    load_item(&ctx, user, id).await?.delete(&ctx.db).await?;
     format::empty()
 }
 
-pub async fn get_one(auth: auth::JWT, Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Json<Model>> {
-    let _user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
-    format::json(load_item(&ctx, id).await?)
+pub async fn get_one(auth: auth::JWT, Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Json<ProductResponse>> {
+    let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    let product = load_item(&ctx, user, id).await?;
+    format::json(ProductResponse::new(&product))
 }
 
 pub fn routes() -> Routes {
