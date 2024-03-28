@@ -50,10 +50,15 @@ async fn load_item(ctx: &AppContext, id: i32) -> Result<Model> {
     item.ok_or_else(|| Error::NotFound)
 }
 
-pub async fn list(auth: auth::JWT, State(ctx): State<AppContext>) -> Result<Json<Vec<Model>>> {
+pub async fn list(auth: auth::JWT, State(ctx): State<AppContext>) -> Result<Json<Vec<ProductResponse>>> {
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
     let products = user.find_related(Entity).all(&ctx.db).await?;
-    format::json(products)
+
+    let mut product_list: Vec<ProductResponse> = Vec::new();
+    for product in &products {
+        product_list.push(ProductResponse::new(product));
+    }
+    format::json(product_list)
 }
 
 pub async fn add(auth: auth::JWT, State(ctx): State<AppContext>, Json(params): Json<Params>) -> Result<Json<ProductResponse>> {
