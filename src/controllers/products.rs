@@ -6,7 +6,7 @@ use loco_rs::prelude::*;
 use sea_orm::prelude::Decimal;
 use serde::{Deserialize, Serialize};
 use sea_orm::{ActiveValue, ColumnTrait, QueryFilter, JsonValue};
-use chrono::Utc;
+use chrono::offset::Local;
 
 use crate::models::_entities::products::{self, ActiveModel, Entity, Model};
 use crate::models::_entities::users;
@@ -31,6 +31,7 @@ pub struct Params {
     pub seller_id: Option<i32>,
     pub tags: Option<JsonValue>,
     pub condition: Option<Condition>,
+    pub images: Option<JsonValue>,
 }
 
 impl Params {
@@ -89,7 +90,7 @@ pub async fn update(
     let item = load_item(&ctx, user, id).await?;
     let mut item = item.into_active_model();
     params.update(&mut item);
-    item.updated_at = ActiveValue::Set(Utc::now().naive_utc());
+    item.updated_at = ActiveValue::Set(Local::now().naive_local());
     let item = item.update(&ctx.db).await?;
     format::json(ProductResponse::new(&item))
 }

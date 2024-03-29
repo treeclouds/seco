@@ -16,6 +16,7 @@ pub struct Model {
     pub title: String,
     #[sea_orm(column_type = "Text")]
     pub description: String,
+    #[sea_orm(column_type = "Decimal(Some((10, 2)))")]
     pub price: Decimal,
     #[sea_orm(column_type = "Float")]
     pub dimension_width: f32,

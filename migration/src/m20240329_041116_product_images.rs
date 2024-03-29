@@ -17,7 +17,7 @@ impl MigrationTrait for Migration {
                     .on_delete(ForeignKeyAction::Cascade)
                     .on_update(ForeignKeyAction::Cascade),
                 )
-            .col(binary_null(ProductImages::Image))
+            .col(binary(ProductImages::Image))
             .to_owned();
         manager.create_table(table).await?;
 
@@ -35,6 +35,7 @@ impl MigrationTrait for Migration {
 enum ProductImages {
     Table,
     Id,
+    #[sea_orm(iden = "product_id")]
     ProductsId,
     Image,
     

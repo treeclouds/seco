@@ -266,6 +266,7 @@ impl super::_entities::users::ActiveModel {
     ///
     /// when has DB query error
     pub async fn verified(mut self, db: &DatabaseConnection) -> ModelResult<Model> {
+        self.is_active = ActiveValue::set(true);
         self.email_verified_at = ActiveValue::set(Some(Local::now().naive_local()));
         Ok(self.update(db).await?)
     }

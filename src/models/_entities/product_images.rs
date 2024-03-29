@@ -10,14 +10,16 @@ pub struct Model {
     pub updated_at: DateTime,
     #[sea_orm(primary_key)]
     pub id: i32,
-    pub products_id: i32,
+    pub product_id: i32,
+    #[sea_orm(column_type = "Binary(255)")]
+    pub image: Vec<u8>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
     #[sea_orm(
         belongs_to = "super::products::Entity",
-        from = "Column::ProductsId",
+        from = "Column::ProductId",
         to = "super::products::Column::Id",
         on_update = "Cascade",
         on_delete = "Cascade"

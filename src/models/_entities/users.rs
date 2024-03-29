@@ -23,6 +23,8 @@ pub struct Model {
     pub email_verified_at: Option<DateTime>,
     pub first_name: String,
     pub last_name: String,
+    pub is_active: bool,
+    pub is_superuser: bool,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
