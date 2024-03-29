@@ -5,11 +5,13 @@
 use loco_rs::prelude::*;
 use sea_orm::prelude::Decimal;
 use serde::{Deserialize, Serialize};
-use sea_orm::{ActiveValue, ColumnTrait, QueryFilter};
+use sea_orm::{ActiveValue, ColumnTrait, QueryFilter, JsonValue};
+use chrono::Utc;
 
 use crate::models::_entities::products::{self, ActiveModel, Entity, Model};
-use crate::views::product::ProductResponse;
 use crate::models::_entities::users;
+use crate::models::_entities::sea_orm_active_enums::Condition;
+use crate::views::product::ProductResponse;
 
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -27,6 +29,8 @@ pub struct Params {
     pub stock: i32,
     pub sku: String,
     pub seller_id: Option<i32>,
+    pub tags: Option<JsonValue>,
+    pub condition: Option<Condition>,
 }
 
 impl Params {
@@ -43,6 +47,8 @@ impl Params {
         item.material = Set(self.material.clone());
         item.stock = Set(self.stock);
         item.sku = Set(self.sku.clone());
+        item.condition = Set(self.condition.clone());
+        item.tags = Set(self.tags.clone());
     }
 }
 
@@ -78,13 +84,14 @@ pub async fn update(
     Path(id): Path<i32>,
     State(ctx): State<AppContext>,
     Json(params): Json<Params>,
-) -> Result<Json<Model>> {
+) -> Result<Json<ProductResponse>> {
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
     let item = load_item(&ctx, user, id).await?;
     let mut item = item.into_active_model();
     params.update(&mut item);
+    item.updated_at = ActiveValue::Set(Utc::now().naive_utc());
     let item = item.update(&ctx.db).await?;
-    format::json(item)
+    format::json(ProductResponse::new(&item))
 }
 
 pub async fn remove(auth: auth::JWT, Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<()> {

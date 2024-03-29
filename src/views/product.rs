@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 use sea_orm::prelude::Decimal;
+use sea_orm::JsonValue;
 
+use crate::models::_entities::sea_orm_active_enums::Condition;
 use crate::models::_entities::products;
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -18,6 +20,8 @@ pub struct ProductResponse {
     pub material: String,
     pub stock: i32,
     pub sku: String,
+    pub tags: Option<JsonValue>,
+    pub condition: Option<Condition>,
 }
 
 impl ProductResponse {
@@ -37,6 +41,8 @@ impl ProductResponse {
             material: product.material.to_string(),
             stock: product.stock,
             sku: product.sku.to_string(),
+            tags: product.tags.to_owned(),
+            condition: product.condition.to_owned(),
         }
     }
 }

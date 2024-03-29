@@ -1,6 +1,7 @@
 use sea_orm_migration::{prelude::*, schema::*};
 use sea_orm_migration::prelude::sea_query::extension::postgres::Type;
 use sea_orm::{EnumIter, DeriveActiveEnum};
+// use sea_orm::sea_query::ColumnType;
 
 #[derive(DeriveMigrationName)]
 pub struct Migration;
@@ -31,7 +32,7 @@ impl MigrationTrait for Migration {
             .col(string(Products::Category))
             .col(string(Products::Title))
             .col(text(Products::Description))
-            .col(decimal(Products::Price))
+            .col(decimal_len(Products::Price, 10, 2))
             .col(float(Products::DimensionWidth))
             .col(float(Products::DimensionHeight))
             .col(float(Products::DimensionLength))
@@ -41,6 +42,7 @@ impl MigrationTrait for Migration {
             .col(integer(Products::Stock))
             .col(string_len(Products::Sku, 100))
             .col(json_null(Products::Tags))
+            // .col(array_null(Products::Tags, ColumnType::String(StringLen::N(255))))
             .col(
                 ColumnDef::new(Products::Condition)
                     .enumeration(Alias::new("condition"), [Alias::new("BrandNew"), Alias::new("MintCondition"), Alias::new("LikeNew"), Alias::new("Excellent"), Alias::new("Good"), Alias::new("Fair")]),
