@@ -17,7 +17,7 @@ impl MigrationTrait for Migration {
                     .on_delete(ForeignKeyAction::Cascade)
                     .on_update(ForeignKeyAction::Cascade),
                 )
-            .col(binary(ProductImages::Image))
+            .col(string(ProductImages::Image))
             .to_owned();
         manager.create_table(table).await?;
 

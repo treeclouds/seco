@@ -3,7 +3,7 @@ use sea_orm::prelude::Decimal;
 use sea_orm::JsonValue;
 
 use crate::models::_entities::sea_orm_active_enums::Condition;
-use crate::models::_entities::products;
+use crate::models::_entities::{product_images, products};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct ProductResponse {
@@ -43,6 +43,22 @@ impl ProductResponse {
             sku: product.sku.to_string(),
             tags: product.tags.to_owned(),
             condition: product.condition.to_owned(),
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct ProductImageResponse {
+    pub product_id: i32,
+    pub image: String,
+}
+
+impl ProductImageResponse {
+    #[must_use]
+    pub fn new(product_image: &product_images::Model) -> Self {
+        Self {
+            product_id: product_image.product_id,
+            image: product_image.image.to_string(),
         }
     }
 }

@@ -8,9 +8,11 @@ use serde::{Deserialize, Serialize};
 use sea_orm::{ActiveValue, ColumnTrait, QueryFilter, JsonValue};
 use chrono::offset::Local;
 
-use crate::models::_entities::products::{self, ActiveModel, Entity, Model};
-use crate::models::_entities::users;
-use crate::models::_entities::sea_orm_active_enums::Condition;
+use crate::models::_entities::{
+    products::{self, ActiveModel, Entity, Model},
+    users,
+    sea_orm_active_enums::Condition,
+};
 use crate::views::product::ProductResponse;
 
 
