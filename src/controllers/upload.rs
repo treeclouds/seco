@@ -8,7 +8,6 @@ use loco_rs::prelude::*;
 use sea_orm::{ColumnTrait, QueryFilter};
 use axum::extract::Multipart;
 
-// use crate::views::upload::FileResponse;
 use crate::views::product_image::ProductImageResponse;
 
 use crate::models::_entities::{
@@ -29,7 +28,6 @@ async fn generate_unique_filename(base_filename: &str) -> std::io::Result<PathBu
     loop {
         let path_buf = PathBuf::from("storage-uploads/product_images").join(&filename);
         if !path_buf.exists() {
-            println!("====== file not exist");
             return Ok(filename.into());
         }
 
@@ -65,10 +63,8 @@ async fn upload_product_image_file(auth: auth::JWT, Path(product_id): Path<i32>,
         })?;
 
         let unique_file_name = generate_unique_filename(&file_name).await?;
-        println!("===== Unique filename: {}", unique_file_name.display());
 
         let path = PathBuf::from("product_images").join(unique_file_name);
-        // let path = PathBuf::from(unique_file_name);
         ctx.storage
             .as_ref()
             .unwrap()
