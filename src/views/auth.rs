@@ -8,6 +8,7 @@ pub struct LoginResponse {
     pub pid: String,
     pub first_name: String,
     pub last_name: String,
+    pub email: String,
     pub is_verified: bool,
 }
 
@@ -19,6 +20,7 @@ impl LoginResponse {
             pid: user.pid.to_string(),
             first_name: user.first_name.clone(),
             last_name: user.last_name.clone(),
+            email: user.email.clone(),
             is_verified: user.email_verified_at.is_some(),
         }
     }

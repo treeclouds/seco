@@ -1,3 +1,5 @@
+
+use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use sea_orm::prelude::Decimal;
 use sea_orm::JsonValue;
@@ -22,6 +24,7 @@ pub struct ProductResponse {
     pub sku: String,
     pub tags: Option<JsonValue>,
     pub condition: Option<Condition>,
+    pub created_at: NaiveDateTime,
 }
 
 impl ProductResponse {
@@ -43,6 +46,7 @@ impl ProductResponse {
             sku: product.sku.to_string(),
             tags: product.tags.to_owned(),
             condition: product.condition.to_owned(),
+            created_at: product.created_at.to_owned(),
         }
     }
 }
