@@ -111,7 +111,7 @@ pub async fn get_one(auth: auth::JWT, Path(id): Path<i32>, State(ctx): State<App
 
 pub fn routes() -> Routes {
     Routes::new()
-        .prefix("products")
+        .prefix("/api/products")
         .add("/", get(list))
         .add("/", post(add))
         .add("/:id", get(get_one))

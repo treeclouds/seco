@@ -88,6 +88,6 @@ async fn upload_product_image_file(auth: auth::JWT, Path(product_id): Path<i32>,
 
 pub fn routes() -> Routes {
     Routes::new()
-        .prefix("upload")
+        .prefix("/api/upload")
         .add("/:product_id/product_image_file", post(upload_product_image_file))
 }

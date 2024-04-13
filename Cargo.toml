@@ -8,6 +8,11 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+shuttle-axum = "0.43.0"
+shuttle-metadata = "0.42.0"
+shuttle-runtime = { version = "0.43.0", default-features = false }
+shuttle-shared-db = { version = "0.43.0", features = ["postgres"] }
+
 
 loco-rs = { version = "0.3.2" }
 migration = { path = "migration" }
@@ -38,6 +43,10 @@ tracing-subscriber = { version = "0.3.17", features = ["env-filter", "json"] }
 name = "seco-cli"
 path = "src/bin/main.rs"
 required-features = []
+
+[[bin]]
+name = "seco"
+path = "src/bin/shuttle.rs"
 
 [dev-dependencies]
 serial_test = "2.0.0"
