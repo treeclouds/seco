@@ -17,3 +17,5 @@ Cargo.lock
 *.pdb
 
 **/.vscode
+.idea
+.DS_Store

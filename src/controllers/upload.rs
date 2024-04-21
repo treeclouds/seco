@@ -44,7 +44,7 @@ async fn generate_unique_filename(base_filename: &str) -> std::io::Result<PathBu
 ///
 /// curl -H "Content-Type: multipart/form-data" -F "file=@./test-2.json"
 /// 127.0.0.1:3000/upload/file
-async fn upload_product_image_file(auth: auth::JWT, Path(product_id): Path<i32>, State(ctx): State<AppContext>, mut multipart: Multipart) -> Result<Json<ProductImageResponse>> {
+async fn upload_product_image_file(auth: auth::JWT, Path(product_id): Path<i32>, State(ctx): State<AppContext>, mut multipart: Multipart) -> Result<Response> {
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
     load_product(&ctx, user, product_id).await?;
     let mut file = None;

@@ -60,7 +60,7 @@ async fn load_item(ctx: &AppContext, user: users::Model, id: i32) -> Result<Mode
     item.ok_or_else(|| Error::NotFound)
 }
 
-pub async fn list(auth: auth::JWT, State(ctx): State<AppContext>) -> Result<Json<Vec<ProductResponse>>> {
+pub async fn list(auth: auth::JWT, State(ctx): State<AppContext>) -> Result<Response> {
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
     let products = user.find_related(Entity).all(&ctx.db).await?;
 
@@ -71,7 +71,7 @@ pub async fn list(auth: auth::JWT, State(ctx): State<AppContext>) -> Result<Json
     format::json(product_list)
 }
 
-pub async fn add(auth: auth::JWT, State(ctx): State<AppContext>, Json(params): Json<Params>) -> Result<Json<ProductResponse>> {
+pub async fn add(auth: auth::JWT, State(ctx): State<AppContext>, Json(params): Json<Params>) -> Result<Response> {
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
     let mut item = ActiveModel {
         seller_id: ActiveValue::Set(user.id),
@@ -87,7 +87,7 @@ pub async fn update(
     Path(id): Path<i32>,
     State(ctx): State<AppContext>,
     Json(params): Json<Params>,
-) -> Result<Json<ProductResponse>> {
+) -> Result<Response> {
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
     let item = load_item(&ctx, user, id).await?;
     let mut item = item.into_active_model();
@@ -97,13 +97,13 @@ pub async fn update(
     format::json(ProductResponse::new(&item))
 }
 
-pub async fn remove(auth: auth::JWT, Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<()> {
+pub async fn remove(auth: auth::JWT, Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
     load_item(&ctx, user, id).await?.delete(&ctx.db).await?;
     format::empty()
 }
 
-pub async fn get_one(auth: auth::JWT, Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Json<ProductResponse>> {
+pub async fn get_one(auth: auth::JWT, Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
     let product = load_item(&ctx, user, id).await?;
     format::json(ProductResponse::new(&product))
