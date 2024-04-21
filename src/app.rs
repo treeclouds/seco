@@ -1,6 +1,7 @@
 use std::path::Path;
 
 use async_trait::async_trait;
+use axum::Router as AxumRouter;
 use loco_rs::{
     app::{AppContext, Hooks},
     boot::{create_app, BootResult, StartMode},
@@ -17,11 +18,53 @@ use migration::Migrator;
 use sea_orm::DatabaseConnection;
 
 use crate::{
-    controllers,
-    models::_entities::{product_images, products, users},
+    controllers::{
+        self,
+        auth::{self, VerifyParams, ResetParams, ForgotParams}
+    },
+    models::{
+        users::{LoginParams, RegisterParams},
+        _entities::{product_images, products, users}
+    },
     tasks,
+    views::auth::LoginResponse,
     workers::downloader::DownloadWorker,
 };
+
+use utoipa::{
+    openapi::security::{ApiKey, ApiKeyValue, SecurityScheme},
+    Modify, OpenApi,
+};
+use utoipa_swagger_ui::SwaggerUi;
+
+#[derive(OpenApi)]
+#[openapi(
+    paths(
+        auth::register,
+        auth::verify,
+        auth::forgot,
+        auth::reset,
+        auth::login,
+    ),
+    components(schemas(LoginParams, RegisterParams, VerifyParams, ResetParams, ForgotParams, LoginResponse)),
+    modifiers(&SecurityAddon),
+    tags(
+        (name = "SecondHand", description = "SecondHand management API")
+    )
+)]
+struct ApiDoc;
+struct SecurityAddon;
+
+impl Modify for SecurityAddon {
+    fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
+        if let Some(components) = openapi.components.as_mut() {
+            components.add_security_scheme(
+                "api_key",
+                SecurityScheme::ApiKey(ApiKey::Header(ApiKeyValue::new("todo_apikey"))),
+            )
+        }
+    }
+}
 
 pub struct App;
 #[async_trait]
@@ -66,6 +109,12 @@ impl Hooks for App {
             .add_route(controllers::auth::routes())
             .add_route(controllers::user::routes())
             .add_route(controllers::upload::routes())
+    }
+
+    async fn after_routes(router: AxumRouter, _ctx: &AppContext) -> Result<AxumRouter> {
+        let router_app = router
+            .merge(SwaggerUi::new("/swagger").url("/api-docs/openapi.json", ApiDoc::openapi()));
+        Ok(router_app)
     }
 
     fn connect_workers<'a>(p: &'a mut Processor, ctx: &'a AppContext) {
