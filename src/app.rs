@@ -21,7 +21,7 @@ use crate::{
     controllers::{
         self,
         auth::{self, VerifyParams, ResetParams, ForgotParams},
-        products::{self as ct_products, ProductPostParams},
+        products::{self as ct_products, ProductPostParams, UnauthorizedResponse},
     },
     models::{
         users::{LoginParams, RegisterParams},
@@ -50,10 +50,15 @@ use utoipa_swagger_ui::SwaggerUi;
         auth::login,
         ct_products::list,
         ct_products::add,
+        ct_products::update,
+        ct_products::remove,
+        ct_products::get_one,
     ),
     components(
-        schemas(LoginParams, RegisterParams, VerifyParams, ResetParams, ForgotParams,
-        ProductPostParams, LoginResponse, ProductResponse)
+        schemas(
+            LoginParams, RegisterParams, VerifyParams, ResetParams, ForgotParams,
+            ProductPostParams, LoginResponse, ProductResponse, UnauthorizedResponse
+        )
     ),
     modifiers(&SecurityAddon),
     tags(

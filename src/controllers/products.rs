@@ -61,6 +61,12 @@ impl ProductPostParams {
     }
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+pub struct UnauthorizedResponse {
+    pub error: String,
+    pub description: String,
+}
+
 async fn load_item(ctx: &AppContext, user: users::Model, id: i32) -> Result<Model> {
     let item = user.find_related(Entity).filter(products::Column::Id.eq(id)).one(&ctx.db).await?;
     item.ok_or_else(|| Error::NotFound)
@@ -72,6 +78,7 @@ async fn load_item(ctx: &AppContext, user: users::Model, id: i32) -> Result<Mode
     tag = "products",
     responses(
         (status = 200, description = "Product list based on user login successfully", body = [ProductResponse]),
+        (status = 401, description = "Unauthorized", body = UnauthorizedResponse),
     ),
     security(
         ("jwt_token" = [])
@@ -111,6 +118,22 @@ pub async fn add(auth: auth::JWT, State(ctx): State<AppContext>, Json(params): J
     format::json(ProductResponse::new(&item))
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/product/{id}",
+    tag = "products",
+    responses(
+        (status = 200, description = "Product update successfully", body = [ProductResponse]),
+        (status = 401, description = "Unauthorized", body = UnauthorizedResponse),
+        (status = 404, description = "Product not found", body = UnauthorizedResponse),
+    ),
+    params(
+        ("id" = i32, Path, description = "Product database id")
+    ),
+    security(
+        ("jwt_token" = [])
+    )
+)]
 pub async fn update(
     auth: auth::JWT,
     Path(id): Path<i32>,
@@ -126,12 +149,44 @@ pub async fn update(
     format::json(ProductResponse::new(&item))
 }
 
+#[utoipa::path(
+    delete,
+    path = "/api/product/{id}",
+    tag = "products",
+    responses(
+        (status = 200, description = "Product delete successfully"),
+        (status = 401, description = "Unauthorized", body = UnauthorizedResponse),
+        (status = 404, description = "Product not found", body = UnauthorizedResponse),
+    ),
+    params(
+        ("id" = i32, Path, description = "Product database id")
+    ),
+    security(
+        ("jwt_token" = [])
+    )
+)]
 pub async fn remove(auth: auth::JWT, Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
     load_item(&ctx, user, id).await?.delete(&ctx.db).await?;
     format::empty()
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/product/{id}",
+    tag = "products",
+    responses(
+        (status = 200, description = "Product detail successfully", body = ProductResponse),
+        (status = 401, description = "Unauthorized", body = UnauthorizedResponse),
+        (status = 404, description = "Product not found", body = UnauthorizedResponse),
+    ),
+    params(
+        ("id" = i32, Path, description = "Product database id")
+    ),
+    security(
+        ("jwt_token" = [])
+    )
+)]
 pub async fn get_one(auth: auth::JWT, Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
     let product = load_item(&ctx, user, id).await?;
