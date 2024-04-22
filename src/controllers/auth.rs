@@ -153,7 +153,7 @@ async fn reset(State(ctx): State<AppContext>, Json(params): Json<ResetParams>) -
     path = "/api/auth/login",
     request_body = LoginParams,
     responses(
-        (status = 200, description = "Login successfully", body=[LoginResponse])
+        (status = 200, description = "Login successfully", body = LoginResponse)
     )
 )]
 async fn login(

@@ -22,6 +22,7 @@ pub struct ProductPostParams {
     pub category: String,
     pub title: String,
     pub description: String,
+    #[schema(value_type = f64)]
     pub price: Decimal,
     pub dimension_width: f32,
     pub dimension_height: f32,
@@ -31,9 +32,13 @@ pub struct ProductPostParams {
     pub material: String,
     pub stock: i32,
     pub sku: String,
+    #[schema(read_only)]
     pub seller_id: Option<i32>,
+    #[schema(value_type = String, format = Binary)]
     pub tags: Option<JsonValue>,
+    #[schema(value_type = String)]
     pub condition: Option<Condition>,
+    #[schema(value_type = String, format = Binary)]
     pub images: Option<JsonValue>,
 }
 
@@ -66,7 +71,7 @@ async fn load_item(ctx: &AppContext, user: users::Model, id: i32) -> Result<Mode
     path = "/api/products",
     tag = "products",
     responses(
-        (status = 200, description = "Product list based on user login successfully")
+        (status = 200, description = "Product list based on user login successfully", body = [ProductResponse]),
     ),
     security(
         ("jwt_token" = [])
@@ -89,7 +94,7 @@ pub async fn list(auth: auth::JWT, State(ctx): State<AppContext>) -> Result<Resp
     tag = "products",
     request_body = ProductPostParams,
     responses(
-        (status = 200, description = "Product list based on user login successfully")
+        (status = 200, description = "Create a new product successfully", body = ProductResponse)
     ),
     security(
         ("jwt_token" = [])

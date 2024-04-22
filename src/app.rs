@@ -29,6 +29,7 @@ use crate::{
     },
     tasks,
     views::auth::LoginResponse,
+    views::product::ProductResponse,
     workers::downloader::DownloadWorker,
 };
 
@@ -50,7 +51,10 @@ use utoipa_swagger_ui::SwaggerUi;
         ct_products::list,
         ct_products::add,
     ),
-    components(schemas(LoginParams, RegisterParams, VerifyParams, ResetParams, ForgotParams, ProductPostParams, LoginResponse)),
+    components(
+        schemas(LoginParams, RegisterParams, VerifyParams, ResetParams, ForgotParams,
+        ProductPostParams, LoginResponse, ProductResponse)
+    ),
     modifiers(&SecurityAddon),
     tags(
         (name = "SecondHand", description = "SecondHand management API")

@@ -1,18 +1,19 @@
-
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use sea_orm::prelude::Decimal;
 use sea_orm::JsonValue;
+use utoipa::ToSchema;
 
 use crate::models::_entities::sea_orm_active_enums::Condition;
 use crate::models::_entities::{product_images, products};
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, ToSchema)]
 pub struct ProductResponse {
     pub id: i32,
     pub category: String,
     pub title: String,
     pub description: String,
+    #[schema(value_type = f64)]
     pub price: Decimal,
     pub dimension_width: f32,
     pub dimension_height: f32,
@@ -22,8 +23,11 @@ pub struct ProductResponse {
     pub material: String,
     pub stock: i32,
     pub sku: String,
+    #[schema(value_type = String, format = Binary)]
     pub tags: Option<JsonValue>,
+    #[schema(value_type = String)]
     pub condition: Option<Condition>,
+    #[schema(value_type = String)]
     pub created_at: NaiveDateTime,
 }
 
