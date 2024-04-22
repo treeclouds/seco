@@ -20,7 +20,8 @@ use sea_orm::DatabaseConnection;
 use crate::{
     controllers::{
         self,
-        auth::{self, VerifyParams, ResetParams, ForgotParams}
+        auth::{self, VerifyParams, ResetParams, ForgotParams},
+        products::{self as ct_products, ProductPostParams},
     },
     models::{
         users::{LoginParams, RegisterParams},
@@ -32,21 +33,24 @@ use crate::{
 };
 
 use utoipa::{
-    openapi::security::{ApiKey, ApiKeyValue, SecurityScheme},
+    openapi::security::{SecurityScheme, HttpBuilder, HttpAuthScheme},
     Modify, OpenApi,
 };
 use utoipa_swagger_ui::SwaggerUi;
 
 #[derive(OpenApi)]
 #[openapi(
+    info(title="Secondhand"),
     paths(
         auth::register,
         auth::verify,
         auth::forgot,
         auth::reset,
         auth::login,
+        ct_products::list,
+        ct_products::add,
     ),
-    components(schemas(LoginParams, RegisterParams, VerifyParams, ResetParams, ForgotParams, LoginResponse)),
+    components(schemas(LoginParams, RegisterParams, VerifyParams, ResetParams, ForgotParams, ProductPostParams, LoginResponse)),
     modifiers(&SecurityAddon),
     tags(
         (name = "SecondHand", description = "SecondHand management API")
@@ -59,8 +63,14 @@ impl Modify for SecurityAddon {
     fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
         if let Some(components) = openapi.components.as_mut() {
             components.add_security_scheme(
-                "api_key",
-                SecurityScheme::ApiKey(ApiKey::Header(ApiKeyValue::new("todo_apikey"))),
+                "jwt_token",
+                // SecurityScheme::ApiKey(ApiKey::Header(ApiKeyValue::new("Authorization"))),
+                SecurityScheme::Http(
+                    HttpBuilder::new()
+                        .scheme(HttpAuthScheme::Bearer)
+                        .bearer_format("JWT")
+                        .build(),
+                )
             )
         }
     }

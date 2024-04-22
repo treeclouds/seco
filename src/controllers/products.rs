@@ -7,6 +7,7 @@ use sea_orm::prelude::Decimal;
 use serde::{Deserialize, Serialize};
 use sea_orm::{ActiveValue, ColumnTrait, QueryFilter, JsonValue};
 use chrono::offset::Local;
+use utoipa::ToSchema;
 
 use crate::models::_entities::{
     products::{self, ActiveModel, Entity, Model},
@@ -16,8 +17,8 @@ use crate::models::_entities::{
 use crate::views::product::ProductResponse;
 
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Params {
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+pub struct ProductPostParams {
     pub category: String,
     pub title: String,
     pub description: String,
@@ -36,7 +37,7 @@ pub struct Params {
     pub images: Option<JsonValue>,
 }
 
-impl Params {
+impl ProductPostParams {
     fn update(&self, item: &mut ActiveModel) {
         item.title = Set(self.title.clone());
         item.category = Set(self.category.clone());
@@ -60,6 +61,17 @@ async fn load_item(ctx: &AppContext, user: users::Model, id: i32) -> Result<Mode
     item.ok_or_else(|| Error::NotFound)
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/products",
+    tag = "products",
+    responses(
+        (status = 200, description = "Product list based on user login successfully")
+    ),
+    security(
+        ("jwt_token" = [])
+    )
+)]
 pub async fn list(auth: auth::JWT, State(ctx): State<AppContext>) -> Result<Response> {
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
     let products = user.find_related(Entity).all(&ctx.db).await?;
@@ -71,7 +83,19 @@ pub async fn list(auth: auth::JWT, State(ctx): State<AppContext>) -> Result<Resp
     format::json(product_list)
 }
 
-pub async fn add(auth: auth::JWT, State(ctx): State<AppContext>, Json(params): Json<Params>) -> Result<Response> {
+#[utoipa::path(
+    post,
+    path = "/api/product/new",
+    tag = "products",
+    request_body = ProductPostParams,
+    responses(
+        (status = 200, description = "Product list based on user login successfully")
+    ),
+    security(
+        ("jwt_token" = [])
+    )
+)]
+pub async fn add(auth: auth::JWT, State(ctx): State<AppContext>, Json(params): Json<ProductPostParams>) -> Result<Response> {
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
     let mut item = ActiveModel {
         seller_id: ActiveValue::Set(user.id),
@@ -86,7 +110,7 @@ pub async fn update(
     auth: auth::JWT,
     Path(id): Path<i32>,
     State(ctx): State<AppContext>,
-    Json(params): Json<Params>,
+    Json(params): Json<ProductPostParams>,
 ) -> Result<Response> {
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
     let item = load_item(&ctx, user, id).await?;
@@ -111,10 +135,10 @@ pub async fn get_one(auth: auth::JWT, Path(id): Path<i32>, State(ctx): State<App
 
 pub fn routes() -> Routes {
     Routes::new()
-        .prefix("/api/products")
-        .add("/", get(list))
-        .add("/", post(add))
-        .add("/:id", get(get_one))
-        .add("/:id", delete(remove))
-        .add("/:id", post(update))
+        .prefix("/api")
+        .add("/products", get(list))
+        .add("/product/new", post(add))
+        .add("/product/:id", get(get_one))
+        .add("/product/:id", delete(remove))
+        .add("/product/:id", post(update))
 }
