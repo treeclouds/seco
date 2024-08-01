@@ -5,7 +5,7 @@ use axum::Router as AxumRouter;
 use loco_rs::{
     app::{AppContext, Hooks},
     boot::{create_app, BootResult, StartMode},
-    config::Config,
+    cache,
     controller::AppRoutes,
     db::{self, truncate_table},
     environment::Environment,
@@ -106,19 +106,19 @@ impl Hooks for App {
         create_app::<Self, Migrator>(mode, environment).await
     }
 
-    async fn storage(
-        _config: &Config,
-        environment: &Environment,
-    ) -> Result<Option<storage::Storage>> {
-        let store = if environment == &Environment::Test {
-            storage::drivers::mem::new()
-        } else {
-            storage::drivers::local::new_with_prefix("storage-uploads").map_err(Box::from)?
-        };
-
-        let storage = Storage::single(store);
-        return Ok(Some(storage));
-    }
+    // async fn storage(
+    //     _config: &Config,
+    //     environment: &Environment,
+    // ) -> Result<Option<storage::Storage>> {
+    //     let store = if environment == &Environment::Test {
+    //         storage::drivers::mem::new()
+    //     } else {
+    //         storage::drivers::local::new_with_prefix("storage-uploads").map_err(Box::from)?
+    //     };
+    //
+    //     let storage = Storage::single(store);
+    //     return Ok(Some(storage));
+    // }
 
     fn routes(_ctx: &AppContext) -> AppRoutes {
         AppRoutes::with_default_routes()
@@ -156,5 +156,19 @@ impl Hooks for App {
         db::seed::<products::ActiveModel>(db, &base.join("products.yaml").display().to_string()).await?;
         db::seed::<product_images::ActiveModel>(db, &base.join("product_images.yaml").display().to_string()).await?;
         Ok(())
+    }
+
+    async fn after_context(ctx: AppContext) -> Result<AppContext> {
+        let store = if ctx.environment == Environment::Test {
+            storage::drivers::mem::new()
+        } else {
+            storage::drivers::local::new_with_prefix("storage-uploads").map_err(Box::from)?
+        };
+
+        Ok(AppContext {
+            storage: Storage::single(store).into(),
+            cache: cache::Cache::new(cache::drivers::inmem::new()).into(),
+            ..ctx
+        })
     }
 }

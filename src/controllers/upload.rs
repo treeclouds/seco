@@ -49,8 +49,8 @@ async fn upload_product_image_file(auth: auth::JWT, Path(product_id): Path<i32>,
     load_product(&ctx, user, product_id).await?;
     let mut file = None;
     while let Some(field) = multipart.next_field().await.map_err(|err| {
-        tracing::error!(error = ?err,"could not readd multipart");
-        Error::BadRequest("could not readd multipart".into())
+        tracing::error!(error = ?err,"could not read multipart");
+        Error::BadRequest("could not read multipart".into())
     })? {
         let file_name = match field.file_name() {
             Some(file_name) => file_name.to_string(),
@@ -58,18 +58,14 @@ async fn upload_product_image_file(auth: auth::JWT, Path(product_id): Path<i32>,
         };
 
         let content = field.bytes().await.map_err(|err| {
-            tracing::error!(error = ?err,"could not readd bytes");
-            Error::BadRequest("could not readd bytes".into())
+            tracing::error!(error = ?err,"could not read bytes");
+            Error::BadRequest("could not read bytes".into())
         })?;
 
         let unique_file_name = generate_unique_filename(&file_name).await?;
 
         let path = PathBuf::from("product_images").join(unique_file_name);
-        ctx.storage
-            .as_ref()
-            .unwrap()
-            .upload(path.as_path(), &content)
-            .await?;
+        ctx.storage.as_ref().upload(path.as_path(), &content).await?;
 
         file = Some(path);
     }

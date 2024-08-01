@@ -1,3 +1,4 @@
+
 //! This task implements data seeding functionality for initializing new
 //! development/demo environments.
 //!
@@ -9,12 +10,9 @@
 //! ```
 //!
 //! To override existing data and reset the data structure, use the following
-//! command with the `refresh:true` argument:
-//! ```sh
+//! command with the `refresh:true` argument: ```sh
 //! cargo run task seed_data refresh:true
 //! ```
-use std::collections::BTreeMap;
-
 use loco_rs::{db, prelude::*};
 use migration::Migrator;
 
@@ -30,9 +28,10 @@ impl Task for SeedData {
             detail: "Task for seeding data".to_string(),
         }
     }
-
-    async fn run(&self, app_context: &AppContext, vars: &BTreeMap<String, String>) -> Result<()> {
-        let refresh = vars.get("refresh").is_some_and(|refresh| refresh == "true");
+    async fn run(&self, app_context: &AppContext, vars: &task::Vars) -> Result<()> {
+        let refresh = vars
+            .cli_arg("refresh")
+            .is_ok_and(|refresh| refresh == "true");
 
         if refresh {
             db::reset::<Migrator>(&app_context.db).await?;
