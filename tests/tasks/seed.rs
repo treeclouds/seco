@@ -29,7 +29,7 @@ impl Task for SeedData {
             detail: "Task for seeding data".to_string(),
         }
     }
-    async fn run(&self, app_context: &AppContext, vars: &BTreeMap<String, String>) -> Result<()> {
+    async fn run(&self, app_context: &AppContext, vars: &task::Vars) -> Result<()> {
         let refresh = vars.get("refresh").is_some_and(|refresh| refresh == "true");
 
         if refresh {
