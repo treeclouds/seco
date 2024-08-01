@@ -2,6 +2,7 @@ use loco_rs::boot::{create_app, StartMode};
 use loco_rs::environment::Environment;
 use seco::app::App;
 use migration::Migrator;
+use shuttle_runtime::DeploymentMetadata;
 
 #[shuttle_runtime::main]
 async fn main(
@@ -10,8 +11,8 @@ async fn main(
 ) -> shuttle_axum::ShuttleAxum {
     std::env::set_var("DATABASE_URL", conn_str);
     let environment = match meta.env {
-        shuttle_metadata::Environment::Local => Environment::Development,
-        shuttle_metadata::Environment::Deployment => Environment::Production,
+        shuttle_runtime::Environment::Local => Environment::Development,
+        shuttle_runtime::Environment::Deployment => Environment::Production,
     };
     let boot_result = create_app::<App, Migrator>(StartMode::ServerOnly, &environment)
         .await
