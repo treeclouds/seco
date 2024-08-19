@@ -1,7 +1,7 @@
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use sea_orm::prelude::Decimal;
-use sea_orm::JsonValue;
+use sea_orm::{JsonValue};
 use utoipa::ToSchema;
 
 use crate::models::_entities::sea_orm_active_enums::Condition;
@@ -29,6 +29,8 @@ pub struct ProductResponse {
     pub condition: Option<Condition>,
     #[schema(value_type = String)]
     pub created_at: NaiveDateTime,
+    #[schema(value_type = String, format = Binary)]
+    pub images: Option<JsonValue>,
 }
 
 impl ProductResponse {
@@ -51,13 +53,14 @@ impl ProductResponse {
             tags: product.tags.to_owned(),
             condition: product.condition.to_owned(),
             created_at: product.created_at.to_owned(),
+            images: None,
         }
     }
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct ProductImageResponse {
-    pub product_id: i32,
+    pub id: i32,
     pub image: String,
 }
 
@@ -65,7 +68,7 @@ impl ProductImageResponse {
     #[must_use]
     pub fn new(product_image: &product_images::Model) -> Self {
         Self {
-            product_id: product_image.product_id,
+            id: product_image.id,
             image: product_image.image.to_string(),
         }
     }
