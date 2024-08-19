@@ -22,14 +22,19 @@ use crate::{
         self,
         auth::{self, VerifyParams, ResetParams, ForgotParams},
         products::{self as ct_products, ProductPostParams, UnauthorizedResponse},
+        user::{self},
+        upload::{self}
     },
     models::{
         users::{LoginParams, RegisterParams},
         _entities::{product_images, products, users}
     },
     tasks,
-    views::auth::LoginResponse,
-    views::product::ProductResponse,
+    views::{
+        auth::LoginResponse,
+        product::ProductResponse,
+        user::CurrentResponse,
+    },
     workers::downloader::DownloadWorker,
 };
 
@@ -53,11 +58,15 @@ use utoipa_swagger_ui::SwaggerUi;
         ct_products::update,
         ct_products::remove,
         ct_products::get_one,
+        user::current,
+        user::product_list,
+        upload::upload_product_image_file,
     ),
     components(
         schemas(
             LoginParams, RegisterParams, VerifyParams, ResetParams, ForgotParams,
-            ProductPostParams, LoginResponse, ProductResponse, UnauthorizedResponse
+            ProductPostParams, LoginResponse, ProductResponse, UnauthorizedResponse,
+            CurrentResponse
         )
     ),
     modifiers(&SecurityAddon),

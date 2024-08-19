@@ -43,7 +43,22 @@ async fn generate_unique_filename(base_filename: &str) -> std::io::Result<PathBu
 /// ## Request Example
 ///
 /// curl -H "Content-Type: multipart/form-data" -F "file=@./test-2.json"
-/// 127.0.0.1:3000/upload/file
+/// 127.0.0.1:3000/api/upload/{product_id}/product_image_file
+#[utoipa::path(
+    get,
+    path = "/api/upload/{product_id}/product_image_file",
+    tag = "uploads",
+    responses(
+        (status = 200, description = "Product list based on user login successfully", body = [ProductResponse]),
+        (status = 401, description = "Unauthorized", body = UnauthorizedResponse),
+    ),
+    params(
+        ("product_id" = i32, Path, description = "Product database id")
+    ),
+    security(
+        ("jwt_token" = [])
+    )
+)]
 async fn upload_product_image_file(auth: auth::JWT, Path(product_id): Path<i32>, State(ctx): State<AppContext>, mut multipart: Multipart) -> Result<Response> {
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
     load_product(&ctx, user, product_id).await?;

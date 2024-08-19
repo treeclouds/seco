@@ -80,18 +80,22 @@ async fn load_item(ctx: &AppContext, user: users::Model, id: i32) -> Result<Mode
         (status = 200, description = "Product list based on user login successfully", body = [ProductResponse]),
         (status = 401, description = "Unauthorized", body = UnauthorizedResponse),
     ),
-    security(
-        ("jwt_token" = [])
-    )
 )]
-pub async fn list(auth: auth::JWT, State(ctx): State<AppContext>) -> Result<Response> {
-    let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
-    let products = user.find_related(Entity).all(&ctx.db).await?;
-
+pub async fn list(State(ctx): State<AppContext>) -> Result<Response> {
     let mut product_list: Vec<ProductResponse> = Vec::new();
+    // if !&auth.claims.pid.trim().is_empty() {
+    //     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    //     let products = user.find_related(Entity).all(&ctx.db).await?;
+    //     for product in &products {
+    //         product_list.push(ProductResponse::new(product));
+    //     }
+    // } else {
+    let products = Entity::find().all(&ctx.db).await?;
     for product in &products {
         product_list.push(ProductResponse::new(product));
     }
+    // }
+
     format::json(product_list)
 }
 
