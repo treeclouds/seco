@@ -3,8 +3,9 @@ use loco_rs::prelude::*;
 
 use crate::{models::_entities::{users, products}, views::user::CurrentResponse};
 use crate::controllers::products::ProductPostParams;
+use crate::models::_entities::product_images;
 use crate::models::products::{ActiveModel, Entity, Model};
-use crate::views::product::ProductResponse;
+use crate::views::product::{ProductImageResponse, ProductResponse};
 
 
 #[utoipa::path(
@@ -46,7 +47,14 @@ pub async fn product_list(auth: auth::JWT, State(ctx): State<AppContext>) -> Res
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
     let products = user.find_related(Entity).all(&ctx.db).await?;
     for product in &products {
-        product_list.push(ProductResponse::new(product));
+        let mut product_image_list: Vec<ProductImageResponse> = Vec::new();
+        let product_images = product.find_related(product_images::Entity).all(&ctx.db).await?;
+        for image in &product_images {
+            product_image_list.push(ProductImageResponse::new(image));
+        }
+        let mut product_resp = ProductResponse::new(product);
+        product_resp.images = Some(product_image_list);
+        product_list.push(product_resp);
     }
 
     format::json(product_list)
@@ -91,7 +99,14 @@ pub async fn product_add(auth: auth::JWT, State(ctx): State<AppContext>, Json(pa
 pub async fn product_get_one(auth: auth::JWT, Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
     let product = load_item(&ctx, user, id).await?;
-    format::json(ProductResponse::new(&product))
+    let mut product_image_list: Vec<ProductImageResponse> = Vec::new();
+    let product_images = product.find_related(product_images::Entity).all(&ctx.db).await?;
+    for image in &product_images {
+        product_image_list.push(ProductImageResponse::new(image));
+    }
+    let mut product_resp = ProductResponse::new(&product);
+    product_resp.images = Some(product_image_list);
+    format::json(product_resp)
 }
 
 #[utoipa::path(

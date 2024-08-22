@@ -30,7 +30,7 @@ pub struct ProductResponse {
     #[schema(value_type = String)]
     pub created_at: NaiveDateTime,
     #[schema(value_type = String, format = Binary)]
-    pub images: Option<JsonValue>,
+    pub images: Option<Vec<ProductImageResponse>>,
 }
 
 impl ProductResponse {
