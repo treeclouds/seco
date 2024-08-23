@@ -116,20 +116,6 @@ impl Hooks for App {
         create_app::<Self, Migrator>(mode, environment).await
     }
 
-    // async fn storage(
-    //     _config: &Config,
-    //     environment: &Environment,
-    // ) -> Result<Option<storage::Storage>> {
-    //     let store = if environment == &Environment::Test {
-    //         storage::drivers::mem::new()
-    //     } else {
-    //         storage::drivers::local::new_with_prefix("storage-uploads").map_err(Box::from)?
-    //     };
-    //
-    //     let storage = Storage::single(store);
-    //     return Ok(Some(storage));
-    // }
-
     fn routes(_ctx: &AppContext) -> AppRoutes {
         AppRoutes::with_default_routes()
             // .prefix("/api")

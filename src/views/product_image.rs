@@ -5,7 +5,7 @@ use crate::models::_entities::product_images::Model;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct ProductImageResponse {
-    pub product_id: i32,
+    pub id: i32,
     pub image: String,
 }
 
@@ -13,7 +13,7 @@ impl ProductImageResponse {
     #[must_use]
     pub fn new(product_image: &Model) -> Self {
         Self {
-            product_id: product_image.product_id,
+            id: product_image.id,
             image: product_image.image.to_string(),
         }
     }

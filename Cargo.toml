@@ -42,6 +42,11 @@ tracing-subscriber = { version = "0.3.17", features = ["env-filter", "json"] }
 utoipa-swagger-ui = { version = "6.0.0", features = ["axum"] }
 utoipa = { version = "4.2.0", features = ["axum_extras"] }
 
+# view engine i18n
+fluent-templates = { version = "0.8.0", features = ["tera"] }
+unic-langid = "0.9.4"
+# /view engine
+
 [[bin]]
 name = "seco-cli"
 path = "src/bin/main.rs"

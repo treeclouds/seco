@@ -21,12 +21,13 @@ async fn load_product(ctx: &AppContext, user: users::Model, id: i32) -> Result<M
     item.ok_or_else(|| Error::NotFound)
 }
 
-async fn generate_unique_filename(base_filename: &str) -> std::io::Result<PathBuf> {
+async fn generate_unique_filename(base_filename: &str, product_id: i32) -> std::io::Result<PathBuf> {
     let mut filename = base_filename.to_owned();
     let mut counter = 0u32;
 
     loop {
-        let path_buf = PathBuf::from("storage-uploads/product_images").join(&filename);
+        let new_filename = format!("{product_id}/{filename}");
+        let path_buf = PathBuf::from("storage-uploads/product_images").join(new_filename);
         if !path_buf.exists() {
             return Ok(filename.into());
         }
@@ -77,9 +78,10 @@ async fn upload_product_image_file(auth: auth::JWT, Path(product_id): Path<i32>,
             Error::BadRequest("could not read bytes".into())
         })?;
 
-        let unique_file_name = generate_unique_filename(&file_name).await?;
-
-        let path = PathBuf::from("product_images").join(unique_file_name);
+        let unique_file_name = generate_unique_filename(&file_name, product_id).await?;
+        let unique_file_name_str = unique_file_name.to_string_lossy().to_string();
+        let new_filename = format!("{product_id}/{unique_file_name_str}");
+        let path = PathBuf::from("product_images").join(new_filename);
         ctx.storage.as_ref().upload(path.as_path(), &content).await?;
 
         file = Some(path);

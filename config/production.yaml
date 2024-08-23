@@ -59,6 +59,15 @@ server:
       # Set the value of the [`Access-Control-Max-Age`][mdn] header in seconds
       # max_age: 3600
 
+    static:
+      enable: true
+      must_exist: true
+      precompressed: false
+      folder:
+        uri: "/media"
+        path: "storage-uploads"
+      fallback: "frontend/dist/404.html"
+
 # Database Configuration
 database:
   uri: {{get_env(name="DATABASE_URL", default="postgres://postgres:postgres@localhost:5432/seco_prod")}}
