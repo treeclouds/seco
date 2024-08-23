@@ -14,7 +14,7 @@ async fn main() -> eyre::Result<()> {
     // };
     // active_model.insert(&ctx.db).await.unwrap();
 
-    // let res = articles::Entity::find().all(&ctx.db).await.unwrap();
+    // let res = seco::models::products::Entity::find().all(&ctx.db).await.unwrap();
     // println!("{:?}", res);
     println!("welcome to playground. edit me at `examples/playground.rs`");
 
