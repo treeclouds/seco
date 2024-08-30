@@ -1,5 +1,5 @@
 name = "seco"
-assets = [
-    "frontend/dist/*", # include all files and subdirs in frontend/dist/
-    "storage-uploads/*", # include all files and subdirs in static/
-]
+#assets = [
+#    "frontend/dist/*", # include all files and subdirs in frontend/dist/
+#    "storage-uploads/*", # include all files and subdirs in static/
+#]

@@ -22,15 +22,17 @@ use crate::{
         self,
         auth::{self, VerifyParams, ResetParams, ForgotParams},
         products::{self as ct_products, ProductPostParams, UnauthorizedResponse},
+        categories::{self as ct_categories},
         user::{self},
         upload::{self}
     },
     models::{
         users::{LoginParams, RegisterParams},
-        _entities::{product_images, products, users}
+        _entities::{product_images, products, users, categories}
     },
     tasks,
     views::{
+        category::CategoryResponse,
         auth::LoginResponse,
         product::ProductResponse,
         user::CurrentResponse,
@@ -55,6 +57,7 @@ use utoipa_swagger_ui::SwaggerUi;
         auth::login,
         ct_products::list,
         ct_products::get_one,
+        ct_categories::list,
         user::current,
         user::product_list,
         user::product_add,
@@ -67,7 +70,7 @@ use utoipa_swagger_ui::SwaggerUi;
         schemas(
             LoginParams, RegisterParams, VerifyParams, ResetParams, ForgotParams,
             ProductPostParams, LoginResponse, ProductResponse, UnauthorizedResponse,
-            CurrentResponse
+            CurrentResponse, CategoryResponse
         )
     ),
     modifiers(&SecurityAddon),
@@ -120,6 +123,7 @@ impl Hooks for App {
         AppRoutes::with_default_routes()
             // .prefix("/api")
             .add_route(controllers::base::routes())
+            .add_route(controllers::categories::routes())
             .add_route(controllers::products::routes())
             .add_route(controllers::auth::routes())
             .add_route(controllers::user::routes())
@@ -144,6 +148,7 @@ impl Hooks for App {
         truncate_table(db, users::Entity).await?;
         truncate_table(db, products::Entity).await?;
         truncate_table(db, product_images::Entity).await?;
+        truncate_table(db, categories::Entity).await?;
         Ok(())
     }
 
@@ -151,6 +156,7 @@ impl Hooks for App {
         db::seed::<users::ActiveModel>(db, &base.join("users.yaml").display().to_string()).await?;
         db::seed::<products::ActiveModel>(db, &base.join("products.yaml").display().to_string()).await?;
         db::seed::<product_images::ActiveModel>(db, &base.join("product_images.yaml").display().to_string()).await?;
+        db::seed::<product_images::ActiveModel>(db, &base.join("categories.yaml").display().to_string()).await?;
         Ok(())
     }
 
