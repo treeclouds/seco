@@ -3,9 +3,8 @@ use loco_rs::prelude::*;
 
 use crate::{models::_entities::{users, products}, views::user::CurrentResponse};
 use crate::controllers::products::ProductPostParams;
-use crate::models::_entities::product_images;
 use crate::models::products::{ActiveModel, Entity, Model};
-use crate::views::product::{ProductImageResponse, ProductResponse};
+use crate::views::product::ProductResponse;
 
 
 #[utoipa::path(

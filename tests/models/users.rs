@@ -24,9 +24,10 @@ async fn test_can_validate_model() {
     let boot = testing::boot_test::<App>().await.unwrap();
 
     let res = users::ActiveModel {
-        first_name: ActiveValue::set("1".to_string()),
-        last_name: ActiveValue::set("1".to_string()),
-        email: ActiveValue::set("invalid-email".to_string()),
+        first_name: ActiveValue::set("loco".to_string()),
+        last_name: ActiveValue::set("framework".to_string()),
+        email: ActiveValue::set("test@framework.com".to_string()),
+        password: ActiveValue::set("1234".to_string()),
         ..Default::default()
     }
     .insert(&boot.app_context.db)

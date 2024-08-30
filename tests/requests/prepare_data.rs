@@ -12,7 +12,8 @@ pub struct LoggedInUser {
 
 pub async fn init_user_login(request: &TestServer, ctx: &AppContext) -> LoggedInUser {
     let register_payload = serde_json::json!({
-        "name": "loco",
+        "first_name": "loco",
+        "last_name": "loco",
         "email": USER_EMAIL,
         "password": USER_PASSWORD
     });

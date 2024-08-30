@@ -156,7 +156,7 @@ impl Hooks for App {
         db::seed::<users::ActiveModel>(db, &base.join("users.yaml").display().to_string()).await?;
         db::seed::<products::ActiveModel>(db, &base.join("products.yaml").display().to_string()).await?;
         db::seed::<product_images::ActiveModel>(db, &base.join("product_images.yaml").display().to_string()).await?;
-        db::seed::<product_images::ActiveModel>(db, &base.join("categories.yaml").display().to_string()).await?;
+        db::seed::<categories::ActiveModel>(db, &base.join("categories.yaml").display().to_string()).await?;
         Ok(())
     }
 

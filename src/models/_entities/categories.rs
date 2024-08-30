@@ -11,23 +11,8 @@ pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
     pub name: String,
-    pub parent_id: i32
+    pub parent_id: Option<i32>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
-pub enum Relation {
-    #[sea_orm(belongs_to = "super::categories::Entity", from = "Column::ParentId", to = "super::categories::Column::Id")]
-    SelfReferencing,
-}
-
-pub struct SelfReferencingLink;
-
-impl Linked for SelfReferencingLink {
-    type FromEntity = Entity;
-
-    type ToEntity = Entity;
-
-    fn link(&self) -> Vec<RelationDef> {
-        vec![Relation::SelfReferencing.def()]
-    }
-}
+pub enum Relation {}
