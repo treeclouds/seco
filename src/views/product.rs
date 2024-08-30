@@ -1,7 +1,9 @@
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use sea_orm::prelude::Decimal;
-use sea_orm::{JsonValue};
+use sea_orm::{FromQueryResult, JsonValue};
+use sea_orm::entity::prelude::*;
+use uuid::Uuid;
 use utoipa::ToSchema;
 
 use crate::models::_entities::sea_orm_active_enums::Condition;
@@ -72,4 +74,29 @@ impl ProductImageResponse {
             image: product_image.image.to_string(),
         }
     }
+}
+
+#[derive(Debug, FromQueryResult, Deserialize, Serialize, ToSchema)]
+pub struct ProductsResponse {
+    id: i32,
+    category: String,
+    title: String,
+    description: String,
+    price: Decimal,
+    dimension_width: f32,
+    dimension_height: f32,
+    dimension_length: f32,
+    dimension_weight: f32,
+    brand: String,
+    material: String,
+    stock: i32,
+    sku: String,
+    tags: Option<JsonValue>,
+    condition: Option<String>,
+    created_at: DateTime,
+    images: Option<JsonValue>,
+    seller_pid: Uuid,
+    seller_first_name: String,
+    seller_last_name: String,
+    seller_joined_date: DateTime,
 }

@@ -5,15 +5,13 @@
 use loco_rs::prelude::*;
 use sea_orm::prelude::Decimal;
 use serde::{Deserialize, Serialize};
-use sea_orm::JsonValue;
+use sea_orm::{JsonValue};
 use utoipa::ToSchema;
-
 use crate::models::_entities::{
-    products::{ActiveModel, Entity, Model},
-    product_images,
+    products::{ActiveModel, Model},
     sea_orm_active_enums::Condition,
 };
-use crate::views::product::{ProductResponse, ProductImageResponse};
+use crate::views::product::ProductsResponse;
 
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
@@ -66,8 +64,8 @@ pub struct UnauthorizedResponse {
     pub description: String,
 }
 
-async fn load_item(ctx: &AppContext, id: i32) -> Result<Model> {
-    let item = Entity::find_by_id(id).one(&ctx.db).await?;
+async fn load_item(ctx: &AppContext, id: i32) -> std::result::Result<ProductsResponse, Error> {
+    let item = Model::get_product_by_id(&ctx.db, &id).await?;
     item.ok_or_else(|| Error::NotFound)
 }
 
@@ -81,20 +79,8 @@ async fn load_item(ctx: &AppContext, id: i32) -> Result<Model> {
     ),
 )]
 pub async fn list(State(ctx): State<AppContext>) -> Result<Response> {
-    let mut product_list: Vec<ProductResponse> = Vec::new();
-    let products = Entity::find().all(&ctx.db).await?;
-    for product in &products {
-        let mut product_image_list: Vec<ProductImageResponse> = Vec::new();
-        let product_images = product.find_related(product_images::Entity).all(&ctx.db).await?;
-        for image in &product_images {
-            product_image_list.push(ProductImageResponse::new(image));
-        }
-        let mut product_resp = ProductResponse::new(product);
-        product_resp.images = Some(product_image_list);
-        product_list.push(product_resp);
-    }
-
-    format::json(product_list)
+    let products: Vec<ProductsResponse> = Model::get_all_products(&ctx.db).await?;
+    format::json(products)
 }
 
 #[utoipa::path(
@@ -112,14 +98,7 @@ pub async fn list(State(ctx): State<AppContext>) -> Result<Response> {
 )]
 pub async fn get_one(Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
     let product = load_item(&ctx, id).await?;
-    let mut product_image_list: Vec<ProductImageResponse> = Vec::new();
-    let product_images = product.find_related(product_images::Entity).all(&ctx.db).await?;
-    for image in &product_images {
-        product_image_list.push(ProductImageResponse::new(image));
-    }
-    let mut product_resp = ProductResponse::new(&product);
-    product_resp.images = Some(product_image_list);
-    format::json(product_resp)
+    format::json(product)
 }
 
 pub fn routes() -> Routes {

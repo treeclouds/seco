@@ -43,21 +43,9 @@ async fn load_item(ctx: &AppContext, user: users::Model, id: i32) -> Result<Mode
     )
 )]
 pub async fn product_list(auth: auth::JWT, State(ctx): State<AppContext>) -> Result<Response> {
-    let mut product_list: Vec<ProductResponse> = Vec::new();
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
-    let products = user.find_related(Entity).all(&ctx.db).await?;
-    for product in &products {
-        let mut product_image_list: Vec<ProductImageResponse> = Vec::new();
-        let product_images = product.find_related(product_images::Entity).all(&ctx.db).await?;
-        for image in &product_images {
-            product_image_list.push(ProductImageResponse::new(image));
-        }
-        let mut product_resp = ProductResponse::new(product);
-        product_resp.images = Some(product_image_list);
-        product_list.push(product_resp);
-    }
-
-    format::json(product_list)
+    let products = products::Model::get_all_products_by_user_id(&ctx.db, &user.id).await?;
+    format::json(products)
 }
 
 #[utoipa::path(
