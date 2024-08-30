@@ -95,8 +95,5 @@ pub struct ProductsResponse {
     condition: Option<String>,
     created_at: DateTime,
     images: Option<JsonValue>,
-    seller_pid: Uuid,
-    seller_first_name: String,
-    seller_last_name: String,
-    seller_joined_date: DateTime,
+    seller: Option<JsonValue>,
 }

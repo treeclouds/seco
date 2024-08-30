@@ -86,15 +86,8 @@ pub async fn product_add(auth: auth::JWT, State(ctx): State<AppContext>, Json(pa
 )]
 pub async fn product_get_one(auth: auth::JWT, Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
-    let product = load_item(&ctx, user, id).await?;
-    let mut product_image_list: Vec<ProductImageResponse> = Vec::new();
-    let product_images = product.find_related(product_images::Entity).all(&ctx.db).await?;
-    for image in &product_images {
-        product_image_list.push(ProductImageResponse::new(image));
-    }
-    let mut product_resp = ProductResponse::new(&product);
-    product_resp.images = Some(product_image_list);
-    format::json(product_resp)
+    let product = products::Model::get_product_by_id_and_user_id(&ctx.db, &id, &user.id).await?;
+    format::json(product)
 }
 
 #[utoipa::path(
