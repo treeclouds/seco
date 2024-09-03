@@ -81,6 +81,9 @@ pub async fn product_add(auth: auth::JWT, State(ctx): State<AppContext>, Json(pa
     ),
     params(
         ("id" = i32, Path, description = "Product database id")
+    ),
+    security(
+        ("jwt_token" = [])
     )
 )]
 pub async fn product_get_one(auth: auth::JWT, Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {

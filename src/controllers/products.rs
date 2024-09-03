@@ -16,7 +16,7 @@ use crate::views::product::ProductsResponse;
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
 pub struct ProductPostParams {
-    pub category: String,
+    pub category_id: i32,
     pub title: String,
     pub description: String,
     #[schema(value_type = f64)]
@@ -42,7 +42,7 @@ pub struct ProductPostParams {
 impl ProductPostParams {
     pub(crate) fn update(&self, item: &mut ActiveModel) {
         item.title = Set(self.title.clone());
-        item.category = Set(self.category.clone());
+        item.category_id = Set(Option::from(self.category_id));
         item.description = Set(self.description.clone());
         item.price = Set(self.price);
         item.dimension_width = Set(self.dimension_width);

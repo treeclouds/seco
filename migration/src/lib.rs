@@ -14,6 +14,7 @@ mod m20240329_041116_product_images;
 mod m20240329_164332_add_users_is_active_is_superuser;
 mod m20240828_113705_categories;
 mod m20240830_142527_alter_parent_id_categories;
+mod m20240903_112445_alter_products_category;
 pub struct Migrator;
 
 #[async_trait::async_trait]
@@ -31,6 +32,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20240329_164332_add_users_is_active_is_superuser::Migration),
             Box::new(m20240828_113705_categories::Migration),
             Box::new(m20240830_142527_alter_parent_id_categories::Migration),
+            Box::new(m20240903_112445_alter_products_category::Migration),
         ]
     }
 }

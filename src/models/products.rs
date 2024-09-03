@@ -19,7 +19,7 @@ impl super::_entities::products::Model {
             .from_raw_sql(Statement::from_sql_and_values(
                 DbBackend::Postgres,
                 r#"
-            SELECT p.id, p.title, p.category, p.description, p.price, p.dimension_width,
+            SELECT p.id, p.title, p.category_id, p.description, p.price, p.dimension_width,
                 p.dimension_height, p.dimension_length, p.dimension_weight, p.brand, p.material,
                 p.stock, p.sku, p.tags::jsonb, p.condition::text, p.created_at,
                 COALESCE((
@@ -47,7 +47,7 @@ impl super::_entities::products::Model {
         let products: Vec<ProductsResponse> = JsonValue::find_by_statement(Statement::from_sql_and_values(
             DbBackend::Postgres,
             r#"
-            SELECT p.id, p.title, p.category, p.description, p.price, p.dimension_width,
+            SELECT p.id, p.title, p.category_id, p.description, p.price, p.dimension_width,
                 p.dimension_height, p.dimension_length, p.dimension_weight, p.brand, p.material,
                 p.stock, p.sku, p.tags::jsonb, p.condition::text, p.created_at,
                 COALESCE((
@@ -72,12 +72,12 @@ impl super::_entities::products::Model {
         db: &DatabaseConnection,
         product_id: &i32,
         user_id: &i32
-    ) -> ModelResult<Option<ProductsResponse>> {
+    ) -> Result<ProductsResponse, loco_rs::Error> {
         let product: Option<ProductsResponse> = products::Entity::find()
             .from_raw_sql(Statement::from_sql_and_values(
                 DbBackend::Postgres,
                 r#"
-            SELECT p.id, p.title, p.category, p.description, p.price, p.dimension_width,
+            SELECT p.id, p.title, p.category_id, p.description, p.price, p.dimension_width,
                 p.dimension_height, p.dimension_length, p.dimension_weight, p.brand, p.material,
                 p.stock, p.sku, p.tags::jsonb, p.condition::text, p.created_at,
                 COALESCE((
@@ -97,7 +97,7 @@ impl super::_entities::products::Model {
             .into_model::<ProductsResponse>()
             .one(db)
             .await?;
-        Ok(product)
+        product.ok_or_else(|| loco_rs::Error::NotFound)
     }
 
     pub async fn get_all_products_by_user_id(
@@ -107,7 +107,7 @@ impl super::_entities::products::Model {
         let products: Vec<ProductsResponse> = JsonValue::find_by_statement(Statement::from_sql_and_values(
             DbBackend::Postgres,
             r#"
-            SELECT p.id, p.title, p.category, p.description, p.price, p.dimension_width,
+            SELECT p.id, p.title, p.category_id, p.description, p.price, p.dimension_width,
                 p.dimension_height, p.dimension_length, p.dimension_weight, p.brand, p.material,
                 p.stock, p.sku, p.tags::jsonb, p.condition::text, p.created_at,
                 COALESCE((

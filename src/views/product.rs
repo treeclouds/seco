@@ -11,7 +11,7 @@ use crate::models::_entities::{product_images, products};
 #[derive(Debug, Deserialize, Serialize, ToSchema)]
 pub struct ProductResponse {
     pub id: i32,
-    pub category: String,
+    pub category_id: Option<i32>,
     pub title: String,
     pub description: String,
     #[schema(value_type = f64)]
@@ -39,7 +39,7 @@ impl ProductResponse {
     pub fn new(product: &products::Model) -> Self {
         Self {
             id: product.id,
-            category: product.category.to_string(),
+            category_id: product.category_id,
             title: product.title.to_string(),
             description: product.description.to_string(),
             price: product.price,
@@ -78,7 +78,7 @@ impl ProductImageResponse {
 #[derive(Debug, FromQueryResult, Deserialize, Serialize, ToSchema)]
 pub struct ProductsResponse {
     id: i32,
-    category: String,
+    category_id: Option<i32>,
     title: String,
     description: String,
     price: Decimal,
