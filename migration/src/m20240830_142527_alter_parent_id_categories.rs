@@ -59,7 +59,7 @@ impl MigrationTrait for Migration {
                 Table::alter()
                     .table(Categories::Table)
                     .modify_column(
-                        ColumnDef::new(Alias::new("parent_id")).integer().null()
+                        ColumnDef::new(Categories::ParentId).integer().null()
                     )
                     .to_owned(),
             )

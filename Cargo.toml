@@ -47,6 +47,8 @@ fluent-templates = { version = "0.8.0", features = ["tera"] }
 unic-langid = "0.9.4"
 # /view engine
 
+insta = "1.39.0"
+
 [[bin]]
 name = "seco-cli"
 path = "src/bin/main.rs"
