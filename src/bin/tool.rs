@@ -6,4 +6,3 @@ use migration::Migrator;
 async fn main() -> loco_rs::Result<()> {
     cli::main::<App, Migrator>().await
 }
-
