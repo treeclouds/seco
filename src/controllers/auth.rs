@@ -163,7 +163,13 @@ async fn login(
     State(ctx): State<AppContext>,
     Json(params): Json<LoginParams>,
 ) -> Result<Response> {
-    let user = users::Model::find_by_email(&ctx.db, &params.email).await?;
+    let Ok(user) = users::Model::find_by_email(&ctx.db, &params.email).await else {
+        // we don't want to expose our users email. if the email is invalid we still
+        // returning success to the caller
+        let msg_error = String::from("Invalid email or password!");
+        return Err(CustomError(StatusCode::BAD_REQUEST, ErrorDetail::new("bad_request", &*msg_error)))
+    };
+
 
     let valid = user.verify_password(&params.password);
 
