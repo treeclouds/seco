@@ -10,7 +10,8 @@ edition = "2021"
 [dependencies]
 shuttle-axum = "0.47.0"
 shuttle-metadata = "0.42.0"
-shuttle-runtime = { version = "0.47.0", default-features = false }
+# shuttle-runtime = { version = "0.47.0", default-features = false }
+shuttle-runtime = { version = "0.47.0" }
 shuttle-shared-db = { version = "0.47.0", features = ["postgres"] }
 
 
