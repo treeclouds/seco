@@ -43,9 +43,15 @@ impl MigrationTrait for Migration {
             .col(string_len(Products::Sku, 100))
             .col(json_null(Products::Tags))
             // .col(array_null(Products::Tags, ColumnType::String(StringLen::N(255))))
+            // .col(
+            //     ColumnDef::new(Products::Condition)
+            //         .enumeration(Alias::new("condition"), [Alias::new("BrandNew"), Alias::new("MintCondition"), Alias::new("LikeNew"), Alias::new("Excellent"), Alias::new("Good"), Alias::new("Fair")]),
+            // )
             .col(
                 ColumnDef::new(Products::Condition)
-                    .enumeration(Alias::new("condition"), [Alias::new("BrandNew"), Alias::new("MintCondition"), Alias::new("LikeNew"), Alias::new("Excellent"), Alias::new("Good"), Alias::new("Fair")]),
+                    .custom(Alias::new("condition")) // Use the enum type name
+                    .null()
+                    .to_owned(),
             )
             .to_owned();
         manager.create_table(table).await?;
@@ -86,7 +92,20 @@ impl MigrationTrait for Migration {
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
             .drop_table(Table::drop().table(Products::Table).to_owned())
-            .await
+            .await?;
+
+        // Drop the enum type `roles_name`
+        manager
+            .drop_type(
+                Type::drop()
+                    .if_exists()
+                    .name(ConditionEnum)
+                    .restrict()
+                    .to_owned(),
+            )
+            .await?;
+
+        Ok(())
     }
 }
 

@@ -25,6 +25,8 @@ pub struct Model {
     pub last_name: String,
     pub is_active: bool,
     pub is_superuser: bool,
+    pub location: Option<String>,
+    pub image: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

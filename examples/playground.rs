@@ -25,7 +25,7 @@ async fn main() -> eyre::Result<()> {
     #[derive(FromQueryResult, Debug)]
     struct ProductAndSellerResponse {
         id: i32,
-        category: String,
+        category_id: Option<i32>,
         title: String,
         description: String,
         price: Decimal,
@@ -64,7 +64,7 @@ async fn main() -> eyre::Result<()> {
     //     DbBackend::Postgres,
     //     r#"
     //         SELECT
-    //             d.id, d.title, d.category, d.description, d.price, d.dimension_width,
+    //             d.id, d.title, d.category_id, d.description, d.price, d.dimension_width,
     //             d.dimension_height, d.dimension_length, d.dimension_weight, d.brand, d.material,
     //             d.stock, d.sku, d.tags::jsonb, d.condition::text, d.created_at,
     //             array_to_json(array_agg(d.image)) AS images,
@@ -76,7 +76,7 @@ async fn main() -> eyre::Result<()> {
     //             LEFT JOIN users u ON u.id = p.seller_id
     //             INNER JOIN product_images pi ON pi.product_id = p.id
     //         ) d
-    //         GROUP BY d.id, d.title, d.category, d.description, d.price, d.dimension_width,
+    //         GROUP BY d.id, d.title, d.category_id, d.description, d.price, d.dimension_width,
     //             d.dimension_height, d.dimension_length, d.dimension_weight, d.brand, d.material,
     //             d.stock, d.sku, d.tags::jsonb, d.condition::text, d.created_at, d.pid,
     //             d.first_name, d.last_name, d.user_created
@@ -85,32 +85,32 @@ async fn main() -> eyre::Result<()> {
     // )).into_model::<ProductAndSellerResponse>()
     //     .all(&ctx.db)
     //     .await?;
-    let products: Vec<ProductAndSellerResponse> = JsonValue::find_by_statement(Statement::from_sql_and_values(
-        DbBackend::Postgres,
-        r#"
-            SELECT p.id, p.title, p.category, p.description, p.price, p.dimension_width,
-                p.dimension_height, p.dimension_length, p.dimension_weight, p.brand, p.material,
-                p.stock, p.sku, p.tags::jsonb, p.condition::text, p.created_at,
-                COALESCE((
-                   SELECT json_agg(json_build_object('id', pi2.id, 'image', pi2.image))
-                   FROM product_images pi2 where pi2.product_id = p.id
-                ), '[]'::json) as images,
-                COALESCE (
-                    json_agg(json_build_object('pid', u.pid, 'first_name', u.first_name, 'last_name', u.last_name, 'joined_date', u.created_at)), '{}'::json
-                ) as seller
-            FROM products p
-            INNER JOIN users u ON u.id = p.seller_id
-            GROUP BY p.id;
-        "#,
-        [],
-    )).into_model::<ProductAndSellerResponse>()
-        .all(&ctx.db)
-        .await?;
+    // let products: Vec<ProductAndSellerResponse> = JsonValue::find_by_statement(Statement::from_sql_and_values(
+    //     DbBackend::Postgres,
+    //     r#"
+    //         SELECT p.id, p.title, p.category_id, p.description, p.price, p.dimension_width,
+    //             p.dimension_height, p.dimension_length, p.dimension_weight, p.brand, p.material,
+    //             p.stock, p.sku, p.tags::jsonb, p.condition::text, p.created_at,
+    //             COALESCE((
+    //                SELECT json_agg(json_build_object('id', pi2.id, 'image', pi2.image))
+    //                FROM product_images pi2 where pi2.product_id = p.id
+    //             ), '[]'::json) as images,
+    //             COALESCE (
+    //                 json_agg(json_build_object('pid', u.pid, 'first_name', u.first_name, 'last_name', u.last_name, 'joined_date', u.created_at)), '{}'::json
+    //             ) as seller
+    //         FROM products p
+    //         INNER JOIN users u ON u.id = p.seller_id
+    //         GROUP BY p.id;
+    //     "#,
+    //     [],
+    // )).into_model::<ProductAndSellerResponse>()
+    //     .all(&ctx.db)
+    //     .await?;
     // let product: Option<ProductAndSellerResponse> = products::Entity::find()
     //     .from_raw_sql(Statement::from_sql_and_values(
     //         DbBackend::Postgres,
     //         r#"
-    //         SELECT p.id, p.title, p.category, p.description, p.price, p.dimension_width,
+    //         SELECT p.id, p.title, p.category_id, p.description, p.price, p.dimension_width,
     //             p.dimension_height, p.dimension_length, p.dimension_weight, p.brand, p.material,
     //             p.stock, p.sku, p.tags::jsonb, p.condition::text, p.created_at,
     //             COALESCE((
@@ -129,7 +129,32 @@ async fn main() -> eyre::Result<()> {
     //     .into_model::<ProductAndSellerResponse>()
     //     .one(&ctx.db)
     //     .await?;
-    println!("{:?}", products);
+    let product_list = products::Entity::find()
+        .from_raw_sql(Statement::from_sql_and_values(
+            DbBackend::Postgres,
+            r#"
+                SELECT p.id, p.title, p.category_id, p.description, p.price, p.dimension_width,
+                    p.dimension_height, p.dimension_length, p.dimension_weight, p.brand, p.material,
+                    p.stock, p.sku, p.tags::jsonb, p.condition::text, p.created_at, p.updated_at
+                    COALESCE((
+                       SELECT json_agg(json_build_object('id', pi2.id, 'image', pi2.image))
+                       FROM product_images pi2 where pi2.product_id = p.id
+                    ), '[]'::json) as images,
+                    COALESCE (
+                        json_build_object('pid', u.pid, 'first_name', u.first_name, 'last_name', u.last_name, 'joined_date', u.created_at), '{}'::json
+                    ) as seller
+                FROM products p
+                INNER JOIN users u ON u.id = p.seller_id
+                GROUP BY p.id, u.pid, u.first_name, u.last_name, u.created_at
+            "#,
+            [],
+        ));
+    let pagination_query = query::PaginationQuery {
+        page_size: 1,
+        page: 1,
+    };
+    let res = query::fetch_page(&ctx.db, product_list, &pagination_query).await;
+    println!("{:?}", res);
     println!("welcome to playground. edit me at `examples/playground.rs`");
 
     Ok(())

@@ -16,7 +16,7 @@ use crate::views::product::ProductsResponse;
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
 pub struct ProductPostParams {
-    pub category_id: i32,
+    pub category_id: Option<i32>,
     pub title: String,
     pub description: String,
     #[schema(value_type = f64)]

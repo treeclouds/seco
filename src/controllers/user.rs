@@ -1,11 +1,29 @@
 use chrono::Local;
 use loco_rs::prelude::*;
-
-use crate::{models::_entities::{users, products}, views::user::CurrentResponse};
+use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
+use crate::{
+    models::_entities::{
+        users::{self, ActiveModel},
+        products
+    },
+    views::user::CurrentResponse
+};
 use crate::controllers::products::ProductPostParams;
-use crate::models::products::{ActiveModel, Entity, Model};
+use crate::models::products::{ActiveModel as ProductActiveModel, Entity as ProductEntity, Model as ProductModel};
 use crate::views::product::ProductResponse;
 
+
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+pub struct LocationParams {
+    pub location: String,
+}
+
+impl LocationParams {
+    pub(crate) fn update(&self, item: &mut ActiveModel) {
+        item.location = Set(Option::from(self.location.clone()));
+    }
+}
 
 #[utoipa::path(
     get,
@@ -24,8 +42,8 @@ async fn current(auth: auth::JWT, State(ctx): State<AppContext>) -> Result<Respo
     format::json(CurrentResponse::new(&user))
 }
 
-async fn load_item(ctx: &AppContext, user: users::Model, id: i32) -> Result<Model> {
-    let item = user.find_related(Entity).filter(products::Column::Id.eq(id)).one(&ctx.db).await?;
+async fn load_item(ctx: &AppContext, user: users::Model, id: i32) -> Result<ProductModel> {
+    let item = user.find_related(ProductEntity).filter(products::Column::Id.eq(id)).one(&ctx.db).await?;
     item.ok_or_else(|| Error::NotFound)
 }
 
@@ -61,7 +79,7 @@ pub async fn product_list(auth: auth::JWT, State(ctx): State<AppContext>) -> Res
 )]
 pub async fn product_add(auth: auth::JWT, State(ctx): State<AppContext>, Json(params): Json<ProductPostParams>) -> Result<Response> {
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
-    let mut item = ActiveModel {
+    let mut item = ProductActiveModel {
         seller_id: ActiveValue::Set(user.id),
         ..Default::default()
     };
@@ -145,10 +163,38 @@ pub async fn product_remove(auth: auth::JWT, Path(id): Path<i32>, State(ctx): St
     format::empty()
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/user/update_location",
+    tag = "users",
+    request_body = LocationParams,
+    responses(
+        (status = 200, description = "Product update successfully", body = [CurrentResponse]),
+        (status = 401, description = "Unauthorized", body = UnauthorizedResponse),
+        (status = 404, description = "Product not found", body = UnauthorizedResponse),
+    ),
+    security(
+        ("jwt_token" = [])
+    )
+)]
+pub async fn update_location(
+    auth: auth::JWT,
+    State(ctx): State<AppContext>,
+    Json(params): Json<LocationParams>,
+) -> Result<Response> {
+    let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    let mut user = user.into_active_model();
+    params.update(&mut user);
+    user.updated_at = ActiveValue::Set(Local::now().naive_local());
+    let user = user.update(&ctx.db).await?;
+    format::json(CurrentResponse::new(&user))
+}
+
 pub fn routes() -> Routes {
     Routes::new()
         .prefix("/api/user")
         .add("/current", get(current))
+        .add("/update_location", post(update_location))
         .add("/products", get(product_list))
         .add("/product/new", post(product_add))
         .add("/product/:id", get(product_get_one))

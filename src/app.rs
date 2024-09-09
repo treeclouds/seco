@@ -23,7 +23,7 @@ use crate::{
         auth::{self, VerifyParams, ResetParams, ForgotParams},
         products::{self as ct_products, ProductPostParams, UnauthorizedResponse},
         categories::{self as ct_categories, CategoryPostParams},
-        user::{self},
+        user::{self, LocationParams},
         upload::{self}
     },
     models::{
@@ -60,6 +60,7 @@ use utoipa_swagger_ui::SwaggerUi;
         ct_categories::list,
         ct_categories::category_add,
         user::current,
+        user::update_location,
         user::product_list,
         user::product_add,
         user::product_get_one,
@@ -71,7 +72,7 @@ use utoipa_swagger_ui::SwaggerUi;
         schemas(
             LoginParams, RegisterParams, VerifyParams, ResetParams, ForgotParams,
             ProductPostParams, LoginResponse, ProductResponse, UnauthorizedResponse,
-            CurrentResponse, CategoryResponse, CategoryPostParams
+            CurrentResponse, CategoryResponse, CategoryPostParams, LocationParams
         )
     ),
     modifiers(&SecurityAddon),
