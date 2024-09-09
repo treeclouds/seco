@@ -18,6 +18,7 @@ mod m20240903_112445_alter_products_category;
 mod m20240909_030131_add_users_location_and_image;
 mod m20240909_031109_index_users_location;
 mod m20240909_031322_index_products_brand;
+mod m20240909_112205_wishlists;
 pub struct Migrator;
 
 #[async_trait::async_trait]
@@ -39,6 +40,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20240909_030131_add_users_location_and_image::Migration),
             Box::new(m20240909_031109_index_users_location::Migration),
             Box::new(m20240909_031322_index_products_brand::Migration),
+            Box::new(m20240909_112205_wishlists::Migration),
         ]
     }
 }
