@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use sea_orm::{FromQueryResult, JsonValue};
 use utoipa::ToSchema;
 use crate::models::_entities::categories;
 
@@ -7,6 +8,13 @@ pub struct CategoryResponse {
     pub id: i32,
     pub name: String,
     pub parent_id: Option<i32>,
+}
+
+#[derive(Debug, FromQueryResult, Deserialize, Serialize, ToSchema)]
+pub struct CategoryListResponse {
+    pub id: i32,
+    pub name: String,
+    pub child: Option<JsonValue>,
 }
 
 impl crate::views::category::CategoryResponse {

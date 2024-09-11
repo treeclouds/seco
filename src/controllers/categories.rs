@@ -2,8 +2,8 @@
 use loco_rs::prelude::*;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-use crate::models::_entities::categories::{Entity, ActiveModel};
-use crate::views::category::CategoryResponse;
+use crate::models::_entities::categories::{ActiveModel, Model};
+use crate::views::category::{CategoryResponse, CategoryListResponse};
 
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
@@ -29,13 +29,8 @@ impl CategoryPostParams {
     ),
 )]
 pub async fn list(State(ctx): State<AppContext>) -> Result<Response> {
-    let mut category_list: Vec<CategoryResponse> = Vec::new();
-    let categories = Entity::find().all(&ctx.db).await?;
-    for category in &categories {
-        category_list.push(CategoryResponse::new(category));
-    }
-
-    format::json(category_list)
+    let categories: Vec<CategoryListResponse> = Model::get_all_categories(&ctx.db).await?;
+    format::json(categories)
 }
 
 #[utoipa::path(
