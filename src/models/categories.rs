@@ -23,7 +23,7 @@ impl Model {
                        FROM categories c where c.parent_id = p.id
                     ), '[]'::json) as child
                 FROM categories p
-                where p.parent_id is null
+                WHERE p.parent_id IS NULL OR p.parent_id = 0
                 GROUP BY p.id, p.name
             "#,
             [],
