@@ -3,6 +3,7 @@
 pub mod prelude;
 
 pub mod categories;
+pub mod offerings;
 pub mod product_images;
 pub mod products;
 pub mod sea_orm_active_enums;

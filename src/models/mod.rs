@@ -4,3 +4,4 @@ pub mod products;
 pub mod product_images;
 pub mod categories;
 pub mod wishlists;
+pub mod offerings;

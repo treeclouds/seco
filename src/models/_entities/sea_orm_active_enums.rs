@@ -4,6 +4,16 @@ use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
+#[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "action_type")]
+pub enum ActionType {
+    #[sea_orm(string_value = "Accept")]
+    Accept,
+    #[sea_orm(string_value = "CounterOffer")]
+    CounterOffer,
+    #[sea_orm(string_value = "Decline")]
+    Decline,
+}
+#[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
 #[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "condition")]
 pub enum Condition {
     #[sea_orm(string_value = "BrandNew")]
@@ -18,4 +28,14 @@ pub enum Condition {
     LikeNew,
     #[sea_orm(string_value = "MintCondition")]
     MintCondition,
+}
+#[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
+#[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "offering_status")]
+pub enum OfferingStatus {
+    #[sea_orm(string_value = "Accepted")]
+    Accepted,
+    #[sea_orm(string_value = "Declined")]
+    Declined,
+    #[sea_orm(string_value = "InProgress")]
+    InProgress,
 }

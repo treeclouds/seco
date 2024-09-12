@@ -155,6 +155,29 @@ async fn main() -> eyre::Result<()> {
     };
     let res = query::fetch_page(&ctx.db, product_list, &pagination_query).await;
     println!("{:?}", res);
+
+    // let query_res_vec: Vec<QueryResult> = ctx.db.query_all(
+    //     Statement::from_string(
+    //         DbBackend::Postgres,
+    //         r#"
+    //             SELECT p.id, p.title, p.category_id, p.description, p.price, p.dimension_width,
+    //                 p.dimension_height, p.dimension_length, p.dimension_weight, p.brand, p.material,
+    //                 p.stock, p.sku, p.tags::jsonb, p.condition::text, p.created_at, p.updated_at
+    //                 COALESCE((
+    //                    SELECT json_agg(json_build_object('id', pi2.id, 'image', pi2.image))
+    //                    FROM product_images pi2 where pi2.product_id = p.id
+    //                 ), '[]'::json) as images,
+    //                 COALESCE (
+    //                     json_build_object('pid', u.pid, 'first_name', u.first_name, 'last_name', u.last_name, 'joined_date', u.created_at), '{}'::json
+    //                 ) as seller
+    //             FROM products p
+    //             INNER JOIN users u ON u.id = p.seller_id
+    //             GROUP BY p.id, u.pid, u.first_name, u.last_name, u.created_at
+    //         "#,
+    //     ))
+    //     .await?;
+    // let res1 = query::fetch_page(&ctx.db, query_res_vec, &pagination_query).await;
+    // println!("{:?}", res);
     println!("welcome to playground. edit me at `examples/playground.rs`");
 
     Ok(())

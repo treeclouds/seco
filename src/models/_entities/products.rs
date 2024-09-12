@@ -44,6 +44,8 @@ pub enum Relation {
         on_delete = "Restrict"
     )]
     Categories,
+    #[sea_orm(has_many = "super::offerings::Entity")]
+    Offerings,
     #[sea_orm(has_many = "super::product_images::Entity")]
     ProductImages,
     #[sea_orm(
@@ -61,6 +63,12 @@ pub enum Relation {
 impl Related<super::categories::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Categories.def()
+    }
+}
+
+impl Related<super::offerings::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Offerings.def()
     }
 }
 

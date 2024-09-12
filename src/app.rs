@@ -24,11 +24,12 @@ use crate::{
         products::{self as ct_products, ProductPostParams, UnauthorizedResponse},
         categories::{self as ct_categories, CategoryPostParams},
         user::{self, LocationParams},
+        wishlists::{self as ct_wishlists, WishListPostParams},
         upload::{self}
     },
     models::{
         users::{LoginParams, RegisterParams},
-        _entities::{product_images, products, users, categories}
+        _entities::{product_images, products, users, categories, wishlists, offerings}
     },
     tasks,
     views::{
@@ -36,6 +37,7 @@ use crate::{
         auth::LoginResponse,
         product::ProductResponse,
         user::CurrentResponse,
+        base::BaseResponse,
     },
     workers::downloader::DownloadWorker,
 };
@@ -66,13 +68,15 @@ use utoipa_swagger_ui::SwaggerUi;
         user::product_get_one,
         user::product_update,
         user::product_remove,
+        ct_wishlists::user_wishlist_new,
         upload::upload_product_image_file,
     ),
     components(
         schemas(
             LoginParams, RegisterParams, VerifyParams, ResetParams, ForgotParams,
             ProductPostParams, LoginResponse, ProductResponse, UnauthorizedResponse,
-            CurrentResponse, CategoryResponse, CategoryPostParams, LocationParams
+            CurrentResponse, CategoryResponse, CategoryPostParams, LocationParams,
+            WishListPostParams, BaseResponse
         )
     ),
     modifiers(&SecurityAddon),
@@ -123,12 +127,12 @@ impl Hooks for App {
 
     fn routes(_ctx: &AppContext) -> AppRoutes {
         AppRoutes::with_default_routes()
-            // .prefix("/api")
             .add_route(controllers::base::routes())
             .add_route(controllers::categories::routes())
             .add_route(controllers::products::routes())
             .add_route(controllers::auth::routes())
             .add_route(controllers::user::routes())
+            .add_route(controllers::wishlists::routes())
             .add_route(controllers::upload::routes())
     }
 
@@ -151,6 +155,8 @@ impl Hooks for App {
         truncate_table(db, products::Entity).await?;
         truncate_table(db, product_images::Entity).await?;
         truncate_table(db, categories::Entity).await?;
+        truncate_table(db, wishlists::Entity).await?;
+        truncate_table(db, offerings::Entity).await?;
         Ok(())
     }
 

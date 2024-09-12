@@ -4,3 +4,4 @@ pub mod products;
 pub mod upload;
 pub mod base;
 pub mod categories;
+pub mod wishlists;
