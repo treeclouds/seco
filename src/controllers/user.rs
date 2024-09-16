@@ -17,11 +17,15 @@ use crate::views::product::ProductResponse;
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
 pub struct LocationParams {
     pub location: String,
+    pub latitude: Option<String>,
+    pub longitude: Option<String>,
 }
 
 impl LocationParams {
     pub(crate) fn update(&self, item: &mut ActiveModel) {
         item.location = Set(Option::from(self.location.clone()));
+        item.latitude = Set(Option::from(self.latitude.clone()));
+        item.longitude = Set(Option::from(self.longitude.clone()));
     }
 }
 

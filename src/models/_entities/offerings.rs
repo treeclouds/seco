@@ -22,6 +22,7 @@ pub struct Model {
     pub offer_price: Decimal,
     pub status: Option<OfferingStatus>,
     pub action_type: Option<ActionType>,
+    pub firebase_id: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

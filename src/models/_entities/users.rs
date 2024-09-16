@@ -27,6 +27,8 @@ pub struct Model {
     pub is_superuser: bool,
     pub location: Option<String>,
     pub image: Option<String>,
+    pub latitude: Option<String>,
+    pub longitude: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

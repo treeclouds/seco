@@ -20,6 +20,8 @@ mod m20240909_031109_index_users_location;
 mod m20240909_031322_index_products_brand;
 mod m20240909_112205_wishlists;
 mod m20240912_033907_offerings;
+mod m20240916_093433_add_users_lat_and_long;
+mod m20240916_093824_add_offerings_firebase_id;
 pub struct Migrator;
 
 #[async_trait::async_trait]
@@ -43,6 +45,8 @@ impl MigratorTrait for Migrator {
             Box::new(m20240909_031322_index_products_brand::Migration),
             Box::new(m20240909_112205_wishlists::Migration),
             Box::new(m20240912_033907_offerings::Migration),
+            Box::new(m20240916_093433_add_users_lat_and_long::Migration),
+            Box::new(m20240916_093824_add_offerings_firebase_id::Migration),
         ]
     }
 }

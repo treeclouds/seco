@@ -31,7 +31,7 @@ async fn load_product(ctx: &AppContext, id: i32) -> Result<ProductModel> {
 
 #[debug_handler]
 pub async fn user_wishlist_list(auth: auth::JWT, State(ctx): State<AppContext>) -> Result<Response> {
-    let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    let _user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
     format::text("hello")
 }
 
