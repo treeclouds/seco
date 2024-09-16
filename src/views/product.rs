@@ -81,6 +81,7 @@ pub struct ProductsResponse {
     category_id: Option<i32>,
     title: String,
     description: String,
+    #[schema(value_type = f64)]
     price: Decimal,
     dimension_width: f32,
     dimension_height: f32,
@@ -90,9 +91,14 @@ pub struct ProductsResponse {
     material: String,
     stock: i32,
     sku: String,
+    #[schema(value_type = String, format = Binary)]
     tags: Option<JsonValue>,
+    #[schema(value_type = String)]
     condition: Option<String>,
+    #[schema(value_type = String)]
     created_at: DateTime,
+    #[schema(value_type = String, format = Binary)]
     images: Option<JsonValue>,
+    #[schema(value_type = String, format = Binary)]
     seller: Option<JsonValue>,
 }

@@ -27,12 +27,18 @@ impl super::_entities::products::Model {
                    FROM product_images pi2 where pi2.product_id = p.id
                 ), '[]'::json) as images,
                 COALESCE (
-                    json_build_object('pid', u.pid, 'first_name', u.first_name, 'last_name', u.last_name, 'joined_date', u.created_at), '{}'::json
+                    json_build_object(
+                        'pid', u.pid,
+                        'first_name', u.first_name,
+                        'last_name', u.last_name,
+                        'joined_date', u.created_at,
+                        'location', u.location
+                    ), '{}'::json
                 ) as seller
             FROM products p
             INNER JOIN users u ON u.id = p.seller_id
             WHERE p.id = $1
-            GROUP BY p.id, u.pid, u.first_name, u.last_name, u.created_at;
+            GROUP BY p.id, u.pid, u.first_name, u.last_name, u.created_at, u.location
             "#,
                 [(*product_id).into()],
             ))
@@ -56,11 +62,17 @@ impl super::_entities::products::Model {
                    FROM product_images pi2 where pi2.product_id = p.id
                 ), '[]'::json) as images,
                 COALESCE (
-                    json_build_object('pid', u.pid, 'first_name', u.first_name, 'last_name', u.last_name, 'joined_date', u.created_at), '{}'::json
+                    json_build_object(
+                        'pid', u.pid,
+                        'first_name', u.first_name,
+                        'last_name', u.last_name,
+                        'joined_date', u.created_at,
+                        'location', u.location
+                    ), '{}'::json
                 ) as seller
             FROM products p
             INNER JOIN users u ON u.id = p.seller_id
-            GROUP BY p.id, u.pid, u.first_name, u.last_name, u.created_at;
+            GROUP BY p.id, u.pid, u.first_name, u.last_name, u.created_at, u.location
         "#,
             [],
         )).into_model::<ProductsResponse>()
@@ -86,12 +98,18 @@ impl super::_entities::products::Model {
                    FROM product_images pi2 where pi2.product_id = p.id
                 ), '[]'::json) as images,
                 COALESCE (
-                    json_build_object('pid', u.pid, 'first_name', u.first_name, 'last_name', u.last_name, 'joined_date', u.created_at), '{}'::json
+                    json_build_object(
+                        'pid', u.pid,
+                        'first_name', u.first_name,
+                        'last_name', u.last_name,
+                        'joined_date', u.created_at,
+                        'location', u.location
+                    ), '{}'::json
                 ) as seller
             FROM products p
             INNER JOIN users u ON u.id = p.seller_id
             WHERE p.id = $1 AND u.id = $2
-            GROUP BY p.id, u.pid, u.first_name, u.last_name, u.created_at;
+            GROUP BY p.id, u.pid, u.first_name, u.last_name, u.created_at, u.location
             "#,
                 [(*product_id).into(), (*user_id).into()],
             ))
@@ -116,12 +134,18 @@ impl super::_entities::products::Model {
                    FROM product_images pi2 where pi2.product_id = p.id
                 ), '[]'::json) as images,
                 COALESCE (
-                    json_build_object('pid', u.pid, 'first_name', u.first_name, 'last_name', u.last_name, 'joined_date', u.created_at), '{}'::json
+                    json_build_object(
+                        'pid', u.pid,
+                        'first_name', u.first_name,
+                        'last_name', u.last_name,
+                        'joined_date', u.created_at,
+                        'location', u.location
+                    ), '{}'::json
                 ) as seller
             FROM products p
             INNER JOIN users u ON u.id = p.seller_id
             WHERE u.id = $1
-            GROUP BY p.id, u.pid, u.first_name, u.last_name, u.created_at;
+            GROUP BY p.id, u.pid, u.first_name, u.last_name, u.created_at, u.location
         "#,
             [(*user_id).into()],
         )).into_model::<ProductsResponse>()

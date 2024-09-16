@@ -1,4 +1,7 @@
+#![allow(clippy::missing_errors_doc)]
+#![allow(clippy::unnecessary_struct_initialization)]
 #![allow(clippy::unused_async)]
+
 use loco_rs::prelude::*;
 use axum::debug_handler;
 use axum::http::StatusCode;
@@ -8,8 +11,10 @@ use utoipa::ToSchema;
 use crate::models::_entities::{
     products::{Entity as ProductEntity, Model as ProductModel},
     users,
-    wishlists::{ActiveModel}};
-use crate::views::base::BaseResponse;
+    wishlists::{self, ActiveModel}};
+use crate::views::{
+    base::BaseResponse,
+};
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
 pub struct WishListPostParams {
@@ -29,10 +34,24 @@ async fn load_product(ctx: &AppContext, id: i32) -> Result<ProductModel> {
     product.ok_or_else(|| Error::CustomError(StatusCode::NOT_FOUND, ErrorDetail::new("not_found", &*msg_error)))
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/user/wishlists",
+    tag = "wishlists",
+    responses(
+        (status = 200, description = "Get all wishlist successfully", body = [ProductsResponse]),
+        (status = 401, description = "Unauthorized", body = UnauthorizedResponse),
+        (status = 404, description = "Product not found", body = UnauthorizedResponse),
+    ),
+    security(
+        ("jwt_token" = [])
+    )
+)]
 #[debug_handler]
 pub async fn user_wishlist_list(auth: auth::JWT, State(ctx): State<AppContext>) -> Result<Response> {
-    let _user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
-    format::text("hello")
+    let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    let wishlists = wishlists::Model::get_wishlist_by_user_id(&ctx.db, &user.id).await?;
+    format::json(wishlists)
 }
 
 #[utoipa::path(

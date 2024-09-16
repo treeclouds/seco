@@ -35,7 +35,7 @@ use crate::{
     views::{
         category::CategoryResponse,
         auth::LoginResponse,
-        product::ProductResponse,
+        product::{ProductResponse, ProductsResponse as ProductListResponse},
         user::CurrentResponse,
         base::BaseResponse,
     },
@@ -68,6 +68,7 @@ use utoipa_swagger_ui::SwaggerUi;
         user::product_get_one,
         user::product_update,
         user::product_remove,
+        ct_wishlists::user_wishlist_list,
         ct_wishlists::user_wishlist_new,
         upload::upload_product_image_file,
     ),
@@ -76,7 +77,7 @@ use utoipa_swagger_ui::SwaggerUi;
             LoginParams, RegisterParams, VerifyParams, ResetParams, ForgotParams,
             ProductPostParams, LoginResponse, ProductResponse, UnauthorizedResponse,
             CurrentResponse, CategoryResponse, CategoryPostParams, LocationParams,
-            WishListPostParams, BaseResponse
+            WishListPostParams, BaseResponse, ProductListResponse
         )
     ),
     modifiers(&SecurityAddon),
