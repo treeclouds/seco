@@ -5,3 +5,4 @@ pub mod upload;
 pub mod base;
 pub mod categories;
 pub mod wishlists;
+pub mod offering;

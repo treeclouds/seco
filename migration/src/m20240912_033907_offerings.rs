@@ -31,7 +31,7 @@ impl MigrationTrait for Migration {
                     .col(integer(Offerings::ProductId))
                     .col(integer(Offerings::UserId))
                     .col(string(Offerings::ProductName))
-                    .col(string(Offerings::ProductCondition))
+                    .col(string(Offerings::ProductCondition).null())
                     .col(decimal_len(Offerings::ProductPrice, 16, 2))
                     .col(decimal_len(Offerings::OfferPrice, 16, 2))
                     .col(

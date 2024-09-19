@@ -25,11 +25,12 @@ use crate::{
         categories::{self as ct_categories, CategoryPostParams},
         user::{self, LocationParams},
         wishlists::{self as ct_wishlists, WishListPostParams},
-        upload::{self}
+        upload::{self},
+        offering::{self, AddNegotiationProductParams},
     },
     models::{
         users::{LoginParams, RegisterParams},
-        _entities::{product_images, products, users, categories, wishlists, offerings}
+        _entities::{product_images, products, users, categories, wishlists, offerings},
     },
     tasks,
     views::{
@@ -38,6 +39,7 @@ use crate::{
         product::{ProductResponse, ProductsResponse as ProductListResponse},
         user::CurrentResponse,
         base::BaseResponse,
+        offering::AddNegotiationProductResponse,
     },
     workers::downloader::DownloadWorker,
 };
@@ -71,13 +73,16 @@ use utoipa_swagger_ui::SwaggerUi;
         ct_wishlists::user_wishlist_list,
         ct_wishlists::user_wishlist_new,
         upload::upload_product_image_file,
+        offering::add_negotiation_product,
+        offering::do_negotiation_product,
     ),
     components(
         schemas(
             LoginParams, RegisterParams, VerifyParams, ResetParams, ForgotParams,
             ProductPostParams, LoginResponse, ProductResponse, UnauthorizedResponse,
             CurrentResponse, CategoryResponse, CategoryPostParams, LocationParams,
-            WishListPostParams, BaseResponse, ProductListResponse
+            WishListPostParams, BaseResponse, ProductListResponse, AddNegotiationProductParams,
+            AddNegotiationProductResponse
         )
     ),
     modifiers(&SecurityAddon),
@@ -131,6 +136,7 @@ impl Hooks for App {
             .add_route(controllers::base::routes())
             .add_route(controllers::categories::routes())
             .add_route(controllers::products::routes())
+            .add_route(controllers::offering::routes())
             .add_route(controllers::auth::routes())
             .add_route(controllers::user::routes())
             .add_route(controllers::wishlists::routes())
