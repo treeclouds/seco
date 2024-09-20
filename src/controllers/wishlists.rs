@@ -58,7 +58,7 @@ pub async fn user_wishlist_list(auth: auth::JWT, State(ctx): State<AppContext>) 
     post,
     path = "/api/user/wishlists/new",
     tag = "wishlists",
-    request_body = WishListPostParams,
+    request_body(content = WishListPostParams, description = "Wishlist to store the database", content_type = "application/json", example=json!({"product_id": 0})),
     responses(
         (status = 200, description = "Add wishlist successfully", body = [BaseResponse], example=json!({"status": "success", "message": "Successfully added into wishlist"})),
         (status = 401, description = "Unauthorized", body = UnauthorizedResponse),
