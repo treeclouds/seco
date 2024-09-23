@@ -32,7 +32,7 @@ impl super::_entities::wishlists::Model {
             FROM wishlists w
             INNER JOIN products p ON p.id = w.product_id
             INNER JOIN users u ON u.id = w.user_id
-            WHERE u.id = $1
+            WHERE u.id = $1 AND w.is_deleted = false
             GROUP BY p.id, u.pid, u.first_name, u.last_name, u.created_at, u.location
         "#,
             [(*user_id).into()],

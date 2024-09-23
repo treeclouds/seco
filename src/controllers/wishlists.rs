@@ -11,7 +11,7 @@ use utoipa::ToSchema;
 use crate::models::_entities::{
     products::{Entity as ProductEntity, Model as ProductModel},
     users,
-    wishlists::{self, ActiveModel}};
+    wishlists::{self, Entity, ActiveModel, Model}};
 use crate::views::{
     base::BaseResponse,
 };
@@ -19,7 +19,7 @@ use crate::views::{
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
 pub struct WishListPostParams {
     pub product_id: i32,
-    pub user_id: i32,
+    pub user_id: Option<i32>,
 }
 
 impl WishListPostParams {
@@ -32,6 +32,12 @@ async fn load_product(ctx: &AppContext, id: i32) -> Result<ProductModel> {
     let msg_error = String::from("Product not found!");
     let product = ProductEntity::find_by_id(id).one(&ctx.db).await?;
     product.ok_or_else(|| Error::CustomError(StatusCode::NOT_FOUND, ErrorDetail::new("not_found", &*msg_error)))
+}
+
+async fn load_wishlist(ctx: &AppContext, id: i32) -> Result<Model> {
+    let msg_error = String::from("Wishlist not found!");
+    let wishlist = Entity::find_by_id(id).one(&ctx.db).await?;
+    wishlist.ok_or_else(|| Error::CustomError(StatusCode::NOT_FOUND, ErrorDetail::new("not_found", &*msg_error)))
 }
 
 #[utoipa::path(
@@ -82,9 +88,24 @@ pub async fn user_wishlist_new(auth: auth::JWT, State(ctx): State<AppContext>, J
     format::json(BaseResponse::new(&"success".to_string(), &message.to_string()))
 }
 
+#[debug_handler]
+pub async fn user_wishlist_delete(auth: auth::JWT, Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
+    // Start checking user validation
+    users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    // End checking user validation
+
+    let wishlist = load_wishlist(&ctx, id).await?;
+    let mut wishlist: ActiveModel = wishlist.into();
+    wishlist.is_deleted = Set(true);
+    wishlist.update(&ctx.db).await?;
+    let message = "Successfully deleted wishlist";
+    format::json(BaseResponse::new(&"success".to_string(), &message.to_string()))
+}
+
 pub fn routes() -> Routes {
     Routes::new()
         .prefix("/api/user/wishlists")
         .add("/", get(user_wishlist_list))
         .add("/new", post(user_wishlist_new))
+        .add("/:id/remove", delete(user_wishlist_delete))
 }
