@@ -45,7 +45,7 @@ async fn load_wishlist(ctx: &AppContext, id: i32) -> Result<Model> {
     path = "/api/user/wishlists",
     tag = "wishlists",
     responses(
-        (status = 200, description = "Get all wishlist successfully", body = [ProductsResponse]),
+        (status = 200, description = "Get all wishlist successfully", body = [WishlistListResponse], example = json!({"id": 0, "product_detail": {"id": 0, "title": "string", "images": [], "seller": {}}})),
         (status = 401, description = "Unauthorized", body = UnauthorizedResponse),
         (status = 404, description = "Product not found", body = UnauthorizedResponse),
     ),

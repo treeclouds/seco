@@ -39,6 +39,7 @@ use crate::{
         product::{ProductResponse, ProductsResponse as ProductListResponse},
         user::CurrentResponse,
         base::BaseResponse,
+        wishlist::WishlistListResponse,
         offering::AddNegotiationProductResponse,
     },
     workers::downloader::DownloadWorker,
@@ -83,7 +84,7 @@ use utoipa_swagger_ui::SwaggerUi;
             ProductPostParams, LoginResponse, ProductResponse, UnauthorizedResponse,
             CurrentResponse, CategoryResponse, CategoryPostParams, LocationParams,
             WishListPostParams, BaseResponse, ProductListResponse, AddNegotiationProductParams,
-            AddNegotiationProductResponse
+            AddNegotiationProductResponse, WishlistListResponse
         )
     ),
     modifiers(&SecurityAddon),
