@@ -6,3 +6,4 @@ pub mod product_image;
 pub mod user;
 pub mod upload;
 pub mod offering;
+pub mod wishlist;

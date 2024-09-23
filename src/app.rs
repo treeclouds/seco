@@ -72,6 +72,7 @@ use utoipa_swagger_ui::SwaggerUi;
         user::product_remove,
         ct_wishlists::user_wishlist_list,
         ct_wishlists::user_wishlist_new,
+        ct_wishlists::user_wishlist_delete,
         upload::upload_product_image_file,
         offering::add_negotiation_product,
         offering::do_negotiation_product,

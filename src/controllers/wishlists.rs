@@ -88,6 +88,22 @@ pub async fn user_wishlist_new(auth: auth::JWT, State(ctx): State<AppContext>, J
     format::json(BaseResponse::new(&"success".to_string(), &message.to_string()))
 }
 
+#[utoipa::path(
+    delete,
+    path = "/api/user/wishlists/{id}/remove",
+    tag = "wishlists",
+    responses(
+        (status = 200, description = "Wishlist delete successfully"),
+        (status = 401, description = "Unauthorized", body = UnauthorizedResponse),
+        (status = 404, description = "Wishlist not found", body = UnauthorizedResponse),
+    ),
+    params(
+        ("id" = i32, Path, description = "Wishlist database id")
+    ),
+    security(
+        ("jwt_token" = [])
+    )
+)]
 #[debug_handler]
 pub async fn user_wishlist_delete(auth: auth::JWT, Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
     // Start checking user validation
@@ -95,10 +111,8 @@ pub async fn user_wishlist_delete(auth: auth::JWT, Path(id): Path<i32>, State(ct
     // End checking user validation
 
     let wishlist = load_wishlist(&ctx, id).await?;
-    let mut wishlist: ActiveModel = wishlist.into();
-    wishlist.is_deleted = Set(true);
-    wishlist.update(&ctx.db).await?;
-    let message = "Successfully deleted wishlist";
+    wishlist.into_active_model().set_wishlist_deleted(&ctx.db).await?;
+    let message = "Wishlist delete successfully";
     format::json(BaseResponse::new(&"success".to_string(), &message.to_string()))
 }
 
