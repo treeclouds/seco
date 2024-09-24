@@ -93,7 +93,7 @@ pub async fn add_negotiation_product(auth: auth::JWT, Path(product_id): Path<i32
     tag = "offerings",
     request_body = DoParams,
     responses(
-        (status = 200, description = "Add wishlist successfully", body = [AddNegotiationProductResponse]),
+        (status = 200, description = "Add wishlist successfully", body = [AddNegotiationProductResponse], example=json!({"status": "Accepted/Declined"})),
         (status = 401, description = "Unauthorized", body = UnauthorizedResponse),
         (status = 404, description = "Product not found", body = UnauthorizedResponse),
     ),

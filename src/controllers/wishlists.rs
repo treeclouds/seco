@@ -67,6 +67,7 @@ pub async fn user_wishlist_list(auth: auth::JWT, State(ctx): State<AppContext>) 
     request_body(content = WishListPostParams, description = "Wishlist to store the database", content_type = "application/json", example=json!({"product_id": 0})),
     responses(
         (status = 200, description = "Add wishlist successfully", body = [BaseResponse], example=json!({"status": "success", "message": "Successfully added into wishlist"})),
+        (status = 400, description = "You are not allowed to add your own products to the wishlist.", body = null),
         (status = 401, description = "Unauthorized", body = UnauthorizedResponse),
         (status = 404, description = "Product not found", body = UnauthorizedResponse),
     ),
@@ -79,11 +80,14 @@ pub async fn user_wishlist_new(auth: auth::JWT, State(ctx): State<AppContext>, J
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
     let product = load_product(&ctx, params.product_id).await?;
     if user.id == product.seller_id {
+
+        let msg_error = String::from("You are not allowed to add your own products to the wishlist.");
         tracing::info!(
             user_pid = user.pid.to_string(),
             product_name = product.title.to_string(),
-            "You are not allowed to add your own products to the wishlist.");
-        return format::json(());
+            msg_error
+        );
+        return Err(Error::CustomError(StatusCode::BAD_REQUEST, ErrorDetail::new("bad_request", &*msg_error)));
     }
 
     let mut wishlist = ActiveModel {
