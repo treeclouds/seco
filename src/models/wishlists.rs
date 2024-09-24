@@ -14,27 +14,22 @@ impl super::_entities::wishlists::Model {
             DbBackend::Postgres,
             r#"
             SELECT
-                w.id,
-                COALESCE(
+                w.id AS wishlist_id, p.id, p.title, p.category_id, p.description, p.price,
+                p.dimension_width, p.dimension_height, p.dimension_length, p.dimension_weight,
+                p.brand, p.material, p.stock, p.sku, p.tags::jsonb, p.condition::text, p.created_at,
+                COALESCE((
+                   SELECT json_agg(json_build_object('id', pi2.id, 'image', pi2.image))
+                   FROM product_images pi2 where pi2.product_id = p.id
+                ), '[]'::json) as images,
+                COALESCE (
                     json_build_object(
-                        'id', p.id,
-                        'title', p.title,
-                        'price', p.price,
-                        'images', COALESCE((
-                           SELECT json_agg(json_build_object('id', pi2.id, 'image', pi2.image))
-                           FROM product_images pi2 where pi2.product_id = p.id
-                        ), '[]'::json),
-                        'seller', COALESCE (
-                            json_build_object(
-                                'pid', u.pid,
-                                'first_name', u.first_name,
-                                'last_name', u.last_name,
-                                'joined_date', u.created_at,
-                                'location', u.location
-                            ), '{}'::json
-                        )
+                        'pid', u.pid,
+                        'first_name', u.first_name,
+                        'last_name', u.last_name,
+                        'joined_date', u.created_at,
+                        'location', u.location
                     ), '{}'::json
-                ) as product_detail
+                ) as seller
             FROM wishlists w
             INNER JOIN products p ON p.id = w.product_id
             INNER JOIN users u ON u.id = w.user_id

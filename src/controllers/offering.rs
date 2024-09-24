@@ -22,6 +22,7 @@ pub struct AddNegotiationProductParams {
     pub action: Option<ActionType>,
     #[schema(value_type = f64)]
     pub offer: Decimal,
+    pub firebase_id: String,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
@@ -64,7 +65,10 @@ async fn load_offering(ctx: &AppContext, id: i32) -> Result<Model> {
 )]
 #[debug_handler]
 pub async fn add_negotiation_product(auth: auth::JWT, Path(product_id): Path<i32>, State(ctx): State<AppContext>, Json(params): Json<AddNegotiationProductParams>) -> Result<Response> {
+    // Start checking user validation
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    // End checking user validation
+
     let product = load_item(&ctx, product_id).await?;
 
     let offering = ActiveModel {
@@ -75,6 +79,7 @@ pub async fn add_negotiation_product(auth: auth::JWT, Path(product_id): Path<i32
         product_price: ActiveValue::Set(product.price),
         offer_price: ActiveValue::Set(params.offer),
         action_type: ActiveValue::Set(Option::from(params.action)),
+        firebase_id: ActiveValue::Set(Option::from(params.firebase_id)),
         ..Default::default()
     };
 
@@ -101,7 +106,10 @@ pub async fn add_negotiation_product(auth: auth::JWT, Path(product_id): Path<i32
 )]
 #[debug_handler]
 pub async fn do_negotiation_product(auth: auth::JWT, Path(id): Path<i32>, State(ctx): State<AppContext>, Json(params): Json<DoParams>) -> Result<Response> {
-    let _user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    // Start checking user validation
+    users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    // End checking user validation
+
     let offering = load_offering(&ctx, id).await?;
 
     let mut offering = offering.into_active_model();
