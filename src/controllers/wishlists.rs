@@ -77,7 +77,15 @@ pub async fn user_wishlist_list(auth: auth::JWT, State(ctx): State<AppContext>) 
 #[debug_handler]
 pub async fn user_wishlist_new(auth: auth::JWT, State(ctx): State<AppContext>, Json(params): Json<WishListPostParams>) -> Result<Response> {
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
-    load_product(&ctx, params.product_id).await?;
+    let product = load_product(&ctx, params.product_id).await?;
+    if user.id == product.seller_id {
+        tracing::info!(
+            user_pid = user.pid.to_string(),
+            product_name = product.title.to_string(),
+            "You are not allowed to add your own products to the wishlist.");
+        return format::json(());
+    }
+
     let mut wishlist = ActiveModel {
         user_id: ActiveValue::Set(user.id),
         ..Default::default()
