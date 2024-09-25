@@ -77,6 +77,7 @@ use utoipa_swagger_ui::SwaggerUi;
         upload::upload_product_image_file,
         offering::add_negotiation_product,
         offering::do_negotiation_product,
+        offering::get_negotiation,
     ),
     components(
         schemas(

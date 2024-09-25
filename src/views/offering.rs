@@ -12,6 +12,7 @@ pub struct AddNegotiationProductResponse {
     #[schema(value_type = String)]
     pub status: Option<OfferingStatus>,
     pub firebase_id: Option<String>,
+    pub product_id: i32,
 }
 
 impl crate::views::offering::AddNegotiationProductResponse {
@@ -22,6 +23,7 @@ impl crate::views::offering::AddNegotiationProductResponse {
             offer_price: offering.offer_price,
             status: Option::from(offering.status.clone()),
             firebase_id: offering.firebase_id.clone(),
+            product_id: offering.product_id,
         }
     }
 }
