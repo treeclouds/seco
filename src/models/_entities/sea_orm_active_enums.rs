@@ -12,6 +12,8 @@ pub enum ActionType {
     CounterOffer,
     #[sea_orm(string_value = "Decline")]
     Decline,
+    #[sea_orm(string_value = "Offer")]
+    Offer,
 }
 #[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
 #[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "condition")]

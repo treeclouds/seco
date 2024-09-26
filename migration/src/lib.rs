@@ -23,6 +23,7 @@ mod m20240912_033907_offerings;
 mod m20240916_093433_add_users_lat_and_long;
 mod m20240916_093824_add_offerings_firebase_id;
 mod m20240918_124826_alter_offerings_product_condition;
+mod m20240926_135258_alter_offerings_action_type_enum;
 pub struct Migrator;
 
 #[async_trait::async_trait]
@@ -49,6 +50,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20240916_093433_add_users_lat_and_long::Migration),
             Box::new(m20240916_093824_add_offerings_firebase_id::Migration),
             Box::new(m20240918_124826_alter_offerings_product_condition::Migration),
+            Box::new(m20240926_135258_alter_offerings_action_type_enum::Migration),
         ]
     }
 }
