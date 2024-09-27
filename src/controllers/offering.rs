@@ -146,7 +146,10 @@ pub async fn get_negotiation(auth: auth::JWT, Path(firebase_id): Path<String>, S
     // End checking user validation
 
     let offering = load_offering_by_firebase_id(&ctx, firebase_id).await?;
-    format::json(AddNegotiationProductResponse::new(&offering))
+    return match offering.status {
+        Some(OfferingStatus::InProgress) => format::json(AddNegotiationProductResponse::new(&offering)),
+        _ => format::json(())
+    }
 }
 
 pub fn routes() -> Routes {
