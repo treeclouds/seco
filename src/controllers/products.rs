@@ -2,16 +2,15 @@
 #![allow(clippy::unnecessary_struct_initialization)]
 #![allow(clippy::unused_async)]
 
+use derivative::Derivative;
+use axum::extract::Query;
 use loco_rs::prelude::*;
 use sea_orm::prelude::Decimal;
 use serde::{Deserialize, Serialize};
-use sea_orm::{JsonValue};
-use utoipa::ToSchema;
-use crate::models::_entities::{
-    products::{ActiveModel, Model},
-    sea_orm_active_enums::Condition,
-};
-use crate::views::product::ProductsResponse;
+use sea_orm::{query::*, JsonValue};
+use utoipa::{ToSchema, IntoParams};
+use crate::models::_entities::{products::{ActiveModel, Model}, offerings, sea_orm_active_enums::Condition as ConditionEnum, users};
+use crate::views::product::{ProductsResponse, ProductDealResponse};
 
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
@@ -34,7 +33,7 @@ pub struct ProductPostParams {
     #[schema(value_type = String, format = Binary)]
     pub tags: Option<JsonValue>,
     #[schema(value_type = String)]
-    pub condition: Option<Condition>,
+    pub condition: Option<ConditionEnum>,
     #[schema(value_type = String, format = Binary)]
     pub images: Option<JsonValue>,
 }
@@ -62,6 +61,20 @@ impl ProductPostParams {
 pub struct UnauthorizedResponse {
     pub error: String,
     pub description: String,
+}
+
+#[derive(Derivative, Deserialize, IntoParams)]
+#[derivative(Debug, Default)]
+pub struct ProductsFilterParams {
+    #[derivative(Default(value = "1"))]
+    page: i32,
+    #[derivative(Default(value = "10"))]
+    page_size: i32,
+}
+
+#[derive(Debug, Deserialize, IntoParams)]
+pub struct ProductOfferParams {
+    user_pid: Option<Uuid>,
 }
 
 async fn load_item(ctx: &AppContext, id: i32) -> std::result::Result<ProductsResponse, Error> {
@@ -93,11 +106,27 @@ pub async fn list(State(ctx): State<AppContext>) -> Result<Response> {
         (status = 404, description = "Product not found", body = UnauthorizedResponse),
     ),
     params(
+        ProductOfferParams,
         ("id" = i32, Path, description = "Product database id")
     )
 )]
-pub async fn get_one(Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
+pub async fn get_one(Path(id): Path<i32>, State(ctx): State<AppContext>, query: Query<ProductOfferParams>) -> Result<Response> {
+    println!("===== get_one query {:?}", query);
     let product = load_item(&ctx, id).await?;
+    if query.user_pid.is_some() {
+        let user = users::Model::find_by_pid(&ctx.db, &query.user_pid.unwrap().to_string()).await?;
+        let offering_deal = offerings::Entity::find()
+            .filter(
+                Condition::all()
+                    .add(offerings::Column::UserId.eq(user.id))
+                    .add(offerings::Column::Status.eq("Accepted"))
+                    .add(offerings::Column::ProductId.eq(id))
+            ).one(&ctx.db).await?;
+        println!("===== get_one offering_deal {:?}", offering_deal);
+        if offering_deal.is_some() {
+            return format::json(ProductDealResponse::new(product, Some(offering_deal.unwrap().offer_price)))
+        }
+    }
     format::json(product)
 }
 
