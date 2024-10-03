@@ -9,7 +9,7 @@ use sea_orm::prelude::Decimal;
 use serde::{Deserialize, Serialize};
 use sea_orm::{query::*, JsonValue};
 use utoipa::{ToSchema, IntoParams};
-use crate::models::_entities::{products::{ActiveModel, Model}, offerings, sea_orm_active_enums::Condition as ConditionEnum, users};
+use crate::models::_entities::{products::{ActiveModel, Model}, offerings, sea_orm_active_enums::Condition as ProductConditionEnum, users};
 use crate::views::product::{ProductsResponse, ProductDealResponse};
 
 
@@ -33,7 +33,7 @@ pub struct ProductPostParams {
     #[schema(value_type = String, format = Binary)]
     pub tags: Option<JsonValue>,
     #[schema(value_type = String)]
-    pub condition: Option<ConditionEnum>,
+    pub condition: Option<ProductConditionEnum>,
     #[schema(value_type = String, format = Binary)]
     pub images: Option<JsonValue>,
 }
@@ -77,6 +77,14 @@ pub struct ProductOfferParams {
     user_pid: Option<Uuid>,
 }
 
+#[derive(Debug, Deserialize, IntoParams)]
+pub struct ProductFilterParams {
+    condition: Option<ProductConditionEnum>,
+    location: Option<String>,
+    brand: Option<String>,
+    category: Option<String>,
+}
+
 async fn load_item(ctx: &AppContext, id: i32) -> std::result::Result<ProductsResponse, Error> {
     let item = Model::get_product_by_id(&ctx.db, &id).await?;
     item.ok_or_else(|| Error::NotFound)
@@ -90,9 +98,17 @@ async fn load_item(ctx: &AppContext, id: i32) -> std::result::Result<ProductsRes
         (status = 200, description = "Product list based on user login successfully", body = [ProductResponse]),
         (status = 401, description = "Unauthorized", body = UnauthorizedResponse),
     ),
+    params(ProductFilterParams),
 )]
-pub async fn list(State(ctx): State<AppContext>) -> Result<Response> {
-    let products: Vec<ProductsResponse> = Model::get_all_products(&ctx.db).await?;
+pub async fn list(State(ctx): State<AppContext>, query: Query<ProductFilterParams>) -> Result<Response> {
+    println!("===== get_one query {:?}", query);
+    let products: Vec<ProductsResponse> = Model::get_all_products(
+        &ctx.db,
+        &query.condition.as_ref(),
+        &query.location.as_ref(),
+        &query.brand.as_ref(),
+        &query.category.as_ref()
+    ).await?;
     format::json(products)
 }
 
@@ -122,7 +138,6 @@ pub async fn get_one(Path(id): Path<i32>, State(ctx): State<AppContext>, query: 
                     .add(offerings::Column::Status.eq("Accepted"))
                     .add(offerings::Column::ProductId.eq(id))
             ).one(&ctx.db).await?;
-        println!("===== get_one offering_deal {:?}", offering_deal);
         if offering_deal.is_some() {
             return format::json(ProductDealResponse::new(product, Some(offering_deal.unwrap().offer_price)))
         }

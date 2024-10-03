@@ -7,6 +7,7 @@ use uuid::Uuid;
 use seco::app::App;
 use seco::models::_entities::sea_orm_active_enums::Condition;
 use seco::models::products;
+use seco::views::product::ProductsResponse;
 
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
@@ -21,28 +22,6 @@ async fn main() -> eyre::Result<()> {
 
     // let res = seco::models::products::Entity::find().all(&ctx.db).await.unwrap();
     // println!("{:?}", res);
-
-    #[derive(FromQueryResult, Debug)]
-    struct ProductAndSellerResponse {
-        id: i32,
-        category_id: Option<i32>,
-        title: String,
-        description: String,
-        price: Decimal,
-        dimension_width: f32,
-        dimension_height: f32,
-        dimension_length: f32,
-        dimension_weight: f32,
-        brand: String,
-        material: String,
-        stock: i32,
-        sku: String,
-        tags: Option<JsonValue>,
-        condition: Option<String>,
-        created_at: DateTime,
-        images: Option<JsonValue>,
-        seller: Option<JsonValue>,
-    }
 
     // let product_and_users: Vec<(ProductModel, Option<UserModel>)> = Products::find().find_also_related(Users).all(&ctx.db).await.unwrap();
     // println!("{:?}", product_and_users);
@@ -129,32 +108,41 @@ async fn main() -> eyre::Result<()> {
     //     .into_model::<ProductAndSellerResponse>()
     //     .one(&ctx.db)
     //     .await?;
-    let product_list = products::Entity::find()
-        .from_raw_sql(Statement::from_sql_and_values(
-            DbBackend::Postgres,
-            r#"
-                SELECT p.id, p.title, p.category_id, p.description, p.price, p.dimension_width,
-                    p.dimension_height, p.dimension_length, p.dimension_weight, p.brand, p.material,
-                    p.stock, p.sku, p.tags::jsonb, p.condition::text, p.created_at, p.updated_at
-                    COALESCE((
-                       SELECT json_agg(json_build_object('id', pi2.id, 'image', pi2.image))
-                       FROM product_images pi2 where pi2.product_id = p.id
-                    ), '[]'::json) as images,
-                    COALESCE (
-                        json_build_object('pid', u.pid, 'first_name', u.first_name, 'last_name', u.last_name, 'joined_date', u.created_at), '{}'::json
-                    ) as seller
-                FROM products p
-                INNER JOIN users u ON u.id = p.seller_id
-                GROUP BY p.id, u.pid, u.first_name, u.last_name, u.created_at
-            "#,
-            [],
-        ));
-    let pagination_query = query::PaginationQuery {
-        page_size: 1,
-        page: 1,
-    };
-    let res = query::fetch_page(&ctx.db, product_list, &pagination_query).await;
-    println!("{:?}", res);
+    let condition = Some("BrandNew");
+    let mut extra_where_clause: String = "WHERE p.seller_id IS NOT NULL".to_owned();
+    extra_where_clause += &*format!(" AND p.condition = {:?}", condition.unwrap().to_owned());
+    // extra_where_clause = format!("{} {}", extra_where_clause, " AND p.brand = 'a'");
+    // extra_where_clause = format!("{} {}", extra_where_clause, " AND p.condition = 'BrandNew'");
+    let query = r#"
+            SELECT p.id, p.title, p.category_id, p.description, p.price, p.dimension_width,
+                p.dimension_height, p.dimension_length, p.dimension_weight, p.brand, p.material,
+                p.stock, p.sku, p.tags::jsonb, p.condition::text, p.created_at,
+                COALESCE((
+                   SELECT json_agg(json_build_object('id', pi2.id, 'image', pi2.image))
+                   FROM product_images pi2 where pi2.product_id = p.id
+                ), '[]'::json) as images,
+                COALESCE (
+                    json_build_object(
+                        'pid', u.pid,
+                        'first_name', u.first_name,
+                        'last_name', u.last_name,
+                        'joined_date', u.created_at,
+                        'location', u.location
+                    ), '{}'::json
+                ) as seller
+            FROM products p
+            INNER JOIN users u ON u.id = p.seller_id
+            INNER JOIN categories c ON c.id = p.category_id
+        "#;
+    let group_by: String = "GROUP BY p.id, u.pid, u.first_name, u.last_name, u.created_at, u.location".to_owned();
+    let combine_query = format!("{} {} {}", query, extra_where_clause, group_by);
+    println!("===== query {}", combine_query);
+    let products: Vec<ProductsResponse> = JsonValue::find_by_statement(Statement::from_sql_and_values(
+        DbBackend::Postgres, combine_query, [],
+    )).into_model::<ProductsResponse>()
+        .all(&ctx.db)
+        .await?;
+    println!("{:?}", products);
 
     // let query_res_vec: Vec<QueryResult> = ctx.db.query_all(
     //     Statement::from_string(

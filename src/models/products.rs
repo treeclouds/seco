@@ -1,6 +1,7 @@
 use loco_rs::model::ModelResult;
 use sea_orm::entity::prelude::*;
 use sea_orm::{FromQueryResult, JsonValue, Statement, DbBackend};
+use crate::models::_entities::sea_orm_active_enums::{Condition as ProductConditionEnum};
 use crate::views::product::ProductsResponse;
 pub use super::_entities::products::{self, ActiveModel, Entity, Model};
 
@@ -50,10 +51,12 @@ impl super::_entities::products::Model {
 
     pub async fn get_all_products(
         db: &DatabaseConnection,
+        condition: &Option<&ProductConditionEnum>,
+        location: &Option<&String>,
+        brand: &Option<&String>,
+        category: &Option<&String>,
     ) -> ModelResult<Vec<ProductsResponse>> {
-        let products: Vec<ProductsResponse> = JsonValue::find_by_statement(Statement::from_sql_and_values(
-            DbBackend::Postgres,
-            r#"
+        let query = r#"
             SELECT p.id, p.title, p.category_id, p.description, p.price, p.dimension_width,
                 p.dimension_height, p.dimension_length, p.dimension_weight, p.brand, p.material,
                 p.stock, p.sku, p.tags::jsonb, p.condition::text, p.created_at,
@@ -72,9 +75,32 @@ impl super::_entities::products::Model {
                 ) as seller
             FROM products p
             INNER JOIN users u ON u.id = p.seller_id
-            GROUP BY p.id, u.pid, u.first_name, u.last_name, u.created_at, u.location
-        "#,
-            [],
+            INNER JOIN categories c ON c.id = p.category_id
+        "#;
+        let mut extra_where_clause: String = "WHERE p.seller_id IS NOT NULL".to_owned();
+        if condition.is_some() {
+            extra_where_clause += &*format!(" AND p.condition = '{:?}'", condition.unwrap().to_owned());
+        }
+
+        if location.is_some() {
+            extra_where_clause += &*format!(" AND LOWER(u.location) = LOWER('{:?}')", location.unwrap().to_owned()).replace("\"", "")
+        }
+
+        if brand.is_some() {
+            extra_where_clause += &*format!(" AND LOWER(p.brand) = LOWER('{:?}')", brand.unwrap().to_owned()).replace("\"", "")
+        }
+
+        if category.is_some() {
+            extra_where_clause += &*format!(" AND LOWER(c.name) = LOWER('{:?}')", category.unwrap().to_owned()).replace("\"", "")
+        }
+
+        let group_by: String = "GROUP BY p.id, u.pid, u.first_name, u.last_name, u.created_at, u.location".to_owned();
+        let combine_query = format!("{} {} {}", query, extra_where_clause, group_by);
+
+        println!("===== query {}", combine_query);
+
+        let products: Vec<ProductsResponse> = JsonValue::find_by_statement(Statement::from_sql_and_values(
+            DbBackend::Postgres, combine_query, [],
         )).into_model::<ProductsResponse>()
             .all(db)
             .await?;
