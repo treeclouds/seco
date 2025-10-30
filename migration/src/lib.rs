@@ -24,6 +24,7 @@ mod m20240916_093433_add_users_lat_and_long;
 mod m20240916_093824_add_offerings_firebase_id;
 mod m20240918_124826_alter_offerings_product_condition;
 mod m20240926_135258_alter_offerings_action_type_enum;
+mod m20251030_070909_add_magic_link_token_and_magic_link_expiration_to_users;
 pub struct Migrator;
 
 #[async_trait::async_trait]
@@ -31,6 +32,7 @@ impl MigratorTrait for Migrator {
     fn migrations() -> Vec<Box<dyn MigrationTrait>> {
         vec![
             Box::new(m20220101_000001_users::Migration),
+            // inject-above (do not remove this comment)
             Box::new(m20231103_114510_notes::Migration),
             Box::new(m20240327_124407_add_users_first_name_last_name::Migration),
             Box::new(m20240327_130532_delete_users_name::Migration),
@@ -51,6 +53,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20240916_093824_add_offerings_firebase_id::Migration),
             Box::new(m20240918_124826_alter_offerings_product_condition::Migration),
             Box::new(m20240926_135258_alter_offerings_action_type_enum::Migration),
+            Box::new(m20251030_070909_add_magic_link_token_and_magic_link_expiration_to_users::Migration),
         ]
     }
 }

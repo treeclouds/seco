@@ -44,7 +44,7 @@ axum_session = { version = "0.17", default-features = false }
 include_dir = "0.7"
 uuid = { version = "1", features = ["serde", "v4"] }
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
-
+regex = { version = "1.11" }
 utoipa-swagger-ui = { version = "9", features = ["axum"] }
 utoipa = { version = "5", features = ["axum_extras", "time", "uuid", "decimal_float", "config"] }
 

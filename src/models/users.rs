@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use chrono::offset::Local;
+use chrono::{offset::Local, Duration};
 use loco_rs::{auth::jwt, hash, prelude::*};
 use sea_orm::{entity::prelude::*, ActiveValue, DatabaseConnection, DbErr, TransactionTrait};
 use serde::{Deserialize, Serialize};
@@ -8,6 +8,9 @@ use uuid::Uuid;
 use utoipa::ToSchema;
 
 pub use super::_entities::users::{self, ActiveModel, Entity, Model};
+
+pub const MAGIC_LINK_LENGTH: i8 = 32;
+pub const MAGIC_LINK_EXPIRATION_MIN: i8 = 5;
 
 #[derive(Debug, Deserialize, Serialize, ToSchema)]
 pub struct LoginParams {
@@ -204,6 +207,42 @@ impl super::_entities::users::Model {
             .generate_token(expiration, self.pid.to_string(), Map::new())
             .map_err(ModelError::from)
     }
+
+    /// finds a user by the magic token and verify and token expiration
+    ///
+    /// # Errors
+    ///
+    /// When could not find user by the given token or DB query error ot token expired
+    pub async fn find_by_magic_token(db: &DatabaseConnection, token: &str) -> ModelResult<Self> {
+        let user = users::Entity::find()
+            .filter(
+                query::condition()
+                    .eq(users::Column::MagicLinkToken, token)
+                    .build(),
+            )
+            .one(db)
+            .await?;
+
+        let user = user.ok_or_else(|| ModelError::EntityNotFound)?;
+        if let Some(expired_at) = user.magic_link_expiration {
+            if expired_at >= Local::now() {
+                Ok(user)
+            } else {
+                tracing::debug!(
+                    user_pid = user.pid.to_string(),
+                    token_expiration = expired_at.to_string(),
+                    "magic token expired for the user."
+                );
+                Err(ModelError::msg("magic token expired"))
+            }
+        } else {
+            tracing::error!(
+                user_pid = user.pid.to_string(),
+                "magic link expiration time not exists"
+            );
+            Err(ModelError::msg("expiration token not exists"))
+        }
+    }
 }
 
 impl super::_entities::users::ActiveModel {
@@ -276,5 +315,34 @@ impl super::_entities::users::ActiveModel {
         self.reset_token = ActiveValue::Set(None);
         self.reset_sent_at = ActiveValue::Set(None);
         Ok(self.update(db).await?)
+    }
+
+    /// Creates a magic link token for passwordless authentication.
+    ///
+    /// Generates a random token with a specified length and sets an expiration time
+    /// for the magic link. This method is used to initiate the magic link authentication flow.
+    ///
+    /// # Errors
+    /// - Returns an error if database update fails
+    pub async fn create_magic_link(mut self, db: &DatabaseConnection) -> ModelResult<Model> {
+        let random_str = hash::random_string(MAGIC_LINK_LENGTH as usize);
+        let expired = Local::now() + Duration::minutes(MAGIC_LINK_EXPIRATION_MIN.into());
+
+        self.magic_link_token = ActiveValue::set(Some(random_str));
+        self.magic_link_expiration = ActiveValue::set(Some(expired.into()));
+        self.update(db).await.map_err(ModelError::from)
+    }
+
+    /// Verifies and invalidates the magic link after successful authentication.
+    ///
+    /// Clears the magic link token and expiration time after the user has
+    /// successfully authenticated using the magic link.
+    ///
+    /// # Errors
+    /// - Returns an error if database update fails
+    pub async fn clear_magic_link(mut self, db: &DatabaseConnection) -> ModelResult<Model> {
+        self.magic_link_token = ActiveValue::set(None);
+        self.magic_link_expiration = ActiveValue::set(None);
+        self.update(db).await.map_err(ModelError::from)
     }
 }
