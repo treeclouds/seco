@@ -15,6 +15,8 @@ use crate::models::_entities::{
 use crate::views::{
     base::BaseResponse,
 };
+use crate::controllers::products::UnauthorizedResponse;
+use crate::views::wishlist::WishlistListResponse;
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
 pub struct WishListPostParams {
@@ -133,5 +135,5 @@ pub fn routes() -> Routes {
         .prefix("/api/user/wishlists")
         .add("/", get(user_wishlist_list))
         .add("/new", post(user_wishlist_new))
-        .add("/:id/remove", delete(user_wishlist_delete))
+        .add("/{id}/remove", delete(user_wishlist_delete))
 }

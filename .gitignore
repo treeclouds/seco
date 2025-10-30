@@ -20,3 +20,7 @@ Cargo.lock
 .idea
 .DS_Store
 storage-uploads/product_images/**
+/target
+.shuttle*
+Secrets*.toml
+/tests

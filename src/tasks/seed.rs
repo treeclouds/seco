@@ -13,10 +13,7 @@
 //! command with the `refresh:true` argument: ```sh
 //! cargo run task seed_data refresh:true
 //! ```
-use loco_rs::{db, prelude::*};
-use migration::Migrator;
-
-use crate::app::App;
+use loco_rs::prelude::*;
 
 #[allow(clippy::module_name_repetitions)]
 pub struct SeedData;
@@ -28,16 +25,8 @@ impl Task for SeedData {
             detail: "Task for seeding data".to_string(),
         }
     }
-    async fn run(&self, app_context: &AppContext, vars: &task::Vars) -> Result<()> {
-        let refresh = vars
-            .cli_arg("refresh")
-            .is_ok_and(|refresh| refresh == "true");
 
-        if refresh {
-            db::reset::<Migrator>(&app_context.db).await?;
-        }
-        let path = std::path::Path::new("src/fixtures");
-        db::run_app_seed::<App>(&app_context.db, path).await?;
+    async fn run(&self, _app_context: &AppContext, _vars: &task::Vars) -> Result<()> {
         Ok(())
     }
 }

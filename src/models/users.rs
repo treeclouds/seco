@@ -3,7 +3,7 @@ use chrono::offset::Local;
 use loco_rs::{auth::jwt, hash, prelude::*};
 use sea_orm::{entity::prelude::*, ActiveValue, DatabaseConnection, DbErr, TransactionTrait};
 use serde::{Deserialize, Serialize};
-use serde_json::json;
+use serde_json::Map;
 use uuid::Uuid;
 use utoipa::ToSchema;
 
@@ -29,7 +29,7 @@ pub struct Validator {
     pub first_name: String,
     #[validate(length(min = 2, message = "Last Name must be at least 2 characters long."))]
     pub last_name: String,
-    #[validate(custom = "validation::is_valid_email")]
+    #[validate(email(message = "invalid email"))]
     pub email: String,
 }
 
@@ -199,12 +199,10 @@ impl super::_entities::users::Model {
     /// # Errors
     ///
     /// when could not convert user claims to jwt token
-    pub fn generate_jwt(&self, secret: &str, expiration: &u64) -> ModelResult<String> {
-        Ok(jwt::JWT::new(secret).generate_token(
-            expiration,
-            self.pid.to_string(),
-            Some(json!({"Roll": "Administrator"})),
-        )?)
+    pub fn generate_jwt(&self, secret: &str, expiration: u64) -> ModelResult<String> {
+        jwt::JWT::new(secret)
+            .generate_token(expiration, self.pid.to_string(), Map::new())
+            .map_err(ModelError::from)
     }
 }
 

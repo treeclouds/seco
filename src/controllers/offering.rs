@@ -15,6 +15,7 @@ use crate::models::{
 use crate::views::{
     offering::AddNegotiationProductResponse,
 };
+use crate::controllers::products::UnauthorizedResponse;
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
 pub struct AddNegotiationProductParams {
@@ -156,6 +157,6 @@ pub fn routes() -> Routes {
     Routes::new()
         .prefix("/api/offering")
         .add("/negotiations/new", post(add_negotiation_product))
-        .add("/negotiations/:firebase_id", get(get_negotiation))
-        .add("/negotiations/:id/do", post(do_negotiation_product))
+        .add("/negotiations/{firebase_id}", get(get_negotiation))
+        .add("/negotiations/{id}/do", post(do_negotiation_product))
 }

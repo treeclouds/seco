@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use crate::models::_entities::categories::{ActiveModel, Model};
 use crate::views::category::{CategoryResponse, CategoryListResponse};
+use crate::controllers::products::UnauthorizedResponse;
 
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]

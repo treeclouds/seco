@@ -9,7 +9,7 @@ use crate::{
     },
     views::user::CurrentResponse
 };
-use crate::controllers::products::ProductPostParams;
+use crate::controllers::products::{ProductPostParams, UnauthorizedResponse};
 use crate::models::products::{ActiveModel as ProductActiveModel, Entity as ProductEntity, Model as ProductModel};
 use crate::views::product::ProductResponse;
 
@@ -201,7 +201,7 @@ pub fn routes() -> Routes {
         .add("/update_location", post(update_location))
         .add("/products", get(product_list))
         .add("/product/new", post(product_add))
-        .add("/product/:id", get(product_get_one))
-        .add("/product/:id", delete(product_remove))
-        .add("/product/:id", post(product_update))
+        .add("/product/{id}", get(product_get_one))
+        .add("/product/{id}", delete(product_remove))
+        .add("/product/{id}", post(product_update))
 }

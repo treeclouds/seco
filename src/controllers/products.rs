@@ -77,7 +77,7 @@ pub struct ProductOfferParams {
     user_pid: Option<Uuid>,
 }
 
-#[derive(Debug, Deserialize, IntoParams)]
+#[derive(Debug, Deserialize, IntoParams, )]
 pub struct ProductFilterParams {
     condition: Option<ProductConditionEnum>,
     location: Option<String>,
@@ -95,7 +95,7 @@ async fn load_item(ctx: &AppContext, id: i32) -> std::result::Result<ProductsRes
     path = "/api/products",
     tag = "products",
     responses(
-        (status = 200, description = "Product list based on user login successfully", body = [ProductResponse]),
+        (status = 200, description = "Product list based on user login successfully", body = [ProductsResponse]),
         (status = 401, description = "Unauthorized", body = UnauthorizedResponse),
     ),
     params(ProductFilterParams),
@@ -117,7 +117,7 @@ pub async fn list(State(ctx): State<AppContext>, query: Query<ProductFilterParam
     path = "/api/product/{id}",
     tag = "products",
     responses(
-        (status = 200, description = "Product detail successfully", body = ProductResponse),
+        (status = 200, description = "Product detail successfully", body = ProductsResponse),
         (status = 401, description = "Unauthorized", body = UnauthorizedResponse),
         (status = 404, description = "Product not found", body = UnauthorizedResponse),
     ),
@@ -149,5 +149,5 @@ pub fn routes() -> Routes {
     Routes::new()
         .prefix("/api")
         .add("/products", get(list))
-        .add("/product/:id", get(get_one))
+        .add("/product/{id}", get(get_one))
 }

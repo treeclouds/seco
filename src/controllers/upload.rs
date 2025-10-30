@@ -9,6 +9,8 @@ use sea_orm::{ColumnTrait, QueryFilter};
 use axum::extract::Multipart;
 
 use crate::views::product_image::ProductImageResponse;
+use crate::views::product::ProductResponse;
+use crate::controllers::products::UnauthorizedResponse;
 
 use crate::models::_entities::{
     users, 
@@ -102,5 +104,5 @@ async fn upload_product_image_file(auth: auth::JWT, Path(product_id): Path<i32>,
 pub fn routes() -> Routes {
     Routes::new()
         .prefix("/api/upload")
-        .add("/:product_id/product_image_file", post(upload_product_image_file))
+        .add("/{product_id}/product_image_file", post(upload_product_image_file))
 }
