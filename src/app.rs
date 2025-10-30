@@ -21,7 +21,7 @@ use migration::Migrator;
 use crate::{
     controllers::{
         self,
-        auth::{self, VerifyParams, ResetParams, ForgotParams},
+        auth::{self, VerifyParams, ResetParams, ForgotParams, MagicLinkParams},
         products::{self as ct_products, ProductPostParams, UnauthorizedResponse},
         categories::{self as ct_categories, CategoryPostParams},
         user::{self, LocationParams},
@@ -61,6 +61,8 @@ use utoipa_swagger_ui::SwaggerUi;
         auth::forgot,
         auth::reset,
         auth::login,
+        auth::magic_link,
+        auth::magic_link_verify,
         ct_products::list,
         ct_products::get_one,
         ct_categories::list,
@@ -83,10 +85,10 @@ use utoipa_swagger_ui::SwaggerUi;
     components(
         schemas(
             LoginParams, RegisterParams, VerifyParams, ResetParams, ForgotParams,
-            ProductPostParams, LoginResponse, ProductResponse, UnauthorizedResponse,
-            CurrentResponse, CategoryResponse, CategoryPostParams, LocationParams,
-            WishListPostParams, BaseResponse, ProductListResponse, AddNegotiationProductParams,
-            AddNegotiationProductResponse, WishlistListResponse
+            MagicLinkParams, ProductPostParams, LoginResponse, ProductResponse,
+            UnauthorizedResponse, CurrentResponse, CategoryResponse, CategoryPostParams,
+            LocationParams, WishListPostParams, BaseResponse, ProductListResponse,
+            AddNegotiationProductParams, AddNegotiationProductResponse, WishlistListResponse
         )
     ),
     modifiers(&SecurityAddon),

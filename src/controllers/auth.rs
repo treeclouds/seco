@@ -228,6 +228,14 @@ async fn current(auth: auth::JWT, State(ctx): State<AppContext>) -> Result<Respo
 ///    If invalid or expired, an unauthorized response is returned.
 ///
 /// This flow enhances security by avoiding traditional passwords and providing a seamless login experience.
+#[utoipa::path(
+    post,
+    path = "/api/auth/magic-link",
+    request_body = MagicLinkParams,
+    responses(
+        (status = 200, description = "Login successfully")
+    )
+)]
 async fn magic_link(
     State(ctx): State<AppContext>,
     Json(params): Json<MagicLinkParams>,
@@ -255,6 +263,14 @@ async fn magic_link(
 }
 
 /// Verifies a magic link token and authenticates the user.
+#[utoipa::path(
+    get,
+    path = "/api/auth/magic-link/{token}",
+    request_body = MagicLinkParams,
+    responses(
+        (status = 200, description = "Login successfully")
+    )
+)]
 async fn magic_link_verify(
     Path(token): Path<String>,
     State(ctx): State<AppContext>,

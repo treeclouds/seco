@@ -155,8 +155,8 @@ pub async fn get_negotiation(auth: auth::JWT, Path(firebase_id): Path<String>, S
 
 pub fn routes() -> Routes {
     Routes::new()
-        .prefix("/api/offering")
-        .add("/negotiations/new", post(add_negotiation_product))
-        .add("/negotiations/{firebase_id}", get(get_negotiation))
-        .add("/negotiations/{id}/do", post(do_negotiation_product))
+        .prefix("/api")
+        .add("/offering/negotiations/new", post(add_negotiation_product))
+        .add("/offering/negotiations/{firebase_id}", get(get_negotiation))
+        .add("/offering/negotiations/{id}/do", post(do_negotiation_product))
 }
