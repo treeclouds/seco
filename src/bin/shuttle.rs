@@ -15,8 +15,11 @@ async fn main(
         shuttle_runtime::Environment::Local => Environment::Development,
         shuttle_runtime::Environment::Deployment => Environment::Production,
     };
+    let config = environment
+        .load()
+        .expect("Failed to load configuration from the environment");
     info!("environment {:?}", environment);
-    let boot_result = create_app::<App, Migrator>(StartMode::ServerOnly, &environment)
+    let boot_result = create_app::<App, Migrator>(StartMode::ServerOnly, &environment, config)
         .await
         .unwrap();
 
