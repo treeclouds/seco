@@ -100,8 +100,8 @@ async fn load_item(ctx: &AppContext, id: i32) -> std::result::Result<ProductsRes
     ),
     params(ProductFilterParams),
 )]
-pub async fn list(State(ctx): State<AppContext>, query: Query<ProductFilterParams>) -> Result<Response> {
-    println!("===== get_one query {:?}", query);
+pub async fn get_all_products(State(ctx): State<AppContext>, query: Query<ProductFilterParams>) -> Result<Response> {
+    println!("===== get_all_products query {:?}", query);
     let products: Vec<ProductsResponse> = Model::get_all_products(
         &ctx.db,
         &query.condition.as_ref(),
@@ -148,6 +148,6 @@ pub async fn get_one(Path(id): Path<i32>, State(ctx): State<AppContext>, query: 
 pub fn routes() -> Routes {
     Routes::new()
         .prefix("/api")
-        .add("/products", get(list))
+        .add("/products", get(get_all_products))
         .add("/product/{id}", get(get_one))
 }

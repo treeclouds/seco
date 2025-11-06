@@ -29,7 +29,7 @@ impl CategoryPostParams {
         (status = 401, description = "Unauthorized", body = UnauthorizedResponse),
     ),
 )]
-pub async fn list(State(ctx): State<AppContext>) -> Result<Response> {
+pub async fn get_all_categories(State(ctx): State<AppContext>) -> Result<Response> {
     let categories: Vec<CategoryListResponse> = Model::get_all_categories(&ctx.db).await?;
     format::json(categories)
 }
@@ -55,6 +55,6 @@ pub async fn category_add(State(ctx): State<AppContext>, Json(params): Json<Cate
 pub fn routes() -> Routes {
     Routes::new()
         .prefix("/api")
-        .add("/categories", get(list))
+        .add("/categories", get(get_all_categories))
         .add("/category/new", post(category_add))
 }
