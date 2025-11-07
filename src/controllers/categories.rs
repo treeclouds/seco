@@ -10,6 +10,7 @@ use crate::controllers::products::UnauthorizedResponse;
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
 pub struct CategoryPostParams {
     pub name: String,
+    #[schema(default = 0)]
     pub parent_id: Option<i32>,
 }
 

@@ -7,6 +7,7 @@ use crate::models::_entities::categories;
 pub struct CategoryResponse {
     pub id: i32,
     pub name: String,
+    #[schema(default = 0)]
     pub parent_id: Option<i32>,
 }
 

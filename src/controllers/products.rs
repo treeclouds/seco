@@ -15,6 +15,7 @@ use crate::views::product::{ProductsResponse, ProductDealResponse};
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
 pub struct ProductPostParams {
+    #[schema(default = 0)]
     pub category_id: Option<i32>,
     pub title: String,
     pub description: String,
@@ -26,13 +27,14 @@ pub struct ProductPostParams {
     pub dimension_weight: f32,
     pub brand: String,
     pub material: String,
+    #[schema(default = 1)]
     pub stock: i32,
     pub sku: String,
     #[schema(read_only)]
     pub seller_id: Option<i32>,
     #[schema(value_type = String, format = Binary)]
     pub tags: Option<JsonValue>,
-    #[schema(value_type = String)]
+    #[schema(value_type = String, default = "BrandNew")]
     pub condition: Option<ProductConditionEnum>,
     #[schema(value_type = String, format = Binary)]
     pub images: Option<JsonValue>,
