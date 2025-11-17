@@ -3,7 +3,7 @@ use seco::{
     app::App,
     models::products::{self, Model},
 };
-use loco_rs::testing;
+use loco_rs::testing::prelude::*;
 use sea_orm::{ActiveModelTrait, ActiveValue};
 use serial_test::serial;
 use sea_orm::prelude::Decimal;
@@ -22,7 +22,9 @@ macro_rules! configure_insta {
 async fn test_can_validate_product_model() {
     configure_insta!();
 
-    let boot = testing::boot_test::<App>().await.unwrap();
+    let boot = boot_test::<App>()
+        .await
+        .expect("Failed to boot test application");
 
     let user_res = users::ActiveModel {
         first_name: ActiveValue::set("User".to_string()),
@@ -36,7 +38,7 @@ async fn test_can_validate_product_model() {
 
     let res = products::ActiveModel {
         seller_id: ActiveValue::set(user_res.unwrap().id),
-        category: ActiveValue::set("Category test".to_string()),
+        category_id: ActiveValue::set(Option::from(1)),
         title: ActiveValue::set("Product 1".to_string()),
         description: ActiveValue::set("Product 1".to_string()),
         price: ActiveValue::set(Decimal::new(40000, 0)),
@@ -61,8 +63,12 @@ async fn test_can_validate_product_model() {
 async fn test_get_product_by_id() {
     configure_insta!();
 
-    let boot = testing::boot_test::<App>().await.unwrap();
-    testing::seed::<App>(&boot.app_context.db).await.unwrap();
+    let boot = boot_test::<App>()
+        .await
+        .expect("Failed to boot test application");
+    seed::<App>(&boot.app_context)
+        .await
+        .expect("Failed to seed database");
 
     // query your model, e.g.:
     //

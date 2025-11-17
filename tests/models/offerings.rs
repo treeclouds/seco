@@ -1,5 +1,5 @@
 use seco::app::App;
-use loco_rs::testing;
+use loco_rs::testing::prelude::*;
 use serial_test::serial;
 
 macro_rules! configure_insta {
@@ -15,8 +15,12 @@ macro_rules! configure_insta {
 async fn test_model() {
     configure_insta!();
 
-    let boot = testing::boot_test::<App>().await.unwrap();
-    testing::seed::<App>(&boot.app_context.db).await.unwrap();
+    let boot = boot_test::<App>()
+        .await
+        .expect("Failed to boot test application");
+    seed::<App>(&boot.app_context)
+        .await
+        .expect("Failed to seed database");
 
     // query your model, e.g.:
     //
