@@ -2,7 +2,6 @@ use async_trait::async_trait;
 use axum::http::StatusCode;
 use chrono::{offset::Local, Duration};
 use loco_rs::{auth::jwt, hash, prelude::*};
-use loco_rs::Error::CustomError;
 use sea_orm::{entity::prelude::*, ActiveValue, DatabaseConnection, DbErr, TransactionTrait};
 use serde::{Deserialize, Serialize};
 use serde_json::Map;
@@ -76,19 +75,12 @@ pub async fn verify_refresh(token: &str) -> Result<RefreshClaims> {
                 _ =>
                     "Failed to verify refresh token",
             };
-
-            return Err(CustomError(
-                StatusCode::BAD_REQUEST,
-                ErrorDetail::new("invalid_refresh_token", message),
-            ));
+            return bad_request(message)
         }
     };
 
     if data.claims.token_type != "refresh" {
-        return Err(CustomError(
-            StatusCode::BAD_REQUEST,
-            ErrorDetail::new("bad_token_type", "Token is not refresh token"),
-        ));
+        return bad_request("Token is not refresh token")
     }
 
     Ok(data.claims)
