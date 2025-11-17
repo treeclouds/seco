@@ -1,0 +1,45 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:17.4-bookworm
+    env_file:
+      - .env
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  app:
+    build:
+      context: .
+      dockerfile: ./compose/production/Dockerfile
+    env_file:
+      - .env
+    depends_on:
+      - db
+      - redis
+    ports:
+      - "5150:5150"
+    volumes:
+      - ./:/usr/src/seco
+      - cargo-cache:/usr/local/cargo/registry
+      - cargo-git:/usr/local/cargo/git
+      - target-cache:/usr/src/seco/target
+    restart: unless-stopped
+
+  redis:
+    image: redis:latest
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    networks:
+      - redis
+
+volumes:
+  postgres-data:
+  cargo-cache:
+  cargo-git:
+  target-cache:
+
+networks:
+  db:
+  redis:
