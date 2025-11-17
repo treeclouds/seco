@@ -1,6 +1,5 @@
 use axum::http::StatusCode;
 use loco_rs::controller::ErrorDetail;
-use loco_rs::Error::CustomError;
 use loco_rs::prelude::*;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
@@ -199,14 +198,14 @@ async fn login(
         // we don't want to expose our users email. if the email is invalid we still
         // returning success to the caller
         let msg_error = String::from("Invalid email or password!");
-        return Err(CustomError(StatusCode::BAD_REQUEST, ErrorDetail::new("bad_request", &*msg_error)))
+        return bad_request(&msg_error);
     };
 
     let valid = user.verify_password(&params.password);
 
     if !valid {
         let msg_error = String::from("Invalid email or password!");
-        return Err(CustomError(StatusCode::BAD_REQUEST, ErrorDetail::new("bad_request", &*msg_error)))
+        return bad_request(&msg_error);
     }
 
     let jwt_secret = ctx.config.get_jwt_config()?;
@@ -323,7 +322,7 @@ async fn resend_verification_email(
             email = params.email,
             "User isn't found for resend verification"
         );
-        return format::json(());
+        return bad_request("invalid request");
     };
 
     if user.email_verified_at.is_some() {
@@ -331,7 +330,7 @@ async fn resend_verification_email(
             pid = user.pid.to_string(),
             "User already verified, skipping resend"
         );
-        return format::json(());
+        return bad_request("invalid request");
     }
 
     let user = user
@@ -370,7 +369,7 @@ async fn refresh_token(
         // we don't want to expose our users email. if the email is invalid we still
         // returning success to the caller
         let msg_error = String::from("Invalid email or password!");
-        return Err(CustomError(StatusCode::BAD_REQUEST, ErrorDetail::new("bad_request", &*msg_error)))
+        return bad_request(&msg_error);
     };
 
     let jwt_secret = ctx.config.get_jwt_config()?;
