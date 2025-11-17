@@ -63,6 +63,8 @@ use utoipa_swagger_ui::SwaggerUi;
         auth::login,
         auth::magic_link,
         auth::magic_link_verify,
+        auth::resend_verification_email,
+        auth::refresh_token,
         ct_products::get_all_products,
         ct_products::get_one,
         ct_categories::get_all_categories,

@@ -52,6 +52,7 @@ utoipa = { version = "5", features = ["axum_extras", "time", "uuid", "decimal_fl
 fluent-templates = { version = "0.8.0", features = ["tera"] }
 unic-langid = "0.9.4"
 derivative = "2.2.0"
+jsonwebtoken = "9.3.1"
 # /view engine
 
 [[bin]]

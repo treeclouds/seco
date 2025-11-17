@@ -11,7 +11,7 @@ use crate::{
     mailers::auth::AuthMailer,
     models::{
         _entities::users,
-        users::{LoginParams, RegisterParams},
+        users::{LoginParams, RegisterParams, verify_refresh},
     },
     views::auth::{LoginResponse, CurrentResponse},
 };
@@ -48,6 +48,17 @@ pub struct MagicLinkParams {
 #[derive(Debug, Deserialize, Serialize, ToSchema)]
 pub struct ResendVerificationParams {
     pub email: String,
+}
+
+#[derive(Debug, Deserialize, Serialize, ToSchema)]
+pub struct TokenResponse {
+    token: String,
+    refresh_token: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Serialize, ToSchema)]
+pub struct RefreshTokenResponse {
+    refresh_token: String,
 }
 
 /// Register function creates a new user with the given parameters and sends a
@@ -191,7 +202,6 @@ async fn login(
         return Err(CustomError(StatusCode::BAD_REQUEST, ErrorDetail::new("bad_request", &*msg_error)))
     };
 
-
     let valid = user.verify_password(&params.password);
 
     if !valid {
@@ -205,7 +215,9 @@ async fn login(
         .generate_jwt(&jwt_secret.secret, jwt_secret.expiration)
         .or_else(|_| unauthorized("unauthorized!"))?;
 
-    format::json(LoginResponse::new(&user, &token))
+    let refresh_token = user.generate_refresh_token_jwt().or_else(|_| unauthorized("unauthorized!"))?;
+
+    format::json(LoginResponse::new(&user, &token, &refresh_token))
 }
 
 #[debug_handler]
@@ -288,10 +300,19 @@ async fn magic_link_verify(
     let token = user
         .generate_jwt(&jwt_secret.secret, jwt_secret.expiration)
         .or_else(|_| unauthorized("unauthorized!"))?;
+    let refresh_token = user.generate_refresh_token_jwt().or_else(|_| unauthorized("unauthorized!"))?;
 
-    format::json(LoginResponse::new(&user, &token))
+    format::json(LoginResponse::new(&user, &token, &refresh_token))
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/auth/resend-verification-mail",
+    request_body = ResendVerificationParams,
+    responses(
+        (status = 200, description = "Verification email re-sent")
+    )
+)]
 #[debug_handler]
 async fn resend_verification_email(
     State(ctx): State<AppContext>,
@@ -324,12 +345,52 @@ async fn resend_verification_email(
     format::json(())
 }
 
+#[debug_handler]
+async fn logout(auth: auth::JWT, State(ctx): State<AppContext>) -> Result<Response> {
+    let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    format::json(CurrentResponse::new(&user))
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/auth/refresh-token",
+    request_body = RefreshTokenResponse,
+    responses(
+        (status = 200, description = "Refresh token successfully")
+    )
+)]
+#[debug_handler]
+async fn refresh_token(
+    State(ctx): State<AppContext>,
+    Json(params): Json<RefreshTokenResponse>,
+) -> Result<Json<TokenResponse>> {
+    let claims = verify_refresh(&params.refresh_token).await?;
+    // let Ok(claims) = verify_refresh(&params.refresh_token).await?
+    let Ok(user) = users::Model::find_by_pid(&ctx.db, &claims.pid).await else {
+        // we don't want to expose our users email. if the email is invalid we still
+        // returning success to the caller
+        let msg_error = String::from("Invalid email or password!");
+        return Err(CustomError(StatusCode::BAD_REQUEST, ErrorDetail::new("bad_request", &*msg_error)))
+    };
+
+    let jwt_secret = ctx.config.get_jwt_config()?;
+    let new_access = user
+        .generate_jwt(&jwt_secret.secret, jwt_secret.expiration)
+        .or_else(|_| unauthorized("unauthorized!"))?;
+
+    Ok(Json(TokenResponse {
+        token: new_access,
+        refresh_token: None,
+    }))
+}
+
 pub fn routes() -> Routes {
     Routes::new()
         .prefix("/api/auth")
         .add("/register", post(register))
         .add("/verify", post(verify))
         .add("/login", post(login))
+        .add("/refresh-token", post(refresh_token))
         .add("/forgot", post(forgot))
         .add("/reset", post(reset))
         .add("/current", get(current))

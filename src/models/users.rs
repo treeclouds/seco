@@ -1,12 +1,15 @@
 use async_trait::async_trait;
+use axum::http::StatusCode;
 use chrono::{offset::Local, Duration};
 use loco_rs::{auth::jwt, hash, prelude::*};
+use loco_rs::Error::CustomError;
 use sea_orm::{entity::prelude::*, ActiveValue, DatabaseConnection, DbErr, TransactionTrait};
 use serde::{Deserialize, Serialize};
 use serde_json::Map;
 use uuid::Uuid;
 use utoipa::ToSchema;
-
+use jsonwebtoken::{decode, encode, Header, EncodingKey, DecodingKey, Validation, errors::ErrorKind::*};
+use loco_rs::controller::ErrorDetail;
 pub use super::_entities::users::{self, ActiveModel, Entity, Model};
 
 pub const MAGIC_LINK_LENGTH: i8 = 32;
@@ -24,6 +27,13 @@ pub struct RegisterParams {
     pub password: String,
     pub first_name: String,
     pub last_name: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct RefreshClaims {
+    pub pid: String,
+    pub exp: u64,
+    pub token_type: String,
 }
 
 #[derive(Debug, Validate, Deserialize)]
@@ -44,6 +54,44 @@ impl Validatable for super::_entities::users::ActiveModel {
             email: self.email.as_ref().to_owned(),
         })
     }
+}
+
+const REFRESH_SECRET: &[u8] = b"bc258e3ed29962ca";
+
+pub async fn verify_refresh(token: &str) -> Result<RefreshClaims> {
+    let result = decode::<RefreshClaims>(
+        token,
+        &DecodingKey::from_secret(REFRESH_SECRET),
+        &Validation::default(),
+    );
+
+    let data = match result {
+        Ok(data) => data,
+        Err(err) => {
+            let message = match err.kind() {
+                ExpiredSignature =>
+                    "Refresh token expired",
+                InvalidToken | InvalidSignature  =>
+                    "Invalid refresh token",
+                _ =>
+                    "Failed to verify refresh token",
+            };
+
+            return Err(CustomError(
+                StatusCode::BAD_REQUEST,
+                ErrorDetail::new("invalid_refresh_token", message),
+            ));
+        }
+    };
+
+    if data.claims.token_type != "refresh" {
+        return Err(CustomError(
+            StatusCode::BAD_REQUEST,
+            ErrorDetail::new("bad_token_type", "Token is not refresh token"),
+        ));
+    }
+
+    Ok(data.claims)
 }
 
 #[async_trait::async_trait]
@@ -206,6 +254,16 @@ impl super::_entities::users::Model {
         jwt::JWT::new(secret)
             .generate_token(expiration, self.pid.to_string(), Map::new())
             .map_err(ModelError::from)
+    }
+
+    pub fn generate_refresh_token_jwt(&self) -> ModelResult<String> {
+        let exp = (Local::now() + Duration::days(3)).timestamp() as u64; // 3 hari
+        let claims = RefreshClaims {
+            pid: self.pid.to_string(),
+            exp,
+            token_type: "refresh".to_string(),
+        };
+        encode(&Header::default(), &claims, &EncodingKey::from_secret(REFRESH_SECRET)).map_err(ModelError::from)
     }
 
     /// finds a user by the magic token and verify and token expiration
