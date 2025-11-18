@@ -67,6 +67,7 @@ use utoipa_swagger_ui::SwaggerUi;
         auth::refresh_token,
         auth::logout,
         ct_products::get_all_products,
+        ct_products::get_all_product_condition,
         ct_products::get_one,
         ct_categories::get_all_categories,
         ct_categories::category_add,

@@ -7,7 +7,7 @@ use axum::extract::Query;
 use loco_rs::prelude::*;
 use sea_orm::prelude::Decimal;
 use serde::{Deserialize, Serialize};
-use sea_orm::{query::*, JsonValue};
+use sea_orm::{query::*, ActiveEnum, Iterable, JsonValue};
 use utoipa::{ToSchema, IntoParams};
 use crate::models::_entities::{products::{ActiveModel, Model}, offerings, sea_orm_active_enums::Condition as ProductConditionEnum, users};
 use crate::views::product::{ProductsResponse, ProductDealResponse};
@@ -147,9 +147,23 @@ pub async fn get_one(Path(id): Path<i32>, State(ctx): State<AppContext>, query: 
     format::json(product)
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/product_condition",
+    tag = "products",
+    responses(
+        (status = 200, description = "Product condition list"),
+    ),
+)]
+pub async fn get_all_product_condition(State(_ctx): State<AppContext>) -> Result<Response> {
+    let conditions = ProductConditionEnum::iter().map(|c| c.to_value()).collect::<Vec<String>>();
+    format::json(conditions)
+}
+
 pub fn routes() -> Routes {
     Routes::new()
         .prefix("/api")
         .add("/products", get(get_all_products))
+        .add("/product_condition", get(get_all_product_condition))
         .add("/product/{id}", get(get_one))
 }
