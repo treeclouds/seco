@@ -4,5 +4,6 @@ pub use super::categories::Entity as Categories;
 pub use super::offerings::Entity as Offerings;
 pub use super::product_images::Entity as ProductImages;
 pub use super::products::Entity as Products;
+pub use super::refresh_sessions::Entity as RefreshSessions;
 pub use super::users::Entity as Users;
 pub use super::wishlists::Entity as Wishlists;

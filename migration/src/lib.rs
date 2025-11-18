@@ -25,6 +25,7 @@ mod m20240916_093824_add_offerings_firebase_id;
 mod m20240918_124826_alter_offerings_product_condition;
 mod m20240926_135258_alter_offerings_action_type_enum;
 mod m20251030_070909_add_magic_link_token_and_magic_link_expiration_to_users;
+mod m20251118_031042_refresh_sessions;
 pub struct Migrator;
 
 #[async_trait::async_trait]
@@ -32,6 +33,7 @@ impl MigratorTrait for Migrator {
     fn migrations() -> Vec<Box<dyn MigrationTrait>> {
         vec![
             Box::new(m20220101_000001_users::Migration),
+            Box::new(m20251118_031042_refresh_sessions::Migration),
             // inject-above (do not remove this comment)
             Box::new(m20231103_114510_notes::Migration),
             Box::new(m20240327_124407_add_users_first_name_last_name::Migration),

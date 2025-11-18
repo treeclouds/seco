@@ -1,19 +1,19 @@
-use axum::http::StatusCode;
-use loco_rs::controller::ErrorDetail;
 use loco_rs::prelude::*;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use std::sync::OnceLock;
+use chrono::{Duration, Local};
 use regex::Regex;
 
 use crate::{
     mailers::auth::AuthMailer,
     models::{
         _entities::users,
-        users::{LoginParams, RegisterParams, verify_refresh},
+        users::{LoginParams, RegisterParams, verify_refresh, revoke_refresh_session},
     },
     views::auth::{LoginResponse, CurrentResponse},
 };
+use crate::models::_entities::refresh_sessions;
 
 pub static EMAIL_DOMAIN_RE: OnceLock<Regex> = OnceLock::new();
 
@@ -194,8 +194,10 @@ async fn login(
     State(ctx): State<AppContext>,
     Json(params): Json<LoginParams>,
 ) -> Result<Response> {
+    let exp_dt = Local::now() + Duration::days(3);
+    let jti = Uuid::new_v4().to_string();
     let Ok(user) = users::Model::find_by_email(&ctx.db, &params.email).await else {
-        // we don't want to expose our users email. if the email is invalid we still
+        // we don't want to expose our users email. if the email is invalid, we're still
         // returning success to the caller
         let msg_error = String::from("Invalid email or password!");
         return bad_request(&msg_error);
@@ -214,8 +216,8 @@ async fn login(
         .generate_jwt(&jwt_secret.secret, jwt_secret.expiration)
         .or_else(|_| unauthorized("unauthorized!"))?;
 
-    let refresh_token = user.generate_refresh_token_jwt().or_else(|_| unauthorized("unauthorized!"))?;
-
+    let refresh_token = user.generate_refresh_token_jwt(exp_dt, jti.clone()).or_else(|_| unauthorized("unauthorized!"))?;
+    refresh_sessions::Model::create_refresh_token(&ctx.db, user.id, &refresh_token, exp_dt, jti).await?;
     format::json(LoginResponse::new(&user, &token, &refresh_token))
 }
 
@@ -286,6 +288,9 @@ async fn magic_link_verify(
     Path(token): Path<String>,
     State(ctx): State<AppContext>,
 ) -> Result<Response> {
+    let exp_dt = Local::now() + Duration::days(3);
+    let jti = Uuid::new_v4().to_string();
+
     let Ok(user) = users::Model::find_by_magic_token(&ctx.db, &token).await else {
         // we don't want to expose our users email. if the email is invalid we still
         // returning success to the caller
@@ -299,8 +304,9 @@ async fn magic_link_verify(
     let token = user
         .generate_jwt(&jwt_secret.secret, jwt_secret.expiration)
         .or_else(|_| unauthorized("unauthorized!"))?;
-    let refresh_token = user.generate_refresh_token_jwt().or_else(|_| unauthorized("unauthorized!"))?;
 
+    let refresh_token = user.generate_refresh_token_jwt(exp_dt, jti.clone()).or_else(|_| unauthorized("unauthorized!"))?;
+    refresh_sessions::Model::create_refresh_token(&ctx.db, user.id, &refresh_token, exp_dt, jti).await?;
     format::json(LoginResponse::new(&user, &token, &refresh_token))
 }
 
@@ -344,10 +350,21 @@ async fn resend_verification_email(
     format::json(())
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/auth/logout",
+    request_body = RefreshTokenResponse,
+    responses(
+        (status = 200, description = "Logout successfully")
+    )
+)]
 #[debug_handler]
-async fn logout(auth: auth::JWT, State(ctx): State<AppContext>) -> Result<Response> {
-    let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
-    format::json(CurrentResponse::new(&user))
+async fn logout(
+    State(ctx): State<AppContext>,
+    Json(params): Json<RefreshTokenResponse>,
+) -> Result<Response> {
+    revoke_refresh_session(&ctx.db, &params.refresh_token).await?;
+    format::json(())
 }
 
 #[utoipa::path(
@@ -363,10 +380,9 @@ async fn refresh_token(
     State(ctx): State<AppContext>,
     Json(params): Json<RefreshTokenResponse>,
 ) -> Result<Json<TokenResponse>> {
-    let claims = verify_refresh(&params.refresh_token).await?;
-    // let Ok(claims) = verify_refresh(&params.refresh_token).await?
+    let claims = verify_refresh(&ctx.db, &params.refresh_token).await?;
     let Ok(user) = users::Model::find_by_pid(&ctx.db, &claims.pid).await else {
-        // we don't want to expose our users email. if the email is invalid we still
+        // we don't want to expose our users' email. if the email is invalid, we're still
         // returning success to the caller
         let msg_error = String::from("Invalid email or password!");
         return bad_request(&msg_error);
@@ -390,6 +406,7 @@ pub fn routes() -> Routes {
         .add("/verify", post(verify))
         .add("/login", post(login))
         .add("/refresh-token", post(refresh_token))
+        .add("/logout", post(logout))
         .add("/forgot", post(forgot))
         .add("/reset", post(reset))
         .add("/current", get(current))

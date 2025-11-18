@@ -39,6 +39,8 @@ pub enum Relation {
     Offerings,
     #[sea_orm(has_many = "super::products::Entity")]
     Products,
+    #[sea_orm(has_many = "super::refresh_sessions::Entity")]
+    RefreshSessions,
     #[sea_orm(has_many = "super::wishlists::Entity")]
     Wishlists,
 }
@@ -52,6 +54,12 @@ impl Related<super::offerings::Entity> for Entity {
 impl Related<super::products::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Products.def()
+    }
+}
+
+impl Related<super::refresh_sessions::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::RefreshSessions.def()
     }
 }
 

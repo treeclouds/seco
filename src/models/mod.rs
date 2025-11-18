@@ -5,3 +5,4 @@ pub mod product_images;
 pub mod categories;
 pub mod wishlists;
 pub mod offerings;
+pub mod refresh_sessions;

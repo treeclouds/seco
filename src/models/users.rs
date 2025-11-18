@@ -1,5 +1,4 @@
 use async_trait::async_trait;
-use axum::http::StatusCode;
 use chrono::{offset::Local, Duration};
 use loco_rs::{auth::jwt, hash, prelude::*};
 use sea_orm::{entity::prelude::*, ActiveValue, DatabaseConnection, DbErr, TransactionTrait};
@@ -8,8 +7,10 @@ use serde_json::Map;
 use uuid::Uuid;
 use utoipa::ToSchema;
 use jsonwebtoken::{decode, encode, Header, EncodingKey, DecodingKey, Validation, errors::ErrorKind::*};
-use loco_rs::controller::ErrorDetail;
-pub use super::_entities::users::{self, ActiveModel, Entity, Model};
+pub use super::_entities::{
+    refresh_sessions,
+    users::{self, ActiveModel, Entity, Model}
+};
 
 pub const MAGIC_LINK_LENGTH: i8 = 32;
 pub const MAGIC_LINK_EXPIRATION_MIN: i8 = 5;
@@ -33,6 +34,7 @@ pub struct RefreshClaims {
     pub pid: String,
     pub exp: u64,
     pub token_type: String,
+    pub jti: String,
 }
 
 #[derive(Debug, Validate, Deserialize)]
@@ -57,7 +59,8 @@ impl Validatable for super::_entities::users::ActiveModel {
 
 const REFRESH_SECRET: &[u8] = b"bc258e3ed29962ca";
 
-pub async fn verify_refresh(token: &str) -> Result<RefreshClaims> {
+
+pub async fn verify_refresh(db: &DatabaseConnection, token: &str) -> Result<RefreshClaims> {
     let result = decode::<RefreshClaims>(
         token,
         &DecodingKey::from_secret(REFRESH_SECRET),
@@ -83,7 +86,63 @@ pub async fn verify_refresh(token: &str) -> Result<RefreshClaims> {
         return bad_request("Token is not refresh token")
     }
 
+    let jti = &data.claims.jti;
+    let session = refresh_sessions::Entity::find()
+        .filter(refresh_sessions::Column::Jti.eq(jti.to_string()))
+        .one(db)
+        .await
+        .map_err(|e| ModelError::Any(e.into()))?;
+
+    if session.is_none() {
+        return bad_request("Session not found")
+    }
+
+    let session = session.unwrap();
+
+    if session.revoked {
+        return bad_request("Refresh token has been revoked")
+    }
+
+    if session.expires_at < Local::now() {
+        return bad_request("Refresh session expired")
+    }
+
     Ok(data.claims)
+}
+
+pub async fn revoke_refresh_session(db: &DatabaseConnection, token: &str) -> Result<()> {
+    let result = decode::<RefreshClaims>(
+        token,
+        &DecodingKey::from_secret(REFRESH_SECRET),
+        &Validation::default(),
+    );
+
+    let data = match result {
+        Ok(data) => data,
+        Err(err) => {
+            let message = match err.kind() {
+                ExpiredSignature =>
+                    "Refresh token expired",
+                InvalidToken | InvalidSignature  =>
+                    "Invalid refresh token",
+                _ =>
+                    "Failed to verify refresh token",
+            };
+            return bad_request(message)
+        }
+    };
+
+    let claims = data.claims;
+
+    refresh_sessions::Entity::update_many()
+        .col_expr(refresh_sessions::Column::Revoked, Expr::value(true))
+        .col_expr(refresh_sessions::Column::RevokedAt, Expr::value(Local::now()))
+        .filter(refresh_sessions::Column::Jti.eq(claims.jti))
+        .exec(db)
+        .await?;
+
+    Ok(())
+
 }
 
 #[async_trait::async_trait]
@@ -95,8 +154,8 @@ impl ActiveModelBehavior for super::_entities::users::ActiveModel {
         self.validate()?;
         if insert {
             let mut this = self;
-            this.pid = ActiveValue::Set(Uuid::new_v4());
-            this.api_key = ActiveValue::Set(format!("lo-{}", Uuid::new_v4()));
+            this.pid = ActiveValue::set(Uuid::new_v4());
+            this.api_key = ActiveValue::set(format!("lo-{}", Uuid::new_v4()));
             Ok(this)
         } else {
             Ok(self)
@@ -248,14 +307,17 @@ impl super::_entities::users::Model {
             .map_err(ModelError::from)
     }
 
-    pub fn generate_refresh_token_jwt(&self) -> ModelResult<String> {
-        let exp = (Local::now() + Duration::days(3)).timestamp() as u64; // 3 hari
+    pub fn generate_refresh_token_jwt(&self, exp_dt: chrono::DateTime<Local>, jti: String) -> ModelResult<String> {
+        let exp = (exp_dt).timestamp() as u64; // 3 hari
+
         let claims = RefreshClaims {
             pid: self.pid.to_string(),
             exp,
             token_type: "refresh".to_string(),
+            jti: jti.clone(),
         };
-        encode(&Header::default(), &claims, &EncodingKey::from_secret(REFRESH_SECRET)).map_err(ModelError::from)
+        let token = encode(&Header::default(), &claims, &EncodingKey::from_secret(REFRESH_SECRET)).map_err(|e| ModelError::Any(e.into()))?;
+        Ok(token)
     }
 
     /// finds a user by the magic token and verify and token expiration
@@ -310,7 +372,7 @@ impl super::_entities::users::ActiveModel {
         db: &DatabaseConnection,
     ) -> ModelResult<Model> {
         self.email_verification_sent_at = ActiveValue::set(Some(Local::now().naive_local()));
-        self.email_verification_token = ActiveValue::Set(Some(Uuid::new_v4().to_string()));
+        self.email_verification_token = ActiveValue::set(Some(Uuid::new_v4().to_string()));
         Ok(self.update(db).await?)
     }
 
@@ -328,7 +390,7 @@ impl super::_entities::users::ActiveModel {
     /// when has DB query error
     pub async fn set_forgot_password_sent(mut self, db: &DatabaseConnection) -> ModelResult<Model> {
         self.reset_sent_at = ActiveValue::set(Some(Local::now().naive_local()));
-        self.reset_token = ActiveValue::Set(Some(Uuid::new_v4().to_string()));
+        self.reset_token = ActiveValue::set(Some(Uuid::new_v4().to_string()));
         Ok(self.update(db).await?)
     }
 
@@ -362,8 +424,8 @@ impl super::_entities::users::ActiveModel {
     ) -> ModelResult<Model> {
         self.password =
             ActiveValue::set(hash::hash_password(password).map_err(|e| ModelError::Any(e.into()))?);
-        self.reset_token = ActiveValue::Set(None);
-        self.reset_sent_at = ActiveValue::Set(None);
+        self.reset_token = ActiveValue::set(None);
+        self.reset_sent_at = ActiveValue::set(None);
         Ok(self.update(db).await?)
     }
 

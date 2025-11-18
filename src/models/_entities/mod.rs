@@ -6,6 +6,7 @@ pub mod categories;
 pub mod offerings;
 pub mod product_images;
 pub mod products;
+pub mod refresh_sessions;
 pub mod sea_orm_active_enums;
 pub mod users;
 pub mod wishlists;
