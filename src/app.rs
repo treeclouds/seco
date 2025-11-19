@@ -22,6 +22,7 @@ use crate::{
     controllers::{
         self,
         auth::{self, VerifyParams, ResetParams, ForgotParams, MagicLinkParams},
+        brands::{self},
         products::{self as ct_products, ProductPostParams, UnauthorizedResponse},
         categories::{self as ct_categories, CategoryPostParams},
         user::{self, LocationParams},
@@ -66,6 +67,9 @@ use utoipa_swagger_ui::SwaggerUi;
         auth::resend_verification_email,
         auth::refresh_token,
         auth::logout,
+        brands::list,
+        brands::add,
+        brands::get_one,
         ct_products::get_all_products,
         ct_products::get_all_product_condition,
         ct_products::get_one,
@@ -151,6 +155,7 @@ impl Hooks for App {
 
     fn routes(_ctx: &AppContext) -> AppRoutes {
         AppRoutes::with_default_routes()
+            .add_route(controllers::brands::routes())
             .add_route(controllers::base::routes())
             .add_route(controllers::categories::routes())
             .add_route(controllers::products::routes())

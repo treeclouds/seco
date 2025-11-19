@@ -103,7 +103,7 @@ async fn load_item(ctx: &AppContext, id: i32) -> std::result::Result<ProductsRes
     params(ProductFilterParams),
 )]
 pub async fn get_all_products(State(ctx): State<AppContext>, query: Query<ProductFilterParams>) -> Result<Response> {
-    println!("===== get_all_products query {:?}", query);
+    tracing::info!("===== get_all_products query {:?}", query);
     let products: Vec<ProductsResponse> = Model::get_all_products(
         &ctx.db,
         &query.condition.as_ref(),
@@ -129,7 +129,7 @@ pub async fn get_all_products(State(ctx): State<AppContext>, query: Query<Produc
     )
 )]
 pub async fn get_one(Path(id): Path<i32>, State(ctx): State<AppContext>, query: Query<ProductOfferParams>) -> Result<Response> {
-    println!("===== get_one query {:?}", query);
+    tracing::info!("===== get_one query {:?}", query);
     let product = load_item(&ctx, id).await?;
     if query.user_pid.is_some() {
         let user = users::Model::find_by_pid(&ctx.db, &query.user_pid.unwrap().to_string()).await?;

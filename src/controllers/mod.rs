@@ -6,3 +6,4 @@ pub mod base;
 pub mod categories;
 pub mod wishlists;
 pub mod offering;
+pub mod brands;

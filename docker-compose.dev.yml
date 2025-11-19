@@ -16,22 +16,11 @@ services:
     ports:
       - "5150:5150"
     volumes:
-      - ./:/usr/src/seco
-      - cargo-cache:/usr/local/cargo/registry
-      - cargo-git:/usr/local/cargo/git
-      - target-cache:/usr/src/seco/target
+      - .:/app
+      - cargo-target:/app/target
     env_file:
       - .env
     tty: true
-    command: >
-      watchexec
-      -r
-      -i target -i target/** -i .git -i '.git/**'
-      -i /usr/local/cargo -i /usr/local/cargo/** -i cargo-cache -i cargo-git
-      -i '**/*.swp' -i '**/*~' -i '**/.#*'
-      -w src -w Cargo.toml
-      -- cargo loco start --server-and-worker -b 0.0.0.0
-#    command: cargo loco start --server-and-worker -b 0.0.0.0
 
   db:
     image: postgres:17.4-bookworm
@@ -62,10 +51,7 @@ services:
 
 volumes:
   postgres-data: {}
-  cargo-cache:
-  cargo-git:
-  target-cache:
-
+  cargo-target:
 
 networks:
   db:

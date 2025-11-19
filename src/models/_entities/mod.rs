@@ -2,6 +2,7 @@
 
 pub mod prelude;
 
+pub mod brands;
 pub mod categories;
 pub mod offerings;
 pub mod product_images;

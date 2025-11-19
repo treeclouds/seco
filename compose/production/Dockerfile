@@ -1,6 +1,6 @@
 # builder: musl static build with ekidd/rust-musl-builder
 FROM ekidd/rust-musl-builder:latest AS builder
-WORKDIR /home/rust/src
+WORKDIR /app
 
 # copy cargo manifest first to cache deps
 COPY Cargo.toml Cargo.lock ./
@@ -21,7 +21,7 @@ RUN addgroup -S app && adduser -S app -G app
 WORKDIR /app
 
 # copy statically linked binary
-COPY --from=builder /home/rust/src/target/x86_64-unknown-linux-musl/release/seco-cli /usr/local/bin/seco-cli
+COPY --from=builder /app/target/x86_64-unknown-linux-musl/release/seco-cli /usr/local/bin/seco-cli
 RUN chmod +x /usr/local/bin/seco-cli
 USER app
 

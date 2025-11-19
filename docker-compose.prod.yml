@@ -20,10 +20,8 @@ services:
     ports:
       - "5150:5150"
     volumes:
-      - ./:/usr/src/seco
-      - cargo-cache:/usr/local/cargo/registry
-      - cargo-git:/usr/local/cargo/git
-      - target-cache:/usr/src/seco/target
+      - .:/app
+      - cargo-target:/app/target
     restart: unless-stopped
 
   redis:
@@ -36,9 +34,7 @@ services:
 
 volumes:
   postgres-data:
-  cargo-cache:
-  cargo-git:
-  target-cache:
+  cargo-target:
 
 networks:
   db:

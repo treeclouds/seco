@@ -6,3 +6,4 @@ pub mod categories;
 pub mod wishlists;
 pub mod offerings;
 pub mod refresh_sessions;
+pub mod brands;
