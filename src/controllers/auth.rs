@@ -84,7 +84,7 @@ async fn register(
                 user_email = &params.email,
                 "could not register user",
             );
-            return format::json(());
+            return bad_request(err.to_string());
         }
     };
 

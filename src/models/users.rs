@@ -8,7 +8,7 @@ use uuid::Uuid;
 use utoipa::ToSchema;
 use jsonwebtoken::{decode, encode, Header, EncodingKey, DecodingKey, Validation, errors::ErrorKind::*};
 pub use super::_entities::{
-    refresh_sessions,
+    refresh_sessions::{self, Entity as RefreshSessionEntity},
     users::{self, ActiveModel, Entity, Model}
 };
 

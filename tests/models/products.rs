@@ -46,8 +46,8 @@ async fn test_can_validate_product_model() {
         dimension_height: ActiveValue::set(5f32),
         dimension_length: ActiveValue::set(3f32),
         dimension_weight: ActiveValue::set(2f32),
-        brand: ActiveValue::set("test brand".to_string()),
-        material: ActiveValue::set("test material".to_string()),
+        brand_id: ActiveValue::set(Option::from(1)),
+        material_id: ActiveValue::set(Option::from(1)),
         stock: ActiveValue::set(3),
         sku: ActiveValue::set("test sku".to_string()),
         ..Default::default()
