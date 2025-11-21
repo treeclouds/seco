@@ -38,7 +38,7 @@ async fn load_item(ctx: &AppContext, id: i32) -> Result<Model> {
     ),
 )]
 #[debug_handler]
-pub async fn list(State(ctx): State<AppContext>) -> Result<Response> {
+pub async fn material_list(State(ctx): State<AppContext>) -> Result<Response> {
     format::json(Entity::find().all(&ctx.db).await?)
 }
 
@@ -55,7 +55,7 @@ pub async fn list(State(ctx): State<AppContext>) -> Result<Response> {
     )
 )]
 #[debug_handler]
-pub async fn add(State(ctx): State<AppContext>, Json(params): Json<MaterialParams>) -> Result<Response> {
+pub async fn material_add(State(ctx): State<AppContext>, Json(params): Json<MaterialParams>) -> Result<Response> {
     let mut item = ActiveModel {
         ..Default::default()
     };
@@ -65,7 +65,7 @@ pub async fn add(State(ctx): State<AppContext>, Json(params): Json<MaterialParam
 }
 
 #[debug_handler]
-pub async fn update(
+pub async fn material_update(
     Path(id): Path<i32>,
     State(ctx): State<AppContext>,
     Json(params): Json<MaterialParams>,
@@ -78,7 +78,7 @@ pub async fn update(
 }
 
 #[debug_handler]
-pub async fn remove(Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
+pub async fn material_remove(Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
     load_item(&ctx, id).await?.delete(&ctx.db).await?;
     format::empty()
 }
@@ -95,7 +95,7 @@ pub async fn remove(Path(id): Path<i32>, State(ctx): State<AppContext>) -> Resul
     )
 )]
 #[debug_handler]
-pub async fn get_one(Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
+pub async fn get_material_one(Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
     let item = load_item(&ctx, id).await?;
     format::json(MaterialResponse::new(&item))
 }
@@ -103,10 +103,10 @@ pub async fn get_one(Path(id): Path<i32>, State(ctx): State<AppContext>) -> Resu
 pub fn routes() -> Routes {
     Routes::new()
         .prefix("/api")
-        .add("/materials", get(list))
-        .add("/material/new", post(add))
-        .add("/material/{id}", get(get_one))
-        .add("/material/{id}", delete(remove))
-        .add("/material/{id}", put(update))
-        .add("/material/{id}", patch(update))
+        .add("/materials", get(material_list))
+        .add("/material/new", post(material_add))
+        .add("/material/{id}", get(get_material_one))
+        .add("/material/{id}", delete(material_remove))
+        .add("/material/{id}", put(material_update))
+        .add("/material/{id}", patch(material_update))
 }

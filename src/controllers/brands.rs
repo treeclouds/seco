@@ -38,7 +38,7 @@ async fn load_item(ctx: &AppContext, id: i32) -> Result<Model> {
     ),
 )]
 #[debug_handler]
-pub async fn list(State(ctx): State<AppContext>) -> Result<Response> {
+pub async fn brand_list(State(ctx): State<AppContext>) -> Result<Response> {
     format::json(Entity::find().all(&ctx.db).await?)
 }
 
@@ -55,7 +55,7 @@ pub async fn list(State(ctx): State<AppContext>) -> Result<Response> {
     )
 )]
 #[debug_handler]
-pub async fn add(auth: auth::JWT, State(ctx): State<AppContext>, Json(params): Json<BrandParams>) -> Result<Response> {
+pub async fn brand_add(auth: auth::JWT, State(ctx): State<AppContext>, Json(params): Json<BrandParams>) -> Result<Response> {
     let _user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
     let mut item = ActiveModel {
         ..Default::default()
@@ -66,7 +66,7 @@ pub async fn add(auth: auth::JWT, State(ctx): State<AppContext>, Json(params): J
 }
 
 #[debug_handler]
-pub async fn update(
+pub async fn brand_update(
     Path(id): Path<i32>,
     State(ctx): State<AppContext>,
     Json(params): Json<BrandParams>,
@@ -79,7 +79,7 @@ pub async fn update(
 }
 
 #[debug_handler]
-pub async fn remove(Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
+pub async fn brand_remove(Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
     load_item(&ctx, id).await?.delete(&ctx.db).await?;
     format::empty()
 }
@@ -96,7 +96,7 @@ pub async fn remove(Path(id): Path<i32>, State(ctx): State<AppContext>) -> Resul
     )
 )]
 #[debug_handler]
-pub async fn get_one(Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
+pub async fn get_brand_one(Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
     let item = load_item(&ctx, id).await?;
     format::json(BrandResponse::new(&item))
 }
@@ -104,10 +104,10 @@ pub async fn get_one(Path(id): Path<i32>, State(ctx): State<AppContext>) -> Resu
 pub fn routes() -> Routes {
     Routes::new()
         .prefix("/api")
-        .add("/brands", get(list))
-        .add("/brand/new", post(add))
-        .add("/brand/{id}", get(get_one))
-        .add("/brand/{id}", delete(remove))
-        .add("/brand/{id}", put(update))
-        .add("/brand/{id}", patch(update))
+        .add("/brands", get(brand_list))
+        .add("/brand/new", post(brand_add))
+        .add("/brand/{id}", get(get_brand_one))
+        .add("/brand/{id}", delete(brand_remove))
+        .add("/brand/{id}", put(brand_update))
+        .add("/brand/{id}", patch(brand_update))
 }
