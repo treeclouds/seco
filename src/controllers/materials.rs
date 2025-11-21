@@ -3,22 +3,25 @@
 #![allow(clippy::unused_async)]
 use loco_rs::prelude::*;
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 
 use crate::models::_entities::materials::{ActiveModel, Entity, Model};
+use crate::views::brands::BrandResponse;
+use crate::views::materials::MaterialResponse;
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Params {
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+pub struct MaterialParams {
     pub name: String,
     pub code: Option<String>,
     pub is_active: bool,
-    }
+}
 
-impl Params {
+impl MaterialParams {
     fn update(&self, item: &mut ActiveModel) {
-      item.name = Set(self.name.clone());
-      item.code = Set(self.code.clone());
-      item.is_active = Set(self.is_active);
-      }
+        item.name = Set(self.name.clone());
+        item.code = Set(self.code.clone());
+        item.is_active = Set(self.is_active);
+    }
 }
 
 async fn load_item(ctx: &AppContext, id: i32) -> Result<Model> {
@@ -26,26 +29,46 @@ async fn load_item(ctx: &AppContext, id: i32) -> Result<Model> {
     item.ok_or_else(|| Error::NotFound)
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/materials",
+    tag = "materials",
+    responses(
+        (status = 200, description = "Materials list"),
+    ),
+)]
 #[debug_handler]
 pub async fn list(State(ctx): State<AppContext>) -> Result<Response> {
     format::json(Entity::find().all(&ctx.db).await?)
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/material/new",
+    tag = "materials",
+    request_body = MaterialParams,
+    responses(
+        (status = 200, description = "Create a new material successfully", body = MaterialResponse)
+    ),
+    security(
+        ("jwt_token" = [])
+    )
+)]
 #[debug_handler]
-pub async fn add(State(ctx): State<AppContext>, Json(params): Json<Params>) -> Result<Response> {
+pub async fn add(State(ctx): State<AppContext>, Json(params): Json<MaterialParams>) -> Result<Response> {
     let mut item = ActiveModel {
         ..Default::default()
     };
     params.update(&mut item);
     let item = item.insert(&ctx.db).await?;
-    format::json(item)
+    format::json(MaterialResponse::new(&item))
 }
 
 #[debug_handler]
 pub async fn update(
     Path(id): Path<i32>,
     State(ctx): State<AppContext>,
-    Json(params): Json<Params>,
+    Json(params): Json<MaterialParams>,
 ) -> Result<Response> {
     let item = load_item(&ctx, id).await?;
     let mut item = item.into_active_model();
@@ -60,18 +83,30 @@ pub async fn remove(Path(id): Path<i32>, State(ctx): State<AppContext>) -> Resul
     format::empty()
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/material/{id}",
+    tag = "materials",
+    responses(
+        (status = 200, description = "Create a new material successfully", body = MaterialResponse)
+    ),
+    params(
+        ("id" = i32, Path, description = "Material database id")
+    )
+)]
 #[debug_handler]
 pub async fn get_one(Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
-    format::json(load_item(&ctx, id).await?)
+    let item = load_item(&ctx, id).await?;
+    format::json(MaterialResponse::new(&item))
 }
 
 pub fn routes() -> Routes {
     Routes::new()
-        .prefix("api/materials/")
-        .add("/", get(list))
-        .add("/", post(add))
-        .add("{id}", get(get_one))
-        .add("{id}", delete(remove))
-        .add("{id}", put(update))
-        .add("{id}", patch(update))
+        .prefix("/api")
+        .add("/materials", get(list))
+        .add("/material/new", post(add))
+        .add("/material/{id}", get(get_one))
+        .add("/material/{id}", delete(remove))
+        .add("/material/{id}", put(update))
+        .add("/material/{id}", patch(update))
 }

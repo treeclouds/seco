@@ -103,7 +103,7 @@ pub async fn get_one(Path(id): Path<i32>, State(ctx): State<AppContext>) -> Resu
 
 pub fn routes() -> Routes {
     Routes::new()
-        .prefix("api")
+        .prefix("/api")
         .add("/brands", get(list))
         .add("/brand/new", post(add))
         .add("/brand/{id}", get(get_one))

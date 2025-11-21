@@ -8,3 +8,4 @@ pub mod upload;
 pub mod offering;
 pub mod wishlist;
 pub mod brands;
+pub mod materials;
