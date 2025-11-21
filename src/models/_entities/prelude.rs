@@ -2,6 +2,7 @@
 
 pub use super::brands::Entity as Brands;
 pub use super::categories::Entity as Categories;
+pub use super::materials::Entity as Materials;
 pub use super::offerings::Entity as Offerings;
 pub use super::product_images::Entity as ProductImages;
 pub use super::products::Entity as Products;

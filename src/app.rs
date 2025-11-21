@@ -155,6 +155,7 @@ impl Hooks for App {
 
     fn routes(_ctx: &AppContext) -> AppRoutes {
         AppRoutes::with_default_routes()
+            .add_route(controllers::materials::routes())
             .add_route(controllers::brands::routes())
             .add_route(controllers::base::routes())
             .add_route(controllers::categories::routes())

@@ -26,16 +26,24 @@ pub struct Model {
     pub dimension_length: f32,
     #[sea_orm(column_type = "Float")]
     pub dimension_weight: f32,
-    pub brand: String,
-    pub material: String,
     pub stock: i32,
     pub sku: String,
     pub tags: Option<Json>,
     pub condition: Option<Condition>,
+    pub brand_id: Option<i32>,
+    pub material_id: Option<i32>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
+    #[sea_orm(
+        belongs_to = "super::brands::Entity",
+        from = "Column::BrandId",
+        to = "super::brands::Column::Id",
+        on_update = "Cascade",
+        on_delete = "Cascade"
+    )]
+    Brands,
     #[sea_orm(
         belongs_to = "super::categories::Entity",
         from = "Column::CategoryId",
@@ -44,6 +52,14 @@ pub enum Relation {
         on_delete = "Restrict"
     )]
     Categories,
+    #[sea_orm(
+        belongs_to = "super::materials::Entity",
+        from = "Column::MaterialId",
+        to = "super::materials::Column::Id",
+        on_update = "Cascade",
+        on_delete = "Cascade"
+    )]
+    Materials,
     #[sea_orm(has_many = "super::offerings::Entity")]
     Offerings,
     #[sea_orm(has_many = "super::product_images::Entity")]
@@ -60,9 +76,21 @@ pub enum Relation {
     Wishlists,
 }
 
+impl Related<super::brands::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Brands.def()
+    }
+}
+
 impl Related<super::categories::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Categories.def()
+    }
+}
+
+impl Related<super::materials::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Materials.def()
     }
 }
 

@@ -4,6 +4,7 @@ pub mod prelude;
 
 pub mod brands;
 pub mod categories;
+pub mod materials;
 pub mod offerings;
 pub mod product_images;
 pub mod products;

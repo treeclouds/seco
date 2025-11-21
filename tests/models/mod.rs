@@ -6,3 +6,4 @@ mod wishlists;
 mod offerings;
 mod refresh_sessions;
 mod brands;
+mod materials;

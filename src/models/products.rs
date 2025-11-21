@@ -58,7 +58,7 @@ impl super::_entities::products::Model {
     ) -> ModelResult<Vec<ProductsResponse>> {
         let query = r#"
             SELECT p.id, p.title, p.category_id, p.description, p.price, p.dimension_width,
-                p.dimension_height, p.dimension_length, p.dimension_weight, p.brand, p.material,
+                p.dimension_height, p.dimension_length, p.dimension_weight, p.brand_id, p.material_id,
                 p.stock, p.sku, p.tags::jsonb, p.condition::text, p.created_at,
                 COALESCE((
                    SELECT json_agg(json_build_object('id', pi2.id, 'image', pi2.image))
@@ -76,6 +76,8 @@ impl super::_entities::products::Model {
             FROM products p
             INNER JOIN users u ON u.id = p.seller_id
             INNER JOIN categories c ON c.id = p.category_id
+            LEFT JOIN brands b ON b.id = p.brand_id
+            LEFT JOIN materials m ON m.id = p.material_id
         "#;
         let mut extra_where_clause: String = "WHERE p.seller_id IS NOT NULL".to_owned();
         if condition.is_some() {
@@ -87,7 +89,7 @@ impl super::_entities::products::Model {
         }
 
         if brand.is_some() {
-            extra_where_clause += &*format!(" AND LOWER(p.brand) = LOWER('{:?}')", brand.unwrap().to_owned()).replace("\"", "")
+            extra_where_clause += &*format!(" AND LOWER(b.name) = LOWER('{:?}')", brand.unwrap().to_owned()).replace("\"", "")
         }
 
         if category.is_some() {

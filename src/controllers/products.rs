@@ -25,8 +25,8 @@ pub struct ProductPostParams {
     pub dimension_height: f32,
     pub dimension_length: f32,
     pub dimension_weight: f32,
-    pub brand: String,
-    pub material: String,
+    pub brand_id: Option<i32>,
+    pub material_id: Option<i32>,
     #[schema(default = 1)]
     pub stock: i32,
     pub sku: String,
@@ -50,8 +50,8 @@ impl ProductPostParams {
         item.dimension_height = Set(self.dimension_height);
         item.dimension_length = Set(self.dimension_length);
         item.dimension_weight = Set(self.dimension_weight);
-        item.brand = Set(self.brand.clone());
-        item.material = Set(self.material.clone());
+        item.brand_id = Set(Option::from(self.brand_id));
+        item.material_id = Set(Option::from(self.material_id));
         item.stock = Set(self.stock);
         item.sku = Set(self.sku.clone());
         item.condition = Set(self.condition.clone());

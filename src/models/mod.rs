@@ -7,3 +7,4 @@ pub mod wishlists;
 pub mod offerings;
 pub mod refresh_sessions;
 pub mod brands;
+pub mod materials;
