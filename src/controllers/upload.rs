@@ -7,6 +7,8 @@ use std::path::PathBuf;
 use loco_rs::prelude::*;
 use sea_orm::{ColumnTrait, QueryFilter};
 use axum::extract::Multipart;
+use utoipa::ToSchema;
+use serde::Deserialize;
 
 use crate::views::product_image::ProductImageResponse;
 use crate::views::product::ProductResponse;
@@ -17,6 +19,13 @@ use crate::models::_entities::{
     products::{self, Entity, Model},
     product_images,
 };
+
+#[derive(ToSchema, Deserialize)]// Optional: gives a custom name to the schema
+struct UploadedFileForm {
+    /// Description for the file field in Swagger UI
+    #[schema(content_media_type = "application/octet-stream", format = "binary")]
+    file: String, // The actual type depends on your framework (e.g., Vec<u8>, Bytes, etc.)
+}
 
 async fn load_product(ctx: &AppContext, user: users::Model, id: i32) -> Result<Model> {
     let item = user.find_related(Entity).filter(products::Column::Id.eq(id)).one(&ctx.db).await?;
@@ -48,11 +57,12 @@ async fn generate_unique_filename(base_filename: &str, product_id: i32) -> std::
 /// curl -H "Content-Type: multipart/form-data" -F "file=@./test-2.json"
 /// 127.0.0.1:3000/api/upload/{product_id}/product_image_file
 #[utoipa::path(
-    get,
+    post,
     path = "/api/upload/{product_id}/product_image_file",
     tag = "uploads",
+    request_body(content = UploadedFileForm, content_type = "multipart/form-data"),
     responses(
-        (status = 200, description = "Product list based on user login successfully", body = [ProductResponse]),
+        (status = 200, description = "Product list based on user login successfully", body = [ProductImageResponse]),
         (status = 401, description = "Unauthorized", body = UnauthorizedResponse),
     ),
     params(

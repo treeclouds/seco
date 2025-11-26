@@ -6,7 +6,6 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 use crate::models::_entities::materials::{ActiveModel, Entity, Model};
-use crate::views::brands::BrandResponse;
 use crate::views::materials::MaterialResponse;
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
