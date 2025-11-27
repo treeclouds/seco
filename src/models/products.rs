@@ -61,7 +61,7 @@ impl super::_entities::products::Model {
                 p.dimension_height, p.dimension_length, p.dimension_weight, p.brand_id, p.material_id,
                 p.stock, p.sku, p.tags::jsonb, p.condition::text, p.created_at,
                 COALESCE((
-                   SELECT json_agg(json_build_object('id', pi2.id, 'image', pi2.image))
+                   SELECT json_agg(json_build_object('id', pi2.id, 'image', 'media/' || pi2.image))
                    FROM product_images pi2 where pi2.product_id = p.id
                 ), '[]'::json) as images,
                 COALESCE (
@@ -122,7 +122,7 @@ impl super::_entities::products::Model {
                 p.dimension_height, p.dimension_length, p.dimension_weight, p.brand, p.material,
                 p.stock, p.sku, p.tags::jsonb, p.condition::text, p.created_at,
                 COALESCE((
-                   SELECT json_agg(json_build_object('id', pi2.id, 'image', pi2.image))
+                   SELECT json_agg(json_build_object('id', pi2.id, 'image', 'media/' || pi2.image))
                    FROM product_images pi2 where pi2.product_id = p.id
                 ), '[]'::json) as images,
                 COALESCE (
@@ -158,7 +158,7 @@ impl super::_entities::products::Model {
                 p.dimension_height, p.dimension_length, p.dimension_weight, p.brand, p.material,
                 p.stock, p.sku, p.tags::jsonb, p.condition::text, p.created_at,
                 COALESCE((
-                   SELECT json_agg(json_build_object('id', pi2.id, 'image', pi2.image))
+                   SELECT json_agg(json_build_object('id', pi2.id, 'image', 'media/' || pi2.image))
                    FROM product_images pi2 where pi2.product_id = p.id
                 ), '[]'::json) as images,
                 COALESCE (
