@@ -31,6 +31,7 @@ mod m20251121_021954_materials;
 mod m20251121_024938_add_brand_ref_to_products;
 mod m20251121_025049_add_material_ref_to_products;
 mod m20251121_025648_remove_brand_and_material_from_products;
+mod m20251130_065119_delivery_addresses;
 pub struct Migrator;
 
 #[async_trait::async_trait]
@@ -65,6 +66,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20251121_024938_add_brand_ref_to_products::Migration),
             Box::new(m20251121_025049_add_material_ref_to_products::Migration),
             Box::new(m20251121_025648_remove_brand_and_material_from_products::Migration),
+            Box::new(m20251130_065119_delivery_addresses::Migration),
             // inject-above (do not remove this comment)
         ]
     }

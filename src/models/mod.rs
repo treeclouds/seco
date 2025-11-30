@@ -8,3 +8,4 @@ pub mod offerings;
 pub mod refresh_sessions;
 pub mod brands;
 pub mod materials;
+pub mod delivery_addresses;

@@ -30,6 +30,7 @@ use crate::{
         wishlists::{self as ct_wishlists, WishListPostParams},
         upload::{self},
         offering::{self, AddNegotiationProductParams},
+        delivery_address::{self},
     },
     models::{
         users::{LoginParams, RegisterParams},
@@ -93,6 +94,8 @@ use utoipa_swagger_ui::SwaggerUi;
         offering::add_negotiation_product,
         offering::do_negotiation_product,
         offering::get_negotiation,
+        delivery_address::delivery_address_list,
+        delivery_address::delivery_address_add,
     ),
     components(
         schemas(
@@ -159,6 +162,7 @@ impl Hooks for App {
 
     fn routes(_ctx: &AppContext) -> AppRoutes {
         AppRoutes::with_default_routes()
+            .add_route(controllers::delivery_address::routes())
             .add_route(controllers::materials::routes())
             .add_route(controllers::brands::routes())
             .add_route(controllers::base::routes())

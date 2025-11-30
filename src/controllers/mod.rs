@@ -8,3 +8,4 @@ pub mod wishlists;
 pub mod offering;
 pub mod brands;
 pub mod materials;
+pub mod delivery_address;

@@ -11,7 +11,6 @@ use utoipa::ToSchema;
 use serde::Deserialize;
 
 use crate::views::product_image::ProductImageResponse;
-use crate::views::product::ProductResponse;
 use crate::controllers::products::UnauthorizedResponse;
 
 use crate::models::_entities::{
