@@ -1,17 +1,24 @@
 use chrono::Local;
+use std::path::PathBuf;
+use axum::extract::Multipart;
 use loco_rs::prelude::*;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
+use bytes::Bytes;
 use crate::{
     models::_entities::{
         users::{self, ActiveModel},
-        products
+        products::{self, ActiveModel as ProductActiveModel, Entity as ProductEntity, Model as ProductModel},
+        product_images::{ActiveModel as ProductImageActiveModel, Model as ProductImageModel}
     },
     views::user::CurrentResponse
 };
-use crate::controllers::products::{ProductPostParams, UnauthorizedResponse};
-use crate::models::products::{ActiveModel as ProductActiveModel, Entity as ProductEntity, Model as ProductModel};
+use crate::controllers::{
+    upload::generate_unique_filename,
+    products::{ProductPostParams, UnauthorizedResponse}
+};
 use crate::views::product::ProductResponse;
+use crate::views::product_image::ProductImageResponse;
 
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
@@ -27,6 +34,17 @@ impl LocationParams {
         item.latitude = Set(Option::from(self.latitude.clone()));
         item.longitude = Set(Option::from(self.longitude.clone()));
     }
+}
+
+struct PendingFile {
+    file_name: String,
+    content: Bytes,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ProductWithImagesResponse {
+    product: ProductResponse,
+    images: Vec<ProductImageResponse>,
 }
 
 #[utoipa::path(
@@ -81,15 +99,106 @@ pub async fn product_list(auth: auth::JWT, State(ctx): State<AppContext>) -> Res
         ("jwt_token" = [])
     )
 )]
-pub async fn product_add(auth: auth::JWT, State(ctx): State<AppContext>, Json(params): Json<ProductPostParams>) -> Result<Response> {
+pub async fn product_add(auth: auth::JWT, State(ctx): State<AppContext>, mut multipart: Multipart) -> Result<Response> {
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    let mut product_params: Option<ProductPostParams> = None;
+    let mut pending_files: Vec<PendingFile> = Vec::new();
+
+    // 1. Read all fields from the multipart request
+    while let Some(field) = multipart
+        .next_field()
+        .await
+        .map_err(|err| {
+            tracing::error!(error = ?err, "could not read multipart");
+            Error::BadRequest("could not read multipart".into())
+        })?
+    {
+        let field_name = field.name().map(|s| s.to_string());
+
+        match field_name.as_deref() {
+            // The text field contains the product JSON
+            Some("product") => {
+                let text = field.text().await.map_err(|err| {
+                    tracing::error!(error = ?err, "could not read product field as text");
+                    Error::BadRequest("could not read product field".into())
+                })?;
+
+                let params: ProductPostParams = serde_json::from_str(&text).map_err(|err| {
+                    tracing::error!(error = ?err, "invalid product json");
+                    Error::BadRequest("invalid product json".into())
+                })?;
+
+                product_params = Some(params);
+            }
+
+            // The file fields contain the images
+            Some("files") => {
+                let file_name = match field.file_name() {
+                    Some(file_name) => file_name.to_string(),
+                    None => {
+                        return bad_request("file name not found")
+                    }
+                };
+
+                let content = field.bytes().await.map_err(|err| {
+                    tracing::error!(error = ?err, "could not read file bytes");
+                    Error::BadRequest("could not read file bytes".into())
+                })?;
+
+                pending_files.push(PendingFile { file_name, content });
+            }
+
+            _ => {
+                // Ignore other fields
+            }
+        }
+    }
+
+    // 2. Ensure the product payload exists
+    let product_params = product_params.ok_or_else(|| {
+        Error::BadRequest("product data not found in multipart".into())
+    })?;
+
+    // 3. Insert the product first
     let mut item = ProductActiveModel {
-        seller_id: ActiveValue::Set(user.id),
+        seller_id: Set(user.id),
         ..Default::default()
     };
-    params.update(&mut item);
+    product_params.update(&mut item);
+
     let item = item.insert(&ctx.db).await?;
-    format::json(ProductResponse::new(&item))
+    let product_id = item.id;
+
+    // 4. Process all uploaded files → upload to storage + save to the database
+    let mut images: Vec<ProductImageResponse> = Vec::new();
+
+    for f in pending_files {
+        let unique_file_name = generate_unique_filename(&f.file_name, product_id).await?;
+        let unique_file_name_str = unique_file_name.to_string_lossy().to_string();
+        let new_filename = format!("{product_id}/{unique_file_name_str}");
+        let path = PathBuf::from("product_images").join(&new_filename);
+
+        ctx.storage
+            .as_ref()
+            .upload(path.as_path(), &f.content)
+            .await?;
+
+        let product_image = ProductImageActiveModel {
+            product_id: Set(product_id),
+            image: Set(path.to_string_lossy().into_owned()),
+            ..Default::default()
+        };
+
+        let product_image: ProductImageModel = product_image.insert(&ctx.db).await?;
+        images.push(ProductImageResponse::new(&product_image));
+    }
+
+    let resp = ProductWithImagesResponse {
+        product: ProductResponse::new(&item),
+        images,
+    };
+
+    format::json(resp)
 }
 
 #[utoipa::path(

@@ -1,7 +1,8 @@
+#![allow(dead_code)]
+
 use sea_orm_migration::{prelude::*, schema::*};
 use sea_orm_migration::prelude::sea_query::extension::postgres::Type;
 use sea_orm::{EnumIter, DeriveActiveEnum};
-// use sea_orm::sea_query::ColumnType;
 
 #[derive(DeriveMigrationName)]
 pub struct Migration;

@@ -54,6 +54,7 @@ unic-langid = "0.9.4"
 derivative = "2.2.0"
 jsonwebtoken = "9.3.1"
 sha2 = "0.10.9"
+bytes = "1.10.1"
 # /view engine
 
 [[bin]]
