@@ -96,6 +96,8 @@ use utoipa_swagger_ui::SwaggerUi;
         offering::get_negotiation,
         delivery_address::delivery_address_list,
         delivery_address::delivery_address_add,
+        delivery_address::get_delivery_address_one,
+        delivery_address::delivery_address_remove,
     ),
     components(
         schemas(

@@ -21,7 +21,9 @@ impl ActiveModelBehavior for ActiveModel {
 
 // implement your read-oriented logic here
 impl Model {
-    pub async fn find_by_id_and_user_id(db: &DatabaseConnection, id:i32, user_id: i32) -> ModelResult<Self> {
+    pub async fn find_by_id_and_user_id(db: &DatabaseConnection, id: i32, user_id: i32) -> ModelResult<Self> {
+        tracing::info!("===== find_by_id_and_user_id id {:?}", id);
+        tracing::info!("===== find_by_id_and_user_id user_id {:?}", user_id);
         let delivery_address = Entity::find()
             .filter(
                 Condition::all()

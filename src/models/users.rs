@@ -225,7 +225,7 @@ impl super::_entities::users::Model {
     ///
     /// # Errors
     ///
-    /// When could not find user  or DB query error
+    /// When could not find user or DB query error
     pub async fn find_by_pid(db: &DatabaseConnection, pid: &str) -> ModelResult<Self> {
         let parse_uuid = Uuid::parse_str(pid).map_err(|e| ModelError::Any(e.into()))?;
         let user = users::Entity::find()
@@ -239,7 +239,7 @@ impl super::_entities::users::Model {
     ///
     /// # Errors
     ///
-    /// When could not find user by the given token or DB query error
+    /// When could not find the user by the given token or DB query error
     pub async fn find_by_api_key(db: &DatabaseConnection, api_key: &str) -> ModelResult<Self> {
         let user = users::Entity::find()
             .filter(users::Column::ApiKey.eq(api_key))

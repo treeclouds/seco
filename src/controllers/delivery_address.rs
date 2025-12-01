@@ -3,7 +3,7 @@
 #![allow(clippy::unused_async)]
 use loco_rs::prelude::*;
 use serde::{Deserialize, Serialize};
-use utoipa::{IntoParams, ToSchema};
+use utoipa::{ToSchema};
 
 use crate::models::_entities::{
     users,
@@ -116,8 +116,13 @@ pub async fn delivery_address_update(
     )
 )]
 #[debug_handler]
-pub async fn delivery_address_remove(Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
-    load_item(&ctx, id).await?.delete(&ctx.db).await?;
+pub async fn delivery_address_remove(auth: auth::JWT, Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
+    let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    let Ok(delivery_address) = Model::find_by_id_and_user_id(&ctx.db, id, user.id).await else {
+        let msg_error = String::from("Not found delivery address with this id and user id");
+        return bad_request(&msg_error);
+    };
+    delivery_address.delete(&ctx.db).await?;
     format::empty()
 }
 
@@ -140,7 +145,10 @@ pub async fn delivery_address_remove(Path(id): Path<i32>, State(ctx): State<AppC
 #[debug_handler]
 pub async fn get_delivery_address_one(auth: auth::JWT, Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
-    let delivery_address = Model::find_by_id_and_user_id(&ctx.db, id, user.id).await?;
+    let Ok(delivery_address) = Model::find_by_id_and_user_id(&ctx.db, id, user.id).await else {
+        let msg_error = String::from("Not found delivery address with this id and user id");
+        return bad_request(&msg_error);
+    };
     format::json(DeliveryAddressResponse::new(&delivery_address))
 }
 
