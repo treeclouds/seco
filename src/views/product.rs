@@ -8,7 +8,7 @@ use utoipa::ToSchema;
 use crate::models::_entities::sea_orm_active_enums::Condition;
 use crate::models::_entities::{product_images, products};
 
-#[derive(Debug, Deserialize, Serialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
 pub struct ProductResponse {
     pub id: i32,
     pub category_id: Option<i32>,
@@ -30,8 +30,6 @@ pub struct ProductResponse {
     pub condition: Option<Condition>,
     #[schema(value_type = String)]
     pub created_at: NaiveDateTime,
-    #[schema(value_type = String, format = Binary)]
-    pub images: Option<Vec<ProductImageResponse>>,
 }
 
 impl ProductResponse {
@@ -54,7 +52,6 @@ impl ProductResponse {
             tags: product.tags.to_owned(),
             condition: product.condition.to_owned(),
             created_at: product.created_at.to_owned(),
-            images: None,
         }
     }
 }

@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use utoipa::ToSchema;
 use crate::models::_entities::product_images::Model;
 
-#[derive(Debug, Deserialize, Serialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
 pub struct ProductImageResponse {
     pub id: i32,
     pub image: String,
@@ -19,7 +19,7 @@ impl ProductImageResponse {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ImageResponse {
     pub path: PathBuf,
 }

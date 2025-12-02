@@ -36,12 +36,28 @@ impl LocationParams {
     }
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+pub struct CreateProductMultipart {
+    /// JSON string berisi data produk, sesuai `ProductPostParams`
+    ///
+    /// Example:
+    /// `{"title":"Produk A","price":10000}`
+    // #[schema(value_type = String, example = r#"{"title":"Produk A","price":10000}"#)]
+    pub product: ProductPostParams,
+
+    /// File gambar produk (boleh lebih dari satu).
+    ///
+    /// Secara OpenAPI ini adalah array of binary files.
+    #[schema(value_type = [String], format = Binary)]
+    pub files: Option<Vec<String>>,
+}
+
 struct PendingFile {
     file_name: String,
     content: Bytes,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
 pub struct ProductWithImagesResponse {
     product: ProductResponse,
     images: Vec<ProductImageResponse>,
@@ -91,9 +107,9 @@ pub async fn product_list(auth: auth::JWT, State(ctx): State<AppContext>) -> Res
     post,
     path = "/api/user/product/new",
     tag = "users",
-    request_body = ProductPostParams,
+    request_body(content = CreateProductMultipart, content_type = "multipart/form-data"),
     responses(
-        (status = 200, description = "Create a new product successfully", body = ProductResponse)
+        (status = 200, description = "Create a new product successfully", body = ProductWithImagesResponse)
     ),
     security(
         ("jwt_token" = [])

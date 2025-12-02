@@ -25,19 +25,19 @@ pub struct ProductPostParams {
     pub dimension_height: f32,
     pub dimension_length: f32,
     pub dimension_weight: f32,
+    #[schema(default = 0)]
     pub brand_id: Option<i32>,
+    #[schema(default = 0)]
     pub material_id: Option<i32>,
     #[schema(default = 1)]
     pub stock: i32,
     pub sku: String,
     #[schema(read_only)]
     pub seller_id: Option<i32>,
-    #[schema(value_type = String, format = Binary)]
+    #[schema(value_type = String)]
     pub tags: Option<JsonValue>,
     #[schema(value_type = String, default = "BrandNew")]
     pub condition: Option<ProductConditionEnum>,
-    #[schema(value_type = String, format = Binary)]
-    pub images: Option<JsonValue>,
 }
 
 impl ProductPostParams {
@@ -79,7 +79,7 @@ pub struct ProductOfferParams {
     user_pid: Option<Uuid>,
 }
 
-#[derive(Debug, Deserialize, IntoParams, )]
+#[derive(Debug, Deserialize, IntoParams)]
 pub struct ProductFilterParams {
     condition: Option<ProductConditionEnum>,
     location: Option<String>,
