@@ -21,3 +21,7 @@ impl BaseResponse {
 pub fn home(v: impl ViewRenderer) -> Result<impl IntoResponse> {
     format::render().view(&v, "home/login.html", data!({"test": "test"}))
 }
+
+pub fn dashboard(v: impl ViewRenderer) -> Result<impl IntoResponse> {
+    format::render().view(&v, "dashboard/index.html", data!({"test": "test"}))
+}

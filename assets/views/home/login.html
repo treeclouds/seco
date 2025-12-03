@@ -18,8 +18,8 @@
             <div class="inline-flex items-center gap-3 mb-6">
                 <div class="w-12 h-12 rounded-lg bg-gradient-to-r from-violet-500 to-cyan-400 text-white font-bold flex items-center justify-center shadow">SH</div>
                 <div>
-                    <h1 class="text-2xl font-semibold">Selamat datang di Secondhand {{test}}</h1>
-                    <p class="text-sm text-slate-500">Kelola toko barang bekas, listing, dan pesanan dengan mudah. Dashboard cepat, aman, dan mobile-friendly.</p>
+                    <h1 class="text-2xl font-semibold">Welcome to Secondhand</h1>
+                    <p class="text-sm text-slate-500">Manage your secondhand store, listings, and orders with ease. Fast, secure, and mobile-friendly dashboard.</p>
                 </div>
             </div>
 
@@ -27,22 +27,22 @@
                 <li class="flex items-start gap-3">
                     <span class="mt-1 text-violet-500">✔</span>
                     <div>
-                        <div class="font-medium">Manajemen produk sederhana</div>
-                        <div class="text-sm">Upload foto, deskripsi, dan atur stok secara mudah.</div>
+                        <div class="font-medium">Simple product management</div>
+                        <div class="text-sm">Upload photos, descriptions, and manage stock easily.</div>
                     </div>
                 </li>
                 <li class="flex items-start gap-3">
                     <span class="mt-1 text-cyan-500">✔</span>
                     <div>
-                        <div class="font-medium">Integrasi pembayaran</div>
-                        <div class="text-sm">Terima pembayaran via berbagai metode populer.</div>
+                        <div class="font-medium">Payment integration</div>
+                        <div class="text-sm">Accept payments through popular payment methods.</div>
                     </div>
                 </li>
                 <li class="flex items-start gap-3">
                     <span class="mt-1 text-green-500">✔</span>
                     <div>
-                        <div class="font-medium">Laporan & analitik</div>
-                        <div class="text-sm">Lihat performa toko dan produk paling laku.</div>
+                        <div class="font-medium">Reports & analytics</div>
+                        <div class="text-sm">See store performance and best-selling products.</div>
                     </div>
                 </li>
             </ul>
@@ -55,8 +55,8 @@
             <div class="flex items-center gap-4">
                 <div class="w-11 h-11 rounded-lg bg-gradient-to-r from-violet-500 to-cyan-400 text-white font-bold flex items-center justify-center">SH</div>
                 <div>
-                    <h2 class="text-xl font-semibold">Masuk ke akun Anda</h2>
-                    <p class="text-sm text-slate-500">Masukkan email dan kata sandi untuk melanjutkan</p>
+                    <h2 class="text-xl font-semibold">Sign in to your account</h2>
+                    <p class="text-sm text-slate-500">Enter your email and password to continue</p>
                 </div>
             </div>
         </div>
@@ -69,7 +69,7 @@
             </div>
 
             <div>
-                <label for="password" class="block text-sm font-medium text-slate-700 mb-1">Kata Sandi</label>
+                <label for="password" class="block text-sm font-medium text-slate-700 mb-1">Password</label>
                 <div class="relative">
                     <input id="password" name="password" type="password" placeholder="••••••••" autocomplete="current-password" required
                            class="w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm pr-12 outline-none focus:ring-2 focus:ring-violet-300" />
@@ -80,8 +80,8 @@
             </div>
 
             <div class="flex gap-3 mt-2">
-                <button type="submit" class="flex-1 rounded-xl bg-violet-600 text-white px-4 py-2 font-semibold shadow hover:bg-violet-700">Masuk</button>
-                <button type="button" onclick="document.getElementById('login-form').reset();" class="rounded-xl border border-slate-200 px-4 py-2 text-sm">Bersihkan</button>
+                <button type="submit" class="flex-1 rounded-xl bg-violet-600 text-white px-4 py-2 font-semibold shadow hover:bg-violet-700">Sign In</button>
+                <button type="button" onclick="document.getElementById('login-form').reset();" class="rounded-xl border border-slate-200 px-4 py-2 text-sm">Clear</button>
             </div>
         </form>
     </section>
@@ -96,29 +96,86 @@
         const isShown = pw.type === 'text';
         pw.type = isShown ? 'password' : 'text';
         toggle.setAttribute('aria-pressed', String(!isShown));
-        toggle.title = isShown ? 'Tampilkan kata sandi' : 'Sembunyikan kata sandi';
+        toggle.title = isShown ? 'Show password' : 'Hide password';
         toggleIcon.textContent = isShown ? '👁️' : '🙈';
     });
 
+    // Helper: show inline form error
+    function showFormError(message) {
+        let el = document.getElementById('form-error');
+        if (!el) {
+            el = document.createElement('div');
+            el.id = 'form-error';
+            el.className = 'text-sm text-red-600 mt-2';
+            const form = document.getElementById('login-form');
+            form.insertBefore(el, form.querySelector('.mt-4') || form.firstChild);
+        }
+        el.textContent = message;
+    }
+
+    function clearFormError(){
+        const el = document.getElementById('form-error');
+        if(el) el.textContent = '';
+    }
+
     // Basic client-side validation + demo submit
+    // AJAX (fetch) submit
     const form = document.getElementById('login-form');
-    form.addEventListener('submit', (e) => {
+    form.addEventListener('submit', async (e) => {
         e.preventDefault();
+        clearFormError();
+
         const email = form.email.value.trim();
         const password = form.password.value;
+
         if (!email || !password) {
-            alert('Isi email dan kata sandi terlebih dulu.');
+            showFormError('Please enter both email and password.');
             return;
         }
+
         const submitBtn = form.querySelector('button[type="submit"]');
         submitBtn.disabled = true;
-        const original = submitBtn.textContent;
-        submitBtn.textContent = 'Memproses...';
-        setTimeout(() => {
-            alert('Berhasil (demo). Ganti dengan panggilan API backend Anda.');
+        const originalTxt = submitBtn.textContent;
+        submitBtn.textContent = 'Signing in...';
+
+        try {
+            const res = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include', // include cookies if your backend uses them
+                body: JSON.stringify({ email, password })
+            });
+
+            console.log('===== res', res);
+
+            if (res.ok) {
+                // success — try JSON body for redirect or token
+                const data = await res.json().catch(() => ({}));
+                if (data.redirect) {
+                    window.location.href = data.redirect;
+                    return;
+                }
+                // fallback: go to /dashboard
+                window.location.href = data.redirect || '/dashboard';
+                return;
+            }
+
+            // handle common error statuses
+            if (res.status === 401) {
+                showFormError('Incorrect email or password.');
+            } else if (res.status === 400) {
+                const data = await res.json().catch(() => ({}));
+                showFormError(data.message || 'Invalid request.');
+            } else {
+                showFormError('Server error. Please try again later.');
+            }
+        } catch (err) {
+            console.error('Network error', err);
+            showFormError('Network error — check your connection.');
+        } finally {
             submitBtn.disabled = false;
-            submitBtn.textContent = original;
-        }, 800);
+            submitBtn.textContent = originalTxt;
+        }
     });
 </script>
 </body>

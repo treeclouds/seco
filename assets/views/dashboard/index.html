@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Dashboard • Secondhand</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>html{font-family:Inter,ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial}</style>
+</head>
+<body class="min-h-screen bg-gray-50 text-slate-800">
+<div class="flex h-screen">
+    <!-- Sidebar -->
+    <aside class="w-64 bg-white border-r border-slate-200 p-4 hidden md:block">
+        <div class="flex items-center gap-3 px-2 py-3 mb-6">
+            <div class="w-10 h-10 rounded-lg bg-gradient-to-r from-violet-500 to-cyan-400 text-white font-bold flex items-center justify-center">SH</div>
+            <div>
+                <div class="font-semibold">Secondhand</div>
+                <div class="text-xs text-slate-500">Admin Dashboard</div>
+            </div>
+        </div>
+
+        <nav class="space-y-1">
+            <button data-section="overview" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50">Overview</button>
+            <button data-section="brands" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 bg-violet-50">Brands</button>
+            <button data-section="materials" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50">Materials</button>
+            <button data-section="settings" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50">Settings</button>
+        </nav>
+    </aside>
+
+    <!-- Main content -->
+    <div class="flex-1 flex flex-col">
+        <!-- Topbar -->
+        <header class="flex items-center justify-between px-4 py-3 border-b border-slate-200 bg-white">
+            <div class="flex items-center gap-4">
+                <button id="mobile-menu-btn" class="md:hidden px-2 py-1 rounded-md bg-slate-100">Menu</button>
+                <h1 class="text-lg font-semibold">Dashboard</h1>
+            </div>
+            <div class="flex items-center gap-3">
+                <input id="search" type="search" placeholder="Search brands or materials..." class="hidden sm:inline-block rounded-md border border-slate-200 px-3 py-1 text-sm outline-none" />
+                <div class="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-600">M</div>
+            </div>
+        </header>
+
+        <!-- Content area -->
+        <main class="p-6 overflow-auto">
+            <!-- Overview (hidden) -->
+            <section id="overview" class="hidden">
+                <div class="bg-white p-6 rounded-2xl shadow">
+                    <h2 class="text-xl font-semibold mb-4">Overview</h2>
+                    <p class="text-sm text-slate-600">Quick stats and charts would go here.</p>
+                </div>
+            </section>
+
+            <!-- Brands -->
+            <section id="brands" class="">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-semibold">Brands</h2>
+                    <div class="flex items-center gap-3">
+                        <button id="refresh-brands" class="rounded-md border px-3 py-1 text-sm">Refresh</button>
+                        <button id="add-brand" class="rounded-md bg-violet-600 text-white px-3 py-1 text-sm">Add Brand</button>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 rounded-2xl shadow">
+                    <table class="w-full text-sm" id="brands-table">
+                        <thead class="text-slate-600">
+                        <tr>
+                            <th class="text-left p-2">#</th>
+                            <th class="text-left p-2">Name</th>
+                            <th class="text-left p-2">Description</th>
+                            <th class="text-left p-2">Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody id="brands-tbody" class="divide-y"></tbody>
+                    </table>
+                    <p id="brands-empty" class="text-sm text-slate-500 mt-4 hidden">No brands yet. Click "Add Brand" to create one.</p>
+                </div>
+            </section>
+
+            <!-- Materials -->
+            <section id="materials" class="hidden mt-8">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-semibold">Materials</h2>
+                    <div class="flex items-center gap-3">
+                        <button id="refresh-materials" class="rounded-md border px-3 py-1 text-sm">Refresh</button>
+                        <button id="add-material" class="rounded-md bg-violet-600 text-white px-3 py-1 text-sm">Add Material</button>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 rounded-2xl shadow">
+                    <table class="w-full text-sm" id="materials-table">
+                        <thead class="text-slate-600">
+                        <tr>
+                            <th class="text-left p-2">#</th>
+                            <th class="text-left p-2">Name</th>
+                            <th class="text-left p-2">Category</th>
+                            <th class="text-left p-2">Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody id="materials-tbody" class="divide-y"></tbody>
+                    </table>
+                    <p id="materials-empty" class="text-sm text-slate-500 mt-4 hidden">No materials yet. Click "Add Material" to create one.</p>
+                </div>
+            </section>
+
+        </main>
+    </div>
+</div>
+
+<!-- Modal (reusable for Brand/Material) -->
+<div id="modal" class="fixed inset-0 hidden items-center justify-center bg-black/40 p-4">
+    <div class="bg-white rounded-2xl w-full max-w-md p-6">
+        <h3 id="modal-title" class="text-lg font-semibold mb-3">Add</h3>
+        <form id="modal-form" class="space-y-3">
+            <div>
+                <label class="block text-sm text-slate-700 mb-1">Name</label>
+                <input name="name" class="w-full rounded-md border border-slate-200 px-3 py-2 outline-none" required />
+            </div>
+            <div id="modal-extra"></div>
+            <div class="flex items-center justify-end gap-3 mt-4">
+                <button type="button" id="modal-cancel" class="rounded-md border px-3 py-1">Cancel</button>
+                <button type="submit" id="modal-submit" class="rounded-md bg-violet-600 text-white px-3 py-1">Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Simple SPA-ish navigation
+    const sections = document.querySelectorAll('main section');
+    const navBtns = document.querySelectorAll('aside button[data-section]');
+    function showSection(id){
+        sections.forEach(s => s.id === id ? s.classList.remove('hidden') : s.classList.add('hidden'));
+        navBtns.forEach(b => b.dataset.section === id ? b.classList.add('bg-violet-50') : b.classList.remove('bg-violet-50'));
+    }
+    navBtns.forEach(b => b.addEventListener('click', () => showSection(b.dataset.section)));
+
+    // Modal helpers
+    const modal = document.getElementById('modal');
+    const modalTitle = document.getElementById('modal-title');
+    const modalForm = document.getElementById('modal-form');
+    const modalExtra = document.getElementById('modal-extra');
+    const modalSubmit = document.getElementById('modal-submit');
+    const modalCancel = document.getElementById('modal-cancel');
+
+    function openModal({title, extraHtml = '', onSubmit}){
+        modalTitle.textContent = title;
+        modalExtra.innerHTML = extraHtml;
+        modal.classList.remove('hidden');
+        modal.dataset.open = '1';
+        modalForm.onsubmit = async (e) => {
+            e.preventDefault();
+            const formData = Object.fromEntries(new FormData(modalForm).entries());
+            await onSubmit(formData);
+        };
+    }
+    function closeModal(){
+        modal.classList.add('hidden');
+        modal.dataset.open = '0';
+        modalForm.reset();
+        modalExtra.innerHTML = '';
+    }
+    modalCancel.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+
+    // --- Brands CRUD (AJAX) ---
+    const brandsTbody = document.getElementById('brands-tbody');
+    const brandsEmpty = document.getElementById('brands-empty');
+    async function loadBrands(){
+        brandsTbody.innerHTML = '';
+        try{
+            const res = await fetch('/api/brands');
+            if(!res.ok) throw new Error('Failed to load');
+            const data = await res.json();
+            if(!data.length){ brandsEmpty.classList.remove('hidden'); return; } else brandsEmpty.classList.add('hidden');
+            data.forEach((b,i)=>{
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+            <td class="p-2">${i+1}</td>
+            <td class="p-2">${escapeHtml(b.name)}</td>
+            <td class="p-2">${escapeHtml(b.description||'—')}</td>
+            <td class="p-2">
+              <div class="flex gap-2">
+                <button data-id="${b.id}" class="edit-brand rounded-md border px-2 py-1 text-sm">Edit</button>
+                <button data-id="${b.id}" class="delete-brand rounded-md border px-2 py-1 text-sm text-red-600">Delete</button>
+              </div>
+            </td>`;
+                brandsTbody.appendChild(tr);
+            });
+            // bind edit/delete
+            document.querySelectorAll('.edit-brand').forEach(btn=>btn.addEventListener('click', onEditBrand));
+            document.querySelectorAll('.delete-brand').forEach(btn=>btn.addEventListener('click', onDeleteBrand));
+        }catch(err){
+            console.error(err);
+            brandsEmpty.textContent = 'Unable to load brands.';
+            brandsEmpty.classList.remove('hidden');
+        }
+    }
+
+    document.getElementById('refresh-brands').addEventListener('click', loadBrands);
+    document.getElementById('add-brand').addEventListener('click', ()=>{
+        openModal({
+            title: 'Add Brand',
+            extraHtml: `<div><label class="block text-sm text-slate-700 mb-1">Description</label><textarea name="description" class="w-full rounded-md border border-slate-200 px-3 py-2"></textarea></div>`,
+            onSubmit: async (formData) => {
+                await saveBrand(formData);
+                closeModal();
+            }
+        });
+    });
+
+    async function saveBrand(payload){
+        try{
+            const res = await fetch('/api/brands', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+            if(!res.ok) throw new Error('Save failed');
+            await loadBrands();
+        }catch(err){ alert('Failed to save brand'); console.error(err); }
+    }
+
+    async function onEditBrand(e){
+        const id = e.currentTarget.dataset.id;
+        try{
+            const res = await fetch(`/api/brands/${id}`);
+            if(!res.ok) throw new Error('Not found');
+            const b = await res.json();
+            openModal({
+                title: 'Edit Brand',
+                extraHtml: `<div><label class="block text-sm text-slate-700 mb-1">Description</label><textarea name="description" class="w-full rounded-md border border-slate-200 px-3 py-2">${escapeHtml(b.description||'')}</textarea></div>`,
+                onSubmit: async (formData) => {
+                    try{
+                        const r = await fetch(`/api/brands/${id}`, {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(formData)});
+                        if(!r.ok) throw new Error('Update failed');
+                        await loadBrands();
+                        closeModal();
+                    }catch(err){ alert('Failed to update'); console.error(err); }
+                }
+            });
+            // fill name field
+            modalForm.name.value = b.name;
+        }catch(err){ alert('Failed to fetch brand'); console.error(err); }
+    }
+
+    async function onDeleteBrand(e){
+        const id = e.currentTarget.dataset.id;
+        if(!confirm('Delete this brand?')) return;
+        try{
+            const res = await fetch(`/api/brands/${id}`, {method:'DELETE'});
+            if(!res.ok) throw new Error('Delete failed');
+            await loadBrands();
+        }catch(err){ alert('Failed to delete'); console.error(err); }
+    }
+
+    // --- Materials CRUD (AJAX) ---
+    const materialsTbody = document.getElementById('materials-tbody');
+    const materialsEmpty = document.getElementById('materials-empty');
+    async function loadMaterials(){
+        materialsTbody.innerHTML = '';
+        try{
+            const res = await fetch('/api/materials');
+            if(!res.ok) throw new Error('Failed to load');
+            const data = await res.json();
+            if(!data.length){ materialsEmpty.classList.remove('hidden'); return; } else materialsEmpty.classList.add('hidden');
+            data.forEach((m,i)=>{
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+            <td class="p-2">${i+1}</td>
+            <td class="p-2">${escapeHtml(m.name)}</td>
+            <td class="p-2">${escapeHtml(m.category||'—')}</td>
+            <td class="p-2">
+              <div class="flex gap-2">
+                <button data-id="${m.id}" class="edit-material rounded-md border px-2 py-1 text-sm">Edit</button>
+                <button data-id="${m.id}" class="delete-material rounded-md border px-2 py-1 text-sm text-red-600">Delete</button>
+              </div>
+            </td>`;
+                materialsTbody.appendChild(tr);
+            });
+            document.querySelectorAll('.edit-material').forEach(btn=>btn.addEventListener('click', onEditMaterial));
+            document.querySelectorAll('.delete-material').forEach(btn=>btn.addEventListener('click', onDeleteMaterial));
+        }catch(err){
+            console.error(err);
+            materialsEmpty.textContent = 'Unable to load materials.';
+            materialsEmpty.classList.remove('hidden');
+        }
+    }
+
+    document.getElementById('refresh-materials').addEventListener('click', loadMaterials);
+    document.getElementById('add-material').addEventListener('click', ()=>{
+        openModal({
+            title: 'Add Material',
+            extraHtml: `<div><label class="block text-sm text-slate-700 mb-1">Category</label><input name="category" class="w-full rounded-md border border-slate-200 px-3 py-2"/></div>`,
+            onSubmit: async (formData) => {
+                await saveMaterial(formData);
+                closeModal();
+            }
+        });
+    });
+
+    async function saveMaterial(payload){
+        try{
+            const res = await fetch('/api/materials', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+            if(!res.ok) throw new Error('Save failed');
+            await loadMaterials();
+        }catch(err){ alert('Failed to save material'); console.error(err); }
+    }
+
+    async function onEditMaterial(e){
+        const id = e.currentTarget.dataset.id;
+        try{
+            const res = await fetch(`/api/materials/${id}`);
+            if(!res.ok) throw new Error('Not found');
+            const m = await res.json();
+            openModal({
+                title: 'Edit Material',
+                extraHtml: `<div><label class="block text-sm text-slate-700 mb-1">Category</label><input name="category" class="w-full rounded-md border border-slate-200 px-3 py-2" value="${escapeHtml(m.category||'')}"/></div>`,
+                onSubmit: async (formData) => {
+                    try{
+                        const r = await fetch(`/api/materials/${id}`, {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(formData)});
+                        if(!r.ok) throw new Error('Update failed');
+                        await loadMaterials();
+                        closeModal();
+                    }catch(err){ alert('Failed to update'); console.error(err); }
+                }
+            });
+            modalForm.name.value = m.name;
+        }catch(err){ alert('Failed to fetch material'); console.error(err); }
+    }
+
+    async function onDeleteMaterial(e){
+        const id = e.currentTarget.dataset.id;
+        if(!confirm('Delete this material?')) return;
+        try{
+            const res = await fetch(`/api/materials/${id}`, {method:'DELETE'});
+            if(!res.ok) throw new Error('Delete failed');
+            await loadMaterials();
+        }catch(err){ alert('Failed to delete'); console.error(err); }
+    }
+
+    // Utilities
+    function escapeHtml(str){
+        if(!str) return '';
+        return String(str).replace(/[&<>"']/g, (s) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+    }
+
+    // initial load
+    showSection('brands');
+    loadBrands();
+    loadMaterials();
+
+    // mobile toggles
+    document.getElementById('mobile-menu-btn').addEventListener('click', ()=>{
+        document.querySelector('aside').classList.toggle('hidden');
+    });
+
+    // simple search filter
+    document.getElementById('search').addEventListener('input', (e)=>{
+        const q = e.target.value.toLowerCase().trim();
+        if(!q) { document.querySelectorAll('#brands-tbody tr,#materials-tbody tr').forEach(r=>r.classList.remove('hidden')); return; }
+        document.querySelectorAll('#brands-tbody tr').forEach(tr=>{
+            const txt = tr.textContent.toLowerCase(); tr.classList.toggle('hidden', !txt.includes(q));
+        });
+        document.querySelectorAll('#materials-tbody tr').forEach(tr=>{
+            const txt = tr.textContent.toLowerCase(); tr.classList.toggle('hidden', !txt.includes(q));
+        });
+    });
+
+</script>
+</body>
+</html>

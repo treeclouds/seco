@@ -211,9 +211,14 @@ async fn login(
     }
 
     let jwt_secret = ctx.config.get_jwt_config()?;
+    let mut exp = jwt_secret.expiration;
+
+    if user.is_superuser {
+        exp = 604800;
+    }
 
     let token = user
-        .generate_jwt(&jwt_secret.secret, jwt_secret.expiration)
+        .generate_jwt(&jwt_secret.secret, exp)
         .or_else(|_| unauthorized("unauthorized!"))?;
 
     let refresh_token = user.generate_refresh_token_jwt(exp_dt, jti.clone()).or_else(|_| unauthorized("unauthorized!"))?;
