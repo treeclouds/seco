@@ -10,7 +10,7 @@ default-run = "seco-cli"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [workspace.dependencies]
-loco-rs = { version = "0.16" }
+loco-rs = { version = "0.16", features = ["embedded_assets"] }
 
 [dependencies]
 shuttle-axum = "0.57.0"

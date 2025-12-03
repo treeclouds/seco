@@ -2,6 +2,7 @@
 use loco_rs::prelude::*;
 use crate::models::_entities::users;
 use crate::views::base::BaseResponse;
+use crate::views;
 
 pub async fn echo(req_body: String) -> String {
     req_body
@@ -33,9 +34,13 @@ pub async fn verify_page(
     format::text("Account has been verified successfully!")
 }
 
+pub async fn render_home(ViewEngine(v): ViewEngine<TeraView>) -> Result<impl IntoResponse> {
+    views::base::home(v)
+}
+
 pub fn routes() -> Routes {
     Routes::new()
         .prefix("/")
-        .add("/", get(hello))
+        .add("/", get(render_home))
         .add("/verify/{token}", get(verify_page))
 }

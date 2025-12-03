@@ -1,3 +1,4 @@
+use loco_rs::prelude::*;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
@@ -15,4 +16,8 @@ impl BaseResponse {
             message: message.to_string(),
         }
     }
+}
+
+pub fn home(v: impl ViewRenderer) -> Result<impl IntoResponse> {
+    format::render().view(&v, "home/login.html", data!({"test": "test"}))
 }

@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="id">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Login • Secondhand</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>html{font-family:Inter,ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial}</style>
+</head>
+<body class="min-h-screen bg-gray-50 text-slate-800 flex items-center justify-center p-6">
+<main class="w-full max-w-5xl grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+    <!-- LEFT: Promo / Hero -->
+    <section class="bg-white/90 rounded-2xl p-8 md:p-12 shadow-lg">
+        <div class="max-w-md mx-auto">
+            <div class="inline-flex items-center gap-3 mb-6">
+                <div class="w-12 h-12 rounded-lg bg-gradient-to-r from-violet-500 to-cyan-400 text-white font-bold flex items-center justify-center shadow">SH</div>
+                <div>
+                    <h1 class="text-2xl font-semibold">Selamat datang di Secondhand {{test}}</h1>
+                    <p class="text-sm text-slate-500">Kelola toko barang bekas, listing, dan pesanan dengan mudah. Dashboard cepat, aman, dan mobile-friendly.</p>
+                </div>
+            </div>
+
+            <ul class="mt-6 space-y-4 text-slate-600">
+                <li class="flex items-start gap-3">
+                    <span class="mt-1 text-violet-500">✔</span>
+                    <div>
+                        <div class="font-medium">Manajemen produk sederhana</div>
+                        <div class="text-sm">Upload foto, deskripsi, dan atur stok secara mudah.</div>
+                    </div>
+                </li>
+                <li class="flex items-start gap-3">
+                    <span class="mt-1 text-cyan-500">✔</span>
+                    <div>
+                        <div class="font-medium">Integrasi pembayaran</div>
+                        <div class="text-sm">Terima pembayaran via berbagai metode populer.</div>
+                    </div>
+                </li>
+                <li class="flex items-start gap-3">
+                    <span class="mt-1 text-green-500">✔</span>
+                    <div>
+                        <div class="font-medium">Laporan & analitik</div>
+                        <div class="text-sm">Lihat performa toko dan produk paling laku.</div>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- RIGHT: Login Card -->
+    <section class="bg-white rounded-2xl p-6 md:p-10 shadow-lg">
+        <div class="mb-6">
+            <div class="flex items-center gap-4">
+                <div class="w-11 h-11 rounded-lg bg-gradient-to-r from-violet-500 to-cyan-400 text-white font-bold flex items-center justify-center">SH</div>
+                <div>
+                    <h2 class="text-xl font-semibold">Masuk ke akun Anda</h2>
+                    <p class="text-sm text-slate-500">Masukkan email dan kata sandi untuk melanjutkan</p>
+                </div>
+            </div>
+        </div>
+
+        <form id="login-form" class="space-y-4" novalidate>
+            <div>
+                <label for="email" class="block text-sm font-medium text-slate-700 mb-1">Email</label>
+                <input id="email" name="email" type="email" placeholder="nama@domain.com" autocomplete="email" required
+                       class="w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-violet-300" />
+            </div>
+
+            <div>
+                <label for="password" class="block text-sm font-medium text-slate-700 mb-1">Kata Sandi</label>
+                <div class="relative">
+                    <input id="password" name="password" type="password" placeholder="••••••••" autocomplete="current-password" required
+                           class="w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm pr-12 outline-none focus:ring-2 focus:ring-violet-300" />
+                    <button id="toggle-pw" type="button" aria-pressed="false" class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700">
+                        <span id="toggle-icon">👁️</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex gap-3 mt-2">
+                <button type="submit" class="flex-1 rounded-xl bg-violet-600 text-white px-4 py-2 font-semibold shadow hover:bg-violet-700">Masuk</button>
+                <button type="button" onclick="document.getElementById('login-form').reset();" class="rounded-xl border border-slate-200 px-4 py-2 text-sm">Bersihkan</button>
+            </div>
+        </form>
+    </section>
+</main>
+
+<script>
+    // Toggle password visibility
+    const pw = document.getElementById('password');
+    const toggle = document.getElementById('toggle-pw');
+    const toggleIcon = document.getElementById('toggle-icon');
+    toggle.addEventListener('click', () => {
+        const isShown = pw.type === 'text';
+        pw.type = isShown ? 'password' : 'text';
+        toggle.setAttribute('aria-pressed', String(!isShown));
+        toggle.title = isShown ? 'Tampilkan kata sandi' : 'Sembunyikan kata sandi';
+        toggleIcon.textContent = isShown ? '👁️' : '🙈';
+    });
+
+    // Basic client-side validation + demo submit
+    const form = document.getElementById('login-form');
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const email = form.email.value.trim();
+        const password = form.password.value;
+        if (!email || !password) {
+            alert('Isi email dan kata sandi terlebih dulu.');
+            return;
+        }
+        const submitBtn = form.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        const original = submitBtn.textContent;
+        submitBtn.textContent = 'Memproses...';
+        setTimeout(() => {
+            alert('Berhasil (demo). Ganti dengan panggilan API backend Anda.');
+            submitBtn.disabled = false;
+            submitBtn.textContent = original;
+        }, 800);
+    });
+</script>
+</body>
+</html>
