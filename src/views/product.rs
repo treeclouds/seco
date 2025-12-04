@@ -5,7 +5,7 @@ use sea_orm::{FromQueryResult, JsonValue};
 use sea_orm::entity::prelude::*;
 use utoipa::ToSchema;
 
-use crate::models::_entities::sea_orm_active_enums::Condition;
+use crate::models::_entities::sea_orm_active_enums::{Condition, ProductStatus};
 use crate::models::_entities::{product_images, products};
 
 #[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
@@ -30,6 +30,8 @@ pub struct ProductResponse {
     pub condition: Option<Condition>,
     #[schema(value_type = String)]
     pub created_at: NaiveDateTime,
+    #[schema(value_type = String)]
+    pub status: ProductStatus,
 }
 
 impl ProductResponse {
@@ -52,6 +54,7 @@ impl ProductResponse {
             tags: product.tags.to_owned(),
             condition: product.condition.to_owned(),
             created_at: product.created_at.to_owned(),
+            status: product.status.to_owned(),
         }
     }
 }
@@ -98,6 +101,8 @@ pub struct ProductsResponse {
     images: Option<JsonValue>,
     #[schema(value_type = String, format = Binary)]
     seller: Option<JsonValue>,
+    #[schema(value_type = String)]
+    status: String,
 }
 
 #[derive(Debug, Deserialize, Serialize, ToSchema)]

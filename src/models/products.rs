@@ -35,7 +35,8 @@ impl super::_entities::products::Model {
                         'joined_date', u.created_at,
                         'location', u.location
                     ), '{}'::json
-                ) as seller
+                ) as seller,
+                p.status::text
             FROM products p
             INNER JOIN users u ON u.id = p.seller_id
             WHERE p.id = $1
@@ -72,7 +73,8 @@ impl super::_entities::products::Model {
                         'joined_date', u.created_at,
                         'location', u.location
                     ), '{}'::json
-                ) as seller
+                ) as seller,
+                p.status::text
             FROM products p
             INNER JOIN users u ON u.id = p.seller_id
             INNER JOIN categories c ON c.id = p.category_id
@@ -133,7 +135,8 @@ impl super::_entities::products::Model {
                         'joined_date', u.created_at,
                         'location', u.location
                     ), '{}'::json
-                ) as seller
+                ) as seller,
+                p.status::text
             FROM products p
             INNER JOIN users u ON u.id = p.seller_id
             WHERE p.id = $1 AND u.id = $2
@@ -169,7 +172,8 @@ impl super::_entities::products::Model {
                         'joined_date', u.created_at,
                         'location', u.location
                     ), '{}'::json
-                ) as seller
+                ) as seller,
+                p.status::text
             FROM products p
             INNER JOIN users u ON u.id = p.seller_id
             WHERE u.id = $1

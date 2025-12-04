@@ -9,7 +9,7 @@ use sea_orm::prelude::Decimal;
 use serde::{Deserialize, Serialize};
 use sea_orm::{query::*, ActiveEnum, Iterable, JsonValue};
 use utoipa::{ToSchema, IntoParams};
-use crate::models::_entities::{products::{ActiveModel, Model}, offerings, sea_orm_active_enums::Condition as ProductConditionEnum, users};
+use crate::models::_entities::{products::{ActiveModel, Model}, offerings, sea_orm_active_enums::{Condition as ProductConditionEnum, ProductStatus}, users};
 use crate::views::product::{ProductsResponse, ProductDealResponse};
 
 
@@ -38,6 +38,8 @@ pub struct ProductPostParams {
     pub tags: Option<JsonValue>,
     #[schema(value_type = String, default = "BrandNew")]
     pub condition: Option<ProductConditionEnum>,
+    #[schema(value_type = String, default = "Active")]
+    pub status: ProductStatus,
 }
 
 impl ProductPostParams {
@@ -56,6 +58,7 @@ impl ProductPostParams {
         item.sku = Set(self.sku.clone());
         item.condition = Set(self.condition.clone());
         item.tags = Set(self.tags.clone());
+        item.status = Set(self.status.clone());
     }
 }
 

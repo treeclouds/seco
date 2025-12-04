@@ -33,6 +33,7 @@ mod m20251121_025049_add_material_ref_to_products;
 mod m20251121_025648_remove_brand_and_material_from_products;
 mod m20251130_065119_delivery_addresses;
 mod m20251204_025418_add_latitude_and_longitude_to_delivery_addresses;
+mod m20251204_051553_add_status_to_products;
 pub struct Migrator;
 
 #[async_trait::async_trait]
@@ -69,6 +70,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20251121_025648_remove_brand_and_material_from_products::Migration),
             Box::new(m20251130_065119_delivery_addresses::Migration),
             Box::new(m20251204_025418_add_latitude_and_longitude_to_delivery_addresses::Migration),
+            Box::new(m20251204_051553_add_status_to_products::Migration),
             // inject-above (do not remove this comment)
         ]
     }

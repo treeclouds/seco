@@ -42,3 +42,13 @@ pub enum OfferingStatus {
     #[sea_orm(string_value = "Declined")]
     Declined,
 }
+#[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Copy, Serialize, Deserialize, ToSchema)]
+#[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "product_status")]
+pub enum ProductStatus {
+    #[sea_orm(string_value = "Draft")]
+    Draft,
+    #[sea_orm(string_value = "Active")]
+    Active,
+    #[sea_orm(string_value = "Sold")]
+    Sold,
+}
