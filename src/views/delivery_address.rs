@@ -12,6 +12,8 @@ pub struct DeliveryAddressResponse {
     pub postal_code: String,
     pub address: String,
     pub notes: Option<String>,
+    pub latitude: Option<String>,
+    pub longitude: Option<String>,
 }
 
 impl DeliveryAddressResponse {
@@ -26,6 +28,8 @@ impl DeliveryAddressResponse {
             postal_code: delivery_address.name.to_string(),
             address: delivery_address.name.to_string(),
             notes: Option::from(delivery_address.notes.clone()),
+            latitude: Option::from(delivery_address.latitude.clone()),
+            longitude: Option::from(delivery_address.longitude.clone()),
         }
     }
 }

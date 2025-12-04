@@ -16,7 +16,6 @@
     <section class="bg-white/90 rounded-2xl p-8 md:p-12 shadow-lg">
         <div class="max-w-md mx-auto">
             <div class="inline-flex items-center gap-3 mb-6">
-                <div class="w-12 h-12 rounded-lg bg-gradient-to-r from-violet-500 to-cyan-400 text-white font-bold flex items-center justify-center shadow">SH</div>
                 <div>
                     <h1 class="text-2xl font-semibold">Welcome to Secondhand</h1>
                     <p class="text-sm text-slate-500">Manage your secondhand store, listings, and orders with ease. Fast, secure, and mobile-friendly dashboard.</p>
@@ -148,17 +147,17 @@
 
             console.log('===== res', res);
 
-            if (res.ok) {
-                // success — try JSON body for redirect or token
-                const data = await res.json().catch(() => ({}));
-                if (data.redirect) {
-                    window.location.href = data.redirect;
-                    return;
-                }
-                // fallback: go to /dashboard
-                window.location.href = data.redirect || '/dashboard';
-                return;
-            }
+            // if (res.ok) {
+            //     // success — try JSON body for redirect or token
+            //     const data = await res.json().catch(() => ({}));
+            //     if (data.redirect) {
+            //         window.location.href = data.redirect;
+            //         return;
+            //     }
+            //     // fallback: go to /dashboard
+            //     window.location.href = data.redirect || '/dashboard';
+            //     return;
+            // }
 
             // handle common error statuses
             if (res.status === 401) {

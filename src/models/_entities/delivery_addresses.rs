@@ -21,6 +21,8 @@ pub struct Model {
     pub notes: Option<String>,
     pub is_default: bool,
     pub user_id: i32,
+    pub latitude: Option<String>,
+    pub longitude: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

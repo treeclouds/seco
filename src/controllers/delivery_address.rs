@@ -23,6 +23,8 @@ pub struct DeliveryAddressParams {
     pub postal_code: String,
     pub address: String,
     pub notes: Option<String>,
+    pub latitude: Option<String>,
+    pub longitude: Option<String>,
 }
 
 impl DeliveryAddressParams {
@@ -34,6 +36,8 @@ impl DeliveryAddressParams {
         item.postal_code = Set(self.postal_code.clone());
         item.address = Set(self.address.clone());
         item.notes = Set(self.notes.clone());
+        item.latitude = Set(self.latitude.clone());
+        item.longitude = Set(self.longitude.clone());
     }
 }
 
