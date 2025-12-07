@@ -36,6 +36,8 @@ mod m20251204_025418_add_latitude_and_longitude_to_delivery_addresses;
 mod m20251204_051553_add_status_to_products;
 mod m20251207_045908_payment_methods;
 mod m20251207_061842_fix_payment_methods_table;
+mod m20251207_073250_delivery_methods;
+mod m20251207_074551_delivery_method_services;
 pub struct Migrator;
 
 #[async_trait::async_trait]
@@ -75,6 +77,8 @@ impl MigratorTrait for Migrator {
             Box::new(m20251204_051553_add_status_to_products::Migration),
             Box::new(m20251207_045908_payment_methods::Migration),
             Box::new(m20251207_061842_fix_payment_methods_table::Migration),
+            Box::new(m20251207_073250_delivery_methods::Migration),
+            Box::new(m20251207_074551_delivery_method_services::Migration),
             // inject-above (do not remove this comment)
         ]
     }

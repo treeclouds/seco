@@ -3,6 +3,8 @@
 pub use super::brands::Entity as Brands;
 pub use super::categories::Entity as Categories;
 pub use super::delivery_addresses::Entity as DeliveryAddresses;
+pub use super::delivery_method_services::Entity as DeliveryMethodServices;
+pub use super::delivery_methods::Entity as DeliveryMethods;
 pub use super::materials::Entity as Materials;
 pub use super::offerings::Entity as Offerings;
 pub use super::payment_methods::Entity as PaymentMethods;

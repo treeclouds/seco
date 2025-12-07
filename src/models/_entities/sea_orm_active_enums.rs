@@ -64,9 +64,9 @@ pub enum PaymentMethodGatewayEnum {
 )]
 pub enum PaymentMethodNameEnum {
     #[sea_orm(string_value = "COD")]
-    COD,
+    Cod,
     #[sea_orm(string_value = "QRIS")]
-    QRIS,
+    Qris,
     #[sea_orm(string_value = "VirtualAccount")]
     VirtualAccount,
     #[sea_orm(string_value = "BankTransfer")]

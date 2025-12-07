@@ -5,6 +5,8 @@ pub mod prelude;
 pub mod brands;
 pub mod categories;
 pub mod delivery_addresses;
+pub mod delivery_method_services;
+pub mod delivery_methods;
 pub mod materials;
 pub mod offerings;
 pub mod payment_methods;

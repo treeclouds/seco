@@ -10,3 +10,5 @@ pub mod brands;
 pub mod materials;
 pub mod delivery_addresses;
 pub mod payment_methods;
+pub mod delivery_methods;
+pub mod delivery_method_services;
