@@ -9,3 +9,4 @@ pub mod offering;
 pub mod brands;
 pub mod materials;
 pub mod delivery_address;
+pub mod payment_methods;

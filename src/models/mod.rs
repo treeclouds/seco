@@ -9,3 +9,4 @@ pub mod refresh_sessions;
 pub mod brands;
 pub mod materials;
 pub mod delivery_addresses;
+pub mod payment_methods;

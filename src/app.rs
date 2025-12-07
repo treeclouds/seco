@@ -31,6 +31,7 @@ use crate::{
         upload::{self},
         offering::{self, AddNegotiationProductParams},
         delivery_address::{self},
+        payment_methods::{self},
     },
     models::{
         users::{LoginParams, RegisterParams},
@@ -99,6 +100,8 @@ use utoipa_swagger_ui::SwaggerUi;
         delivery_address::delivery_address_add,
         delivery_address::get_delivery_address_one,
         delivery_address::delivery_address_remove,
+        payment_methods::payment_method_list,
+        payment_methods::payment_method_add,
     ),
     components(
         schemas(
@@ -167,6 +170,7 @@ impl Hooks for App {
 
     fn routes(_ctx: &AppContext) -> AppRoutes {
         AppRoutes::with_default_routes()
+            .add_route(controllers::payment_methods::routes())
             .add_route(controllers::delivery_address::routes())
             .add_route(controllers::materials::routes())
             .add_route(controllers::brands::routes())
