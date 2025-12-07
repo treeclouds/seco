@@ -14,7 +14,7 @@ use crate::controllers::products::UnauthorizedResponse;
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
 pub struct PaymentMethodParams {
-    #[schema(value_type = String, default = "Cod")]
+    #[schema(value_type = String, default = "COD")]
     pub name: PaymentMethodNameEnum,
     pub description: Option<String>,
     #[schema(value_type = i32, default = 60)]
