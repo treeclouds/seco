@@ -6,7 +6,6 @@ use serde::{Deserialize, Serialize};
 
 use crate::models::_entities::delivery_methods::{ActiveModel, Entity, Model};
 use crate::views::delivery_method::DeliveryMethodsAndServicesResponse;
-use crate::controllers::products::UnauthorizedResponse;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Params {
@@ -32,11 +31,6 @@ async fn load_item(ctx: &AppContext, id: i32) -> Result<Model> {
     tag = "delivery_methods",
     responses(
         (status = 200, description = "Get all delivery methods successfully", body = [DeliveryMethodsAndServicesResponse]),
-        (status = 401, description = "Unauthorized", body = UnauthorizedResponse),
-        (status = 404, description = "Delivery methods not found", body = UnauthorizedResponse),
-    ),
-    security(
-        ("jwt_token" = [])
     )
 )]
 #[debug_handler]

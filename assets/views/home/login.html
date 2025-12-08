@@ -147,17 +147,17 @@
 
             console.log('===== res', res);
 
-            // if (res.ok) {
-            //     // success — try JSON body for redirect or token
-            //     const data = await res.json().catch(() => ({}));
-            //     if (data.redirect) {
-            //         window.location.href = data.redirect;
-            //         return;
-            //     }
-            //     // fallback: go to /dashboard
-            //     window.location.href = data.redirect || '/dashboard';
-            //     return;
-            // }
+            if (res.ok) {
+                // success — try JSON body for redirect or token
+                const data = await res.json().catch(() => ({}));
+                if (data.redirect) {
+                    window.location.href = data.redirect;
+                    return;
+                }
+                // fallback: go to /dashboard
+                window.location.href = data.redirect || '/dashboard';
+                return;
+            }
 
             // handle common error statuses
             if (res.status === 401) {

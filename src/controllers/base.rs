@@ -55,7 +55,7 @@ pub fn routes() -> Routes {
     Routes::new()
         .prefix("/")
         .add("/", get(render_home))
-        .nest("/dashboard", dashboard_routes)
-        // .add("/dashboard", get(render_dashboard).layer(middleware::from_fn(auth_middleware)))
+        // .nest("/dashboard", dashboard_routes)
+        .add("/dashboard", get(render_dashboard))
         .add("/verify/{token}", get(verify_page))
 }

@@ -7,6 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>html{font-family:Inter,ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial}</style>
+    <script src="https://code.jquery.com/jquery-3.7.1.slim.min.js" integrity="sha256-kmHvs0B+OpCW5GVHUNjv9rOmY0IvSIRcf7zGUDTDQM8=" crossorigin="anonymous"></script>
 </head>
 <body class="min-h-screen bg-gray-50 text-slate-800">
 <div class="flex h-screen">
@@ -23,6 +24,7 @@
         <nav class="space-y-1">
             <button data-section="overview" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50">Overview</button>
             <button data-section="brands" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 bg-violet-50">Brands</button>
+            <button data-section="categories" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50">Categories</button>
             <button data-section="materials" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50">Materials</button>
             <button data-section="settings" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50">Settings</button>
         </nav>
@@ -68,7 +70,8 @@
                         <tr>
                             <th class="text-left p-2">#</th>
                             <th class="text-left p-2">Name</th>
-                            <th class="text-left p-2">Description</th>
+                            <th class="text-left p-2">Code</th>
+                            <th class="text-left p-2">Active</th>
                             <th class="text-left p-2">Actions</th>
                         </tr>
                         </thead>
@@ -78,8 +81,34 @@
                 </div>
             </section>
 
+            <!-- Categories -->
+            <section id="categories" class="hidden">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-semibold">Categories</h2>
+                    <div class="flex items-center gap-3">
+                        <button id="refresh-categories" class="rounded-md border px-3 py-1 text-sm">Refresh</button>
+                        <button id="add-category" class="rounded-md bg-violet-600 text-white px-3 py-1 text-sm">Add Category</button>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 rounded-2xl shadow">
+                    <table class="w-full text-sm" id="categories-table">
+                        <thead class="text-slate-600">
+                        <tr>
+                            <th class="text-left p-2">#</th>
+                            <th class="text-left p-2">Name</th>
+                            <th class="text-left p-2">Parent ID</th>
+                            <th class="text-left p-2">Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody id="categories-tbody" class="divide-y"></tbody>
+                    </table>
+                    <p id="categories-empty" class="text-sm text-slate-500 mt-4 hidden">No categories yet. Click "Add Category" to create one.</p>
+                </div>
+            </section>
+
             <!-- Materials -->
-            <section id="materials" class="hidden mt-8">
+            <section id="materials" class="hidden">
                 <div class="flex items-center justify-between mb-4">
                     <h2 class="text-xl font-semibold">Materials</h2>
                     <div class="flex items-center gap-3">
@@ -94,7 +123,8 @@
                         <tr>
                             <th class="text-left p-2">#</th>
                             <th class="text-left p-2">Name</th>
-                            <th class="text-left p-2">Category</th>
+                            <th class="text-left p-2">Code</th>
+                            <th class="text-left p-2">Active</th>
                             <th class="text-left p-2">Actions</th>
                         </tr>
                         </thead>
@@ -113,10 +143,6 @@
     <div class="bg-white rounded-2xl w-full max-w-md p-6">
         <h3 id="modal-title" class="text-lg font-semibold mb-3">Add</h3>
         <form id="modal-form" class="space-y-3">
-            <div>
-                <label class="block text-sm text-slate-700 mb-1">Name</label>
-                <input name="name" class="w-full rounded-md border border-slate-200 px-3 py-2 outline-none" required />
-            </div>
             <div id="modal-extra"></div>
             <div class="flex items-center justify-end gap-3 mt-4">
                 <button type="button" id="modal-cancel" class="rounded-md border px-3 py-1">Cancel</button>
@@ -133,6 +159,10 @@
     function showSection(id){
         sections.forEach(s => s.id === id ? s.classList.remove('hidden') : s.classList.add('hidden'));
         navBtns.forEach(b => b.dataset.section === id ? b.classList.add('bg-violet-50') : b.classList.remove('bg-violet-50'));
+
+        if (id === 'brands') loadBrands();
+        if (id === 'categories') loadCategories();
+        if (id === 'materials') loadMaterials();
     }
     navBtns.forEach(b => b.addEventListener('click', () => showSection(b.dataset.section)));
 
@@ -154,6 +184,13 @@
             const formData = Object.fromEntries(new FormData(modalForm).entries());
             await onSubmit(formData);
         };
+
+        document.getElementById('brand_is_active')?.addEventListener('change', (e)=>{
+            modalForm.is_active.value = e.target.checked;
+        })
+        document.getElementById('material_is_active')?.addEventListener('change', (e)=>{
+            modalForm.is_active.value = e.target.checked;
+        })
     }
     function closeModal(){
         modal.classList.add('hidden');
@@ -179,7 +216,8 @@
                 tr.innerHTML = `
             <td class="p-2">${i+1}</td>
             <td class="p-2">${escapeHtml(b.name)}</td>
-            <td class="p-2">${escapeHtml(b.description||'—')}</td>
+            <td class="p-2">${escapeHtml(b.code||'—')}</td>
+            <td class="p-2">${b.is_active}</td>
             <td class="p-2">
               <div class="flex gap-2">
                 <button data-id="${b.id}" class="edit-brand rounded-md border px-2 py-1 text-sm">Edit</button>
@@ -202,8 +240,18 @@
     document.getElementById('add-brand').addEventListener('click', ()=>{
         openModal({
             title: 'Add Brand',
-            extraHtml: `<div><label class="block text-sm text-slate-700 mb-1">Description</label><textarea name="description" class="w-full rounded-md border border-slate-200 px-3 py-2"></textarea></div>`,
+            extraHtml: `<div>
+                <label class="block text-sm text-slate-700 mb-1">Name</label>
+                <input name="name" class="w-full rounded-md border border-slate-200 px-3 py-2" value="" />
+            </div><div>
+                <label class="block text-sm text-slate-700 mb-1">Code</label>
+                <input name="code" class="w-full rounded-md border border-slate-200 px-3 py-2" value="" />
+            </div>
+            <div><label>
+                <input type="checkbox" id="brand_is_active" name="is_active" value="false"> Active
+            </label></div>`,
             onSubmit: async (formData) => {
+                formData['is_active'] = formData['is_active'] === 'true';
                 await saveBrand(formData);
                 closeModal();
             }
@@ -212,7 +260,7 @@
 
     async function saveBrand(payload){
         try{
-            const res = await fetch('/api/brands', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+            const res = await fetch('/api/brand/new', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
             if(!res.ok) throw new Error('Save failed');
             await loadBrands();
         }catch(err){ alert('Failed to save brand'); console.error(err); }
@@ -221,23 +269,31 @@
     async function onEditBrand(e){
         const id = e.currentTarget.dataset.id;
         try{
-            const res = await fetch(`/api/brands/${id}`);
+            const res = await fetch(`/api/brand/${id}`);
             if(!res.ok) throw new Error('Not found');
             const b = await res.json();
             openModal({
                 title: 'Edit Brand',
-                extraHtml: `<div><label class="block text-sm text-slate-700 mb-1">Description</label><textarea name="description" class="w-full rounded-md border border-slate-200 px-3 py-2">${escapeHtml(b.description||'')}</textarea></div>`,
+                extraHtml: `<div>
+                    <label class="block text-sm text-slate-700 mb-1">Name</label>
+                    <input name="name" class="w-full rounded-md border border-slate-200 px-3 py-2" value="${escapeHtml(b.name||'')}" />
+                </div><div>
+                    <label class="block text-sm text-slate-700 mb-1">Code</label>
+                    <input name="code" class="w-full rounded-md border border-slate-200 px-3 py-2" value="${escapeHtml(b.code||'')}" />
+                </div>
+                <div><label>
+                    <input type="checkbox" id="brand_is_active" name="is_active" value="${b.is_active}"${b.is_active? 'checked' : ''}> Active
+                </label></div>`,
                 onSubmit: async (formData) => {
+                    formData['is_active'] = formData['is_active'] === 'true';
                     try{
-                        const r = await fetch(`/api/brands/${id}`, {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(formData)});
+                        const r = await fetch(`/api/brand/${id}`, {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(formData)});
                         if(!r.ok) throw new Error('Update failed');
                         await loadBrands();
                         closeModal();
                     }catch(err){ alert('Failed to update'); console.error(err); }
                 }
             });
-            // fill name field
-            modalForm.name.value = b.name;
         }catch(err){ alert('Failed to fetch brand'); console.error(err); }
     }
 
@@ -245,9 +301,94 @@
         const id = e.currentTarget.dataset.id;
         if(!confirm('Delete this brand?')) return;
         try{
-            const res = await fetch(`/api/brands/${id}`, {method:'DELETE'});
+            const res = await fetch(`/api/brand/${id}`, {method:'DELETE'});
             if(!res.ok) throw new Error('Delete failed');
             await loadBrands();
+        }catch(err){ alert('Failed to delete'); console.error(err); }
+    }
+
+    // --- Categories CRUD (AJAX) ---
+    const categoriesTbody = document.getElementById('categories-tbody');
+    const categoriesEmpty = document.getElementById('categories-empty');
+    async function loadCategories(){
+        categoriesTbody.innerHTML = '';
+        try{
+            const res = await fetch('/api/categories');
+            if(!res.ok) throw new Error('Failed to load');
+            const data = await res.json();
+            if(!data.length){ categoriesEmpty.classList.remove('hidden'); return; } else categoriesEmpty.classList.add('hidden');
+            data.forEach((c,i)=>{
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+            <td class="p-2">${i+1}</td>
+            <td class="p-2">${escapeHtml(c.name)}</td>
+            <td class="p-2">${escapeHtml(c.parent_id||'—')}</td>
+            <td class="p-2">
+              <div class="flex gap-2">
+                <button data-id="${c.id}" class="edit-category rounded-md border px-2 py-1 text-sm">Edit</button>
+                <button data-id="${c.id}" class="delete-category rounded-md border px-2 py-1 text-sm text-red-600">Delete</button>
+              </div>
+            </td>`;
+                categoriesTbody.appendChild(tr);
+            });
+            document.querySelectorAll('.edit-category').forEach(btn=>btn.addEventListener('click', onEditCategory));
+            document.querySelectorAll('.delete-category').forEach(btn=>btn.addEventListener('click', onDeleteCategory));
+        }catch(err){
+            console.error(err);
+            categoriesEmpty.textContent = 'Unable to load categories.';
+            categoriesEmpty.classList.remove('hidden');
+        }
+    }
+
+    document.getElementById('refresh-categories').addEventListener('click', loadCategories);
+    document.getElementById('add-category').addEventListener('click', ()=>{
+        openModal({
+            title: 'Add Category',
+            extraHtml: `<div><label class="block text-sm text-slate-700 mb-1">Category</label><input name="category" class="w-full rounded-md border border-slate-200 px-3 py-2"/></div>`,
+            onSubmit: async (formData) => {
+                await saveCategory(formData);
+                closeModal();
+            }
+        });
+    });
+
+    async function saveCategory(payload){
+        try{
+            const res = await fetch('/api/categories', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+            if(!res.ok) throw new Error('Save failed');
+            await loadCategories();
+        }catch(err){ alert('Failed to save material'); console.error(err); }
+    }
+
+    async function onEditCategory(e){
+        const id = e.currentTarget.dataset.id;
+        try{
+            const res = await fetch(`/api/categories/${id}`);
+            if(!res.ok) throw new Error('Not found');
+            const m = await res.json();
+            openModal({
+                title: 'Edit Material',
+                extraHtml: `<div><label class="block text-sm text-slate-700 mb-1">Category</label><input name="category" class="w-full rounded-md border border-slate-200 px-3 py-2" value="${escapeHtml(c.category||'')}"/></div>`,
+                onSubmit: async (formData) => {
+                    try{
+                        const r = await fetch(`/api/categories/${id}`, {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(formData)});
+                        if(!r.ok) throw new Error('Update failed');
+                        await loadCategories();
+                        closeModal();
+                    }catch(err){ alert('Failed to update'); console.error(err); }
+                }
+            });
+            modalForm.name.value = c.name;
+        }catch(err){ alert('Failed to fetch category'); console.error(err); }
+    }
+
+    async function onDeleteCategory(e){
+        const id = e.currentTarget.dataset.id;
+        if(!confirm('Delete this category?')) return;
+        try{
+            const res = await fetch(`/api/categories/${id}`, {method:'DELETE'});
+            if(!res.ok) throw new Error('Delete failed');
+            await loadCategories();
         }catch(err){ alert('Failed to delete'); console.error(err); }
     }
 
@@ -266,7 +407,8 @@
                 tr.innerHTML = `
             <td class="p-2">${i+1}</td>
             <td class="p-2">${escapeHtml(m.name)}</td>
-            <td class="p-2">${escapeHtml(m.category||'—')}</td>
+            <td class="p-2">${escapeHtml(m.code||'—')}</td>
+            <td class="p-2">${m.is_active}</td>
             <td class="p-2">
               <div class="flex gap-2">
                 <button data-id="${m.id}" class="edit-material rounded-md border px-2 py-1 text-sm">Edit</button>
@@ -288,8 +430,18 @@
     document.getElementById('add-material').addEventListener('click', ()=>{
         openModal({
             title: 'Add Material',
-            extraHtml: `<div><label class="block text-sm text-slate-700 mb-1">Category</label><input name="category" class="w-full rounded-md border border-slate-200 px-3 py-2"/></div>`,
+            extraHtml: `<div>
+                <label class="block text-sm text-slate-700 mb-1">Name</label>
+                <input name="name" class="w-full rounded-md border border-slate-200 px-3 py-2" value="" />
+            </div><div>
+                <label class="block text-sm text-slate-700 mb-1">Code</label>
+                <input name="code" class="w-full rounded-md border border-slate-200 px-3 py-2" value="" />
+            </div>
+            <div><label>
+                <input type="checkbox" id="material_is_active" name="is_active" value="false"> Active
+            </label></div>`,
             onSubmit: async (formData) => {
+                formData['is_active'] = formData['is_active'] === 'true';
                 await saveMaterial(formData);
                 closeModal();
             }
@@ -298,7 +450,7 @@
 
     async function saveMaterial(payload){
         try{
-            const res = await fetch('/api/materials', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+            const res = await fetch('/api/material/new', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
             if(!res.ok) throw new Error('Save failed');
             await loadMaterials();
         }catch(err){ alert('Failed to save material'); console.error(err); }
@@ -307,22 +459,31 @@
     async function onEditMaterial(e){
         const id = e.currentTarget.dataset.id;
         try{
-            const res = await fetch(`/api/materials/${id}`);
+            const res = await fetch(`/api/material/${id}`);
             if(!res.ok) throw new Error('Not found');
             const m = await res.json();
             openModal({
                 title: 'Edit Material',
-                extraHtml: `<div><label class="block text-sm text-slate-700 mb-1">Category</label><input name="category" class="w-full rounded-md border border-slate-200 px-3 py-2" value="${escapeHtml(m.category||'')}"/></div>`,
+                extraHtml: `<div>
+                    <label class="block text-sm text-slate-700 mb-1">Name</label>
+                    <input name="name" class="w-full rounded-md border border-slate-200 px-3 py-2" value="${escapeHtml(m.name||'')}" />
+                </div><div>
+                    <label class="block text-sm text-slate-700 mb-1">Code</label>
+                    <input name="code" class="w-full rounded-md border border-slate-200 px-3 py-2" value="${escapeHtml(m.code||'')}" />
+                </div>
+                <div><label>
+                    <input type="checkbox" id="material_is_active" name="is_active" value="${m.is_active}"${m.is_active? 'checked' : ''}> Active
+                </label></div>`,
                 onSubmit: async (formData) => {
+                    formData['is_active'] = formData['is_active'] === 'true';
                     try{
-                        const r = await fetch(`/api/materials/${id}`, {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(formData)});
+                        const r = await fetch(`/api/material/${id}`, {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(formData)});
                         if(!r.ok) throw new Error('Update failed');
                         await loadMaterials();
                         closeModal();
                     }catch(err){ alert('Failed to update'); console.error(err); }
                 }
             });
-            modalForm.name.value = m.name;
         }catch(err){ alert('Failed to fetch material'); console.error(err); }
     }
 
@@ -330,7 +491,7 @@
         const id = e.currentTarget.dataset.id;
         if(!confirm('Delete this material?')) return;
         try{
-            const res = await fetch(`/api/materials/${id}`, {method:'DELETE'});
+            const res = await fetch(`/api/material/${id}`, {method:'DELETE'});
             if(!res.ok) throw new Error('Delete failed');
             await loadMaterials();
         }catch(err){ alert('Failed to delete'); console.error(err); }
@@ -344,8 +505,6 @@
 
     // initial load
     showSection('brands');
-    loadBrands();
-    loadMaterials();
 
     // mobile toggles
     document.getElementById('mobile-menu-btn').addEventListener('click', ()=>{

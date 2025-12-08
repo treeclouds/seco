@@ -48,9 +48,6 @@ pub async fn material_list(State(ctx): State<AppContext>) -> Result<Response> {
     request_body = MaterialParams,
     responses(
         (status = 200, description = "Create a new material successfully", body = MaterialResponse)
-    ),
-    security(
-        ("jwt_token" = [])
     )
 )]
 #[debug_handler]

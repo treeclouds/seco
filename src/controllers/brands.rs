@@ -49,14 +49,10 @@ pub async fn brand_list(State(ctx): State<AppContext>) -> Result<Response> {
     request_body = BrandParams,
     responses(
         (status = 200, description = "Create a new brand successfully", body = BrandResponse)
-    ),
-    security(
-        ("jwt_token" = [])
     )
 )]
 #[debug_handler]
-pub async fn brand_add(auth: auth::JWT, State(ctx): State<AppContext>, Json(params): Json<BrandParams>) -> Result<Response> {
-    let _user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+pub async fn brand_add(State(ctx): State<AppContext>, Json(params): Json<BrandParams>) -> Result<Response> {
     let mut item = ActiveModel {
         ..Default::default()
     };
