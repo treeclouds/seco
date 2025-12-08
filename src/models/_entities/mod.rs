@@ -9,6 +9,8 @@ pub mod delivery_method_services;
 pub mod delivery_methods;
 pub mod materials;
 pub mod offerings;
+pub mod order_items;
+pub mod orders;
 pub mod payment_methods;
 pub mod product_images;
 pub mod products;

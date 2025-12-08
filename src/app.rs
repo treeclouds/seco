@@ -172,6 +172,7 @@ impl Hooks for App {
 
     fn routes(_ctx: &AppContext) -> AppRoutes {
         AppRoutes::with_default_routes()
+            .add_route(controllers::order::routes())
             .add_route(controllers::delivery_method::routes())
             .add_route(controllers::payment_methods::routes())
             .add_route(controllers::delivery_address::routes())

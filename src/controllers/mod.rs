@@ -12,3 +12,4 @@ pub mod delivery_address;
 pub mod payment_methods;
 pub mod delivery_method;
 pub mod delivery_method_service;
+pub mod order;

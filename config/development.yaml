@@ -114,7 +114,7 @@ database:
   # Maximum number of connections for a pool.
   max_connections: 1
   # Run migration up when application loaded
-  auto_migrate: true
+  auto_migrate: false
   # Truncate database when application loaded. This is a dangerous operation, make sure that you using this flag only on dev environments or test mode
   dangerously_truncate: false
   # Recreating schema when application loaded.  This is a dangerous operation, make sure that you using this flag only on dev environments or test mode

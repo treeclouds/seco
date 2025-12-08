@@ -43,6 +43,24 @@ pub enum OfferingStatus {
     Declined,
 }
 #[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Copy, Serialize, Deserialize, ToSchema)]
+#[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "order_status_enum")]
+pub enum OrderStatusEnum {
+    #[sea_orm(string_value = "AwaitingPayment")]
+    AwaitingPayment,
+    #[sea_orm(string_value = "AwaitingFulfillment")]
+    AwaitingFulfillment,
+    #[sea_orm(string_value = "AwaitingShipment")]
+    AwaitingShipment,
+    #[sea_orm(string_value = "Shipped")]
+    Shipped,
+    #[sea_orm(string_value = "Completed")]
+    Completed,
+    #[sea_orm(string_value = "Returned")]
+    Returned,
+    #[sea_orm(string_value = "Cancelled")]
+    Cancelled,
+}
+#[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Copy, Serialize, Deserialize, ToSchema)]
 #[sea_orm(
     rs_type = "String",
     db_type = "Enum",

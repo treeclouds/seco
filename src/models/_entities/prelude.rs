@@ -7,6 +7,8 @@ pub use super::delivery_method_services::Entity as DeliveryMethodServices;
 pub use super::delivery_methods::Entity as DeliveryMethods;
 pub use super::materials::Entity as Materials;
 pub use super::offerings::Entity as Offerings;
+pub use super::order_items::Entity as OrderItems;
+pub use super::orders::Entity as Orders;
 pub use super::payment_methods::Entity as PaymentMethods;
 pub use super::product_images::Entity as ProductImages;
 pub use super::products::Entity as Products;

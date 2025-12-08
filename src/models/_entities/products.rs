@@ -64,6 +64,8 @@ pub enum Relation {
     Materials,
     #[sea_orm(has_many = "super::offerings::Entity")]
     Offerings,
+    #[sea_orm(has_many = "super::order_items::Entity")]
+    OrderItems,
     #[sea_orm(has_many = "super::product_images::Entity")]
     ProductImages,
     #[sea_orm(
@@ -99,6 +101,12 @@ impl Related<super::materials::Entity> for Entity {
 impl Related<super::offerings::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Offerings.def()
+    }
+}
+
+impl Related<super::order_items::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::OrderItems.def()
     }
 }
 
