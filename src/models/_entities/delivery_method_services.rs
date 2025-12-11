@@ -14,6 +14,7 @@ pub struct Model {
     pub name: String,
     pub active: bool,
     pub delivery_method_id: i32,
+    pub price: Decimal,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -26,10 +27,18 @@ pub enum Relation {
         on_delete = "Cascade"
     )]
     DeliveryMethods,
+    #[sea_orm(has_many = "super::order_items::Entity")]
+    OrderItems,
 }
 
 impl Related<super::delivery_methods::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::DeliveryMethods.def()
+    }
+}
+
+impl Related<super::order_items::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::OrderItems.def()
     }
 }

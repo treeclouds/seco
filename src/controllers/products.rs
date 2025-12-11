@@ -19,7 +19,7 @@ pub struct ProductPostParams {
     pub category_id: Option<i32>,
     pub title: String,
     pub description: String,
-    #[schema(value_type = f64)]
+    #[schema(value_type = f64, default = 10000)]
     pub price: Decimal,
     pub dimension_width: f32,
     pub dimension_height: f32,

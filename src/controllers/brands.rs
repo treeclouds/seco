@@ -7,7 +7,6 @@ use utoipa::ToSchema;
 
 use crate::models::_entities::brands::{ActiveModel, Entity, Model};
 use crate::views::brands::BrandResponse;
-use crate::models::_entities::users;
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
 pub struct BrandParams {

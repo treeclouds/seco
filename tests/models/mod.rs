@@ -7,3 +7,4 @@ mod offerings;
 mod delivery_methods;
 mod delivery_method_services;
 mod order_items;
+mod orders;

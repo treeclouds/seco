@@ -1,4 +1,7 @@
+use loco_rs::model::ModelResult;
+use sea_orm::ActiveValue;
 use sea_orm::entity::prelude::*;
+use crate::models::_entities::sea_orm_active_enums::OrderStatusEnum;
 pub use super::_entities::orders::{ActiveModel, Model, Entity};
 pub type Orders = Entity;
 
@@ -22,7 +25,15 @@ impl ActiveModelBehavior for ActiveModel {
 impl Model {}
 
 // implement your write-oriented logic here
-impl ActiveModel {}
+impl ActiveModel {
+    pub async fn set_status_completed(
+        mut self,
+        db: &DatabaseConnection,
+    ) -> ModelResult<Model> {
+        self.status = ActiveValue::set(OrderStatusEnum::Completed);
+        Ok(self.update(db).await?)
+    }
+}
 
 // implement your custom finders, selectors oriented logic here
 impl Entity {}
