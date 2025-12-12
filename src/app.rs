@@ -105,6 +105,7 @@ use utoipa_swagger_ui::SwaggerUi;
         payment_methods::payment_method_list,
         payment_methods::payment_method_add,
         delivery_method::delivery_method_list,
+        delivery_method::delivery_method_add,
         order::order_list,
         order::order_add,
         order::order_confirm,

@@ -21,9 +21,6 @@ pub struct Model {
     pub buyer_id: i32,
     pub delivery_address_id: i32,
     pub payment_method_id: i32,
-    pub delivery_method_service_id: i32,
-    pub delivery_method_service_price: Decimal,
-    pub delivery_method_service_name: String,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

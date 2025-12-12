@@ -41,7 +41,7 @@ mod m20251207_074551_delivery_method_services;
 mod m20251208_121450_orders;
 mod m20251208_134504_order_items;
 mod m20251211_131047_add_price_to_delivery_method_services;
-mod m20251211_131618_add_delivery_method_service_ref_to_order_items;
+mod m20251212_034754_add_delivery_method_service_detail_to_order_items;
 pub struct Migrator;
 
 #[async_trait::async_trait]
@@ -86,7 +86,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20251208_121450_orders::Migration),
             Box::new(m20251208_134504_order_items::Migration),
             Box::new(m20251211_131047_add_price_to_delivery_method_services::Migration),
-            Box::new(m20251211_131618_add_delivery_method_service_ref_to_order_items::Migration),
+            Box::new(m20251212_034754_add_delivery_method_service_detail_to_order_items::Migration),
             // inject-above (do not remove this comment)
         ]
     }

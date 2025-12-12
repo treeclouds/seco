@@ -27,18 +27,10 @@ pub enum Relation {
         on_delete = "Cascade"
     )]
     DeliveryMethods,
-    #[sea_orm(has_many = "super::order_items::Entity")]
-    OrderItems,
 }
 
 impl Related<super::delivery_methods::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::DeliveryMethods.def()
-    }
-}
-
-impl Related<super::order_items::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::OrderItems.def()
     }
 }

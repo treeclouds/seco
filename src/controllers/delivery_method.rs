@@ -3,17 +3,18 @@
 #![allow(clippy::unused_async)]
 use loco_rs::prelude::*;
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 
 use crate::models::_entities::delivery_methods::{ActiveModel, Entity, Model};
 use crate::views::delivery_method::DeliveryMethodsAndServicesResponse;
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Params {
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+pub struct DeliveryMethodParams {
     pub name: String,
     pub active: bool,
 }
 
-impl Params {
+impl DeliveryMethodParams {
     fn update(&self, item: &mut ActiveModel) {
         item.name = Set(self.name.clone());
         item.active = Set(self.active);
@@ -39,8 +40,17 @@ pub async fn delivery_method_list(State(ctx): State<AppContext>) -> Result<Respo
     format::json(delivery_methods)
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/delivery_methods/new",
+    tag = "delivery_methods",
+    request_body = DeliveryMethodParams,
+    responses(
+        (status = 200, description = "Get all delivery methods successfully", body = [DeliveryMethodsAndServicesResponse]),
+    )
+)]
 #[debug_handler]
-pub async fn delivery_method_add(State(ctx): State<AppContext>, Json(params): Json<Params>) -> Result<Response> {
+pub async fn delivery_method_add(State(ctx): State<AppContext>, Json(params): Json<DeliveryMethodParams>) -> Result<Response> {
     let mut item = ActiveModel {
         ..Default::default()
     };
@@ -53,7 +63,7 @@ pub async fn delivery_method_add(State(ctx): State<AppContext>, Json(params): Js
 pub async fn delivery_method_update(
     Path(id): Path<i32>,
     State(ctx): State<AppContext>,
-    Json(params): Json<Params>,
+    Json(params): Json<DeliveryMethodParams>,
 ) -> Result<Response> {
     let item = load_item(&ctx, id).await?;
     let mut item = item.into_active_model();
@@ -77,7 +87,7 @@ pub fn routes() -> Routes {
     Routes::new()
         .prefix("api/delivery_methods/")
         .add("/", get(delivery_method_list))
-        .add("/", post(delivery_method_add))
+        .add("/new", post(delivery_method_add))
         .add("{id}", get(get_delivery_method_one))
         .add("{id}", delete(delivery_method_remove))
         .add("{id}", put(delivery_method_update))

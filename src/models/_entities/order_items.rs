@@ -18,21 +18,11 @@ pub struct Model {
     pub order_id: i32,
     pub seller_id: i32,
     pub product_id: i32,
-    pub delivery_method_service_id: i32,
-    pub delivery_method_service_price: Decimal,
-    pub delivery_method_service_name: Option<String>,
+    pub delivery_method_service_detail: Option<Json>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
-    #[sea_orm(
-        belongs_to = "super::delivery_method_services::Entity",
-        from = "Column::DeliveryMethodServiceId",
-        to = "super::delivery_method_services::Column::Id",
-        on_update = "Cascade",
-        on_delete = "Cascade"
-    )]
-    DeliveryMethodServices,
     #[sea_orm(
         belongs_to = "super::orders::Entity",
         from = "Column::OrderId",
@@ -57,12 +47,6 @@ pub enum Relation {
         on_delete = "Cascade"
     )]
     Users,
-}
-
-impl Related<super::delivery_method_services::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::DeliveryMethodServices.def()
-    }
 }
 
 impl Related<super::orders::Entity> for Entity {
