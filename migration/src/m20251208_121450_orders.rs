@@ -20,7 +20,7 @@ impl MigrationTrait for Migration {
             ("id", ColType::PkAuto),
             
             ("order_number", ColType::StringUniq),
-            ("final_price", ColType::MoneyWithDefault(0.into())),
+            ("final_price", ColType::DecimalLenNull(10, 2)),
             ("delivery_address_detail", ColType::TextNull),
             ("payment_method_detail", ColType::JsonNull),
             ("status", ColType::EnumWithDefault(

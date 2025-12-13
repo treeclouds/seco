@@ -1,6 +1,6 @@
 use loco_rs::model::ModelResult;
 use sea_orm::entity::prelude::*;
-use sea_orm::{FromQueryResult, JsonValue, Statement, DbBackend};
+use sea_orm::{FromQueryResult, JsonValue, Statement, DbBackend, ActiveValue};
 use crate::models::_entities::sea_orm_active_enums::{Condition as ProductConditionEnum};
 use crate::views::product::ProductsResponse;
 pub use super::_entities::products::{self, ActiveModel, Entity, Model};
@@ -10,7 +10,7 @@ impl ActiveModelBehavior for ActiveModel {
     // extend activemodel below (keep comment for generators)
 }
 
-impl super::_entities::products::Model {
+impl Model {
 
     pub async fn get_product_by_id(
         db: &DatabaseConnection,
@@ -187,4 +187,16 @@ impl super::_entities::products::Model {
     }
 }
 
-impl super::_entities::products::ActiveModel {}
+impl ActiveModel {
+
+    pub async fn set_decrease_stock(
+        mut self,
+        db: &DatabaseConnection,
+    ) -> ModelResult<Model> {
+        self.stock = ActiveValue::set(1);
+        Ok(self.update(db).await?)
+    }
+}
+
+// implement your custom finders, selectors oriented logic here
+impl crate::models::orders::Entity {}

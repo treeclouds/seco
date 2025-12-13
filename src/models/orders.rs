@@ -26,11 +26,28 @@ impl Model {}
 
 // implement your write-oriented logic here
 impl ActiveModel {
+
     pub async fn set_status_completed(
         mut self,
         db: &DatabaseConnection,
     ) -> ModelResult<Model> {
         self.status = ActiveValue::set(OrderStatusEnum::Completed);
+        Ok(self.update(db).await?)
+    }
+
+    pub async fn set_status_cancelled(
+        mut self,
+        db: &DatabaseConnection,
+    ) -> ModelResult<Model> {
+        self.status = ActiveValue::set(OrderStatusEnum::Cancelled);
+        Ok(self.update(db).await?)
+    }
+
+    pub async fn set_status_returned(
+        mut self,
+        db: &DatabaseConnection,
+    ) -> ModelResult<Model> {
+        self.status = ActiveValue::set(OrderStatusEnum::Returned);
         Ok(self.update(db).await?)
     }
 }

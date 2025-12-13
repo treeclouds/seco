@@ -3,36 +3,41 @@
 #![allow(clippy::unused_async)]
 use loco_rs::prelude::*;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use utoipa::ToSchema;
 use rand::Rng;
 
 use crate::models::_entities::{
     orders::{self, ActiveModel, Entity, Model},
     sea_orm_active_enums::OrderStatusEnum,
-    users
+    users,
+    products,
+    delivery_addresses,
+    payment_methods,
 };
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
 pub struct OrderParams {
     #[schema(read_only)]
-    pub buyer_id: i32,
-    pub order_number: String,
+    pub buyer_id: Option<i32>,
+    pub order_number: Option<String>,
     pub final_price: Decimal,
-    #[schema(default = 0)]
+    #[schema(default = 1)]
     pub delivery_address_id: i32,
     #[schema(read_only)]
     pub delivery_address_detail: Option<String>,
-    #[schema(default = 0)]
+    #[schema(default = 1)]
     pub payment_method_id: i32,
+    #[schema(read_only, default = 1)]
+    pub product_id: i32,
     #[schema(read_only)]
     pub payment_method_detail: Option<serde_json::Value>,
     #[schema(read_only)]
-    pub status: OrderStatusEnum,
+    pub status: Option<OrderStatusEnum>,
 }
 
 impl OrderParams {
     fn update(&self, item: &mut ActiveModel) {
-        item.order_number = Set(self.order_number.clone());
         item.final_price = Set(self.final_price);
         item.delivery_address_id = Set(self.delivery_address_id);
         item.delivery_address_detail = Set(self.delivery_address_detail.clone());
@@ -89,9 +94,14 @@ pub async fn order_list(auth: auth::JWT, State(ctx): State<AppContext>) -> Resul
 )]
 #[debug_handler]
 pub async fn order_add(auth: auth::JWT, State(ctx): State<AppContext>, Json(params): Json<OrderParams>) -> Result<Response> {
-    let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    let buyer = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    let product = products::Entity::find_by_id(params.product_id).one(&ctx.db).await?;
+    let delivery_address = delivery_addresses::Entity::find_by_id(params.delivery_address_id).one(&ctx.db).await?;
+    let payment_method = payment_methods::Entity::find_by_id(params.payment_method_id).one(&ctx.db).await?;
+    let delivery_address_detail = json!({});
+    let payment_method_detail = json!({});
     let mut item = ActiveModel {
-        buyer_id: Set(user.id),
+        buyer_id: Set(buyer.id),
         order_number: Set(generate_custom_string(10)),
         status: Set(OrderStatusEnum::AwaitingPayment),
         ..Default::default()
