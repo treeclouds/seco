@@ -313,7 +313,7 @@
     async function loadCategories(){
         categoriesTbody.innerHTML = '';
         try{
-            const res = await fetch('/api/categories');
+            const res = await fetch('/api/get_categories');
             if(!res.ok) throw new Error('Failed to load');
             const data = await res.json();
             if(!data.length){ categoriesEmpty.classList.remove('hidden'); return; } else categoriesEmpty.classList.add('hidden');
@@ -341,52 +341,98 @@
     }
 
     document.getElementById('refresh-categories').addEventListener('click', loadCategories);
-    document.getElementById('add-category').addEventListener('click', ()=>{
+    document.getElementById('add-category').addEventListener('click', addCategory);
+
+    async function addCategory() {
+        const parentSelect = await fetch(`/api/parent_categories`);
+        const parents = await parentSelect.json();
+
         openModal({
             title: 'Add Category',
-            extraHtml: `<div><label class="block text-sm text-slate-700 mb-1">Category</label><input name="category" class="w-full rounded-md border border-slate-200 px-3 py-2"/></div>`,
+            extraHtml: `<div>
+                <label class="block text-sm text-slate-700 mb-1">Category</label>
+                <input name="name" class="w-full rounded-md border border-slate-200 px-3 py-2"/>
+            </div>
+            <div>
+                <label class="block text-sm text-slate-700 mb-1">Parent Category</label>
+                <select id="parent_id" name="parent_id" class="form-control">
+                  <option value="0">-- Pilih Parent --</option>
+                </select>
+            </div>`,
             onSubmit: async (formData) => {
+                formData['parent_id'] = formData['parent_id'] ? parseInt(formData['parent_id'], 10) : null;
                 await saveCategory(formData);
                 closeModal();
             }
         });
-    });
+
+        const parentEl = document.getElementById('parent_id');
+
+        parents.forEach(p => {
+            const opt = document.createElement('option');
+            opt.value = p.id;
+            opt.textContent = p.name;
+            parentEl.appendChild(opt);
+        });
+    }
 
     async function saveCategory(payload){
         try{
-            const res = await fetch('/api/categories', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+            const res = await fetch('/api/category/new', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
             if(!res.ok) throw new Error('Save failed');
             await loadCategories();
-        }catch(err){ alert('Failed to save material'); console.error(err); }
+        }catch(err){ alert('Failed to save category'); console.error(err); }
     }
 
     async function onEditCategory(e){
         const id = e.currentTarget.dataset.id;
         try{
-            const res = await fetch(`/api/categories/${id}`);
+            const res = await fetch(`/api/category/${id}`);
+            const parentSelect = await fetch(`/api/parent_categories?exclude_id=${id}`);
             if(!res.ok) throw new Error('Not found');
-            const m = await res.json();
+            const c = await res.json();
+            const parents = await parentSelect.json();
+            console.log(c, parents);
             openModal({
-                title: 'Edit Material',
-                extraHtml: `<div><label class="block text-sm text-slate-700 mb-1">Category</label><input name="category" class="w-full rounded-md border border-slate-200 px-3 py-2" value="${escapeHtml(c.category||'')}"/></div>`,
+                title: 'Edit Category',
+                extraHtml: `<div>
+                    <label class="block text-sm text-slate-700 mb-1">Category</label>
+                    <input name="name" class="w-full rounded-md border border-slate-200 px-3 py-2" value="${escapeHtml(c.name||'')}"/>
+                </div>
+                <div>
+                    <label class="block text-sm text-slate-700 mb-1">Parent Category</label>
+                    <select id="parent_id" name="parent_id" class="form-control">
+                      <option value="0">-- Pilih Parent --</option>
+                    </select>
+                </div>`,
                 onSubmit: async (formData) => {
+                    formData['parent_id'] = formData['parent_id'] ? parseInt(formData['parent_id'], 10) : null;
                     try{
-                        const r = await fetch(`/api/categories/${id}`, {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(formData)});
+                        const r = await fetch(`/api/category/${id}`, {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(formData)});
                         if(!r.ok) throw new Error('Update failed');
                         await loadCategories();
                         closeModal();
                     }catch(err){ alert('Failed to update'); console.error(err); }
                 }
             });
-            modalForm.name.value = c.name;
-        }catch(err){ alert('Failed to fetch category'); console.error(err); }
+
+            const parentEl = document.getElementById('parent_id');
+
+            parents.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p.id;
+                opt.textContent = p.name;
+                if (p.id === c.parent_id) opt.selected = true;
+                parentEl.appendChild(opt);
+            });
+        } catch(err) { alert('Failed to fetch category'); console.error(err); }
     }
 
     async function onDeleteCategory(e){
         const id = e.currentTarget.dataset.id;
         if(!confirm('Delete this category?')) return;
         try{
-            const res = await fetch(`/api/categories/${id}`, {method:'DELETE'});
+            const res = await fetch(`/api/category/${id}`, {method:'DELETE'});
             if(!res.ok) throw new Error('Delete failed');
             await loadCategories();
         }catch(err){ alert('Failed to delete'); console.error(err); }

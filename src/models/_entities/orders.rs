@@ -13,6 +13,7 @@ pub struct Model {
     pub id: i32,
     #[sea_orm(unique)]
     pub order_number: String,
+    #[sea_orm(column_type = "Decimal(Some((10, 2)))")]
     pub final_price: Decimal,
     #[sea_orm(column_type = "Text", nullable)]
     pub delivery_address_detail: Option<String>,

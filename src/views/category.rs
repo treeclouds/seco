@@ -18,7 +18,21 @@ pub struct CategoryListResponse {
     pub child: Option<JsonValue>,
 }
 
-impl crate::views::category::CategoryResponse {
+#[derive(Debug, Deserialize, Serialize, ToSchema)]
+pub struct ParentCategoryResponse {
+    pub id: i32,
+    pub name: String,
+}
+
+#[derive(Debug, Deserialize, Serialize, FromQueryResult)]
+pub struct CategoryTree {
+    pub id: i32,
+    pub name: String,
+    pub parent_id: Option<i32>,
+    pub path: String,
+}
+
+impl CategoryResponse {
     #[must_use]
     pub fn new(category: &categories::Model) -> Self {
         Self {

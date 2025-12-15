@@ -13,7 +13,7 @@ impl MigrationTrait for Migration {
             ("id", ColType::PkAuto),
             
             ("product_name", ColType::StringNull),
-            ("product_price", ColType::DecimalLenNull(10, 2)),
+            ("product_price", ColType::DecimalLenWithDefault(10, 2, 0.0)),
             ("product_sku", ColType::StringNull),
             ("product_condition", ColType::StringNull),
             ("qty", ColType::IntegerWithDefault(1)),

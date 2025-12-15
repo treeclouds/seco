@@ -11,7 +11,8 @@ pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
     pub product_name: Option<String>,
-    pub product_price: Option<Decimal>,
+    #[sea_orm(column_type = "Decimal(Some((10, 2)))")]
+    pub product_price: Decimal,
     pub product_sku: Option<String>,
     pub product_condition: Option<String>,
     pub qty: i32,
