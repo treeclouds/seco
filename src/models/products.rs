@@ -199,4 +199,4 @@ impl ActiveModel {
 }
 
 // implement your custom finders, selectors oriented logic here
-impl crate::models::orders::Entity {}
+impl Entity {}

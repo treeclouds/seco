@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use utoipa::ToSchema;
 use rand::Rng;
-
+use sea_orm::ActiveEnum;
 use crate::models::_entities::{
     orders::{self, ActiveModel, Entity, Model},
     sea_orm_active_enums::OrderStatusEnum,
@@ -14,12 +14,14 @@ use crate::models::_entities::{
     products,
     delivery_addresses,
     payment_methods,
+    order_items::{ActiveModel as OrderItemActiveModel},
 };
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
 pub struct OrderParams {
     #[schema(read_only)]
     pub buyer_id: Option<i32>,
+    #[schema(read_only)]
     pub order_number: Option<String>,
     pub final_price: Decimal,
     #[schema(default = 1)]
@@ -28,11 +30,11 @@ pub struct OrderParams {
     pub delivery_address_detail: Option<String>,
     #[schema(default = 1)]
     pub payment_method_id: i32,
-    #[schema(read_only, default = 1)]
+    #[schema(default = 1)]
     pub product_id: i32,
-    #[schema(read_only)]
+    #[schema(read_only, value_type = String)]
     pub payment_method_detail: Option<serde_json::Value>,
-    #[schema(read_only)]
+    #[schema(read_only, value_type = String)]
     pub status: Option<OrderStatusEnum>,
 }
 
@@ -40,9 +42,7 @@ impl OrderParams {
     fn update(&self, item: &mut ActiveModel) {
         item.final_price = Set(self.final_price);
         item.delivery_address_id = Set(self.delivery_address_id);
-        item.delivery_address_detail = Set(self.delivery_address_detail.clone());
         item.payment_method_id = Set(self.payment_method_id);
-        item.payment_method_detail = Set(self.payment_method_detail.clone());
     }
 }
 
@@ -85,6 +85,7 @@ pub async fn order_list(auth: auth::JWT, State(ctx): State<AppContext>) -> Resul
     post,
     path = "/api/orders/new",
     tag = "orders",
+    request_body = OrderParams,
     responses(
         (status = 200, description = "Create a new order successfully")
     ),
@@ -96,19 +97,50 @@ pub async fn order_list(auth: auth::JWT, State(ctx): State<AppContext>) -> Resul
 pub async fn order_add(auth: auth::JWT, State(ctx): State<AppContext>, Json(params): Json<OrderParams>) -> Result<Response> {
     let buyer = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
     let product = products::Entity::find_by_id(params.product_id).one(&ctx.db).await?;
+    let product: products::Model = product.unwrap();
     let delivery_address = delivery_addresses::Entity::find_by_id(params.delivery_address_id).one(&ctx.db).await?;
+    let delivery_address: delivery_addresses::Model = delivery_address.unwrap();
     let payment_method = payment_methods::Entity::find_by_id(params.payment_method_id).one(&ctx.db).await?;
-    let delivery_address_detail = json!({});
-    let payment_method_detail = json!({});
-    let mut item = ActiveModel {
+    let payment_method: payment_methods::Model = payment_method.unwrap();
+    let delivery_address_detail = json!({
+        "name": delivery_address.clone().name,
+        "phone": delivery_address.clone().phone,
+        "email": delivery_address.clone().email,
+        "city": delivery_address.clone().city,
+        "address": delivery_address.clone().address,
+    });
+    let payment_gateway = match payment_method.payment_gateway {
+        Some(pg) => pg.to_value(),
+        None => "-".to_string(),
+    };
+    let payment_method_detail = json!({
+        "name": payment_method.clone().name,
+        "expiry_time": payment_method.clone().expiry_time,
+        "payment_gateway": payment_gateway,
+    });
+    let mut order = ActiveModel {
         buyer_id: Set(buyer.id),
         order_number: Set(generate_custom_string(10)),
         status: Set(OrderStatusEnum::AwaitingPayment),
+        delivery_address_detail: Set(Some(delivery_address_detail.to_string())),
+        payment_method_detail: Set(Some(payment_method_detail)),
         ..Default::default()
     };
-    params.update(&mut item);
-    let item = item.insert(&ctx.db).await?;
-    format::json(item)
+    params.update(&mut order);
+    let order = order.insert(&ctx.db).await?;
+    let order_item = OrderItemActiveModel {
+        order_id: Set(order.id),
+        product_name: Set(Some(product.clone().title)),
+        product_price: Set(product.clone().price),
+        product_sku: Set(Some(product.clone().sku)),
+        product_condition: Set(Option::from(product.clone().condition.unwrap().to_value())),
+        qty: Set(1),
+        seller_id: Set(product.clone().seller_id),
+        product_id: Set(params.product_id),
+        ..Default::default()
+    };
+    order_item.insert(&ctx.db).await?;
+    format::json(order)
 }
 
 #[debug_handler]
