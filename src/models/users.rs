@@ -47,7 +47,7 @@ pub struct Validator {
     pub email: String,
 }
 
-impl Validatable for super::_entities::users::ActiveModel {
+impl Validatable for ActiveModel {
     fn validator(&self) -> Box<dyn Validate> {
         Box::new(Validator {
             first_name: self.first_name.as_ref().to_owned(),
@@ -146,7 +146,7 @@ pub async fn revoke_refresh_session(db: &DatabaseConnection, token: &str) -> Res
 }
 
 #[async_trait::async_trait]
-impl ActiveModelBehavior for super::_entities::users::ActiveModel {
+impl ActiveModelBehavior for ActiveModel {
     async fn before_save<C>(self, _db: &C, insert: bool) -> Result<Self, DbErr>
     where
         C: ConnectionTrait,
@@ -164,7 +164,7 @@ impl ActiveModelBehavior for super::_entities::users::ActiveModel {
 }
 
 #[async_trait]
-impl Authenticable for super::_entities::users::Model {
+impl Authenticable for Model {
     async fn find_by_api_key(db: &DatabaseConnection, api_key: &str) -> ModelResult<Self> {
         let user = users::Entity::find()
             .filter(users::Column::ApiKey.eq(api_key))
@@ -178,7 +178,7 @@ impl Authenticable for super::_entities::users::Model {
     }
 }
 
-impl super::_entities::users::Model {
+impl Model {
     /// finds a user by the provided email
     ///
     /// # Errors
@@ -357,7 +357,7 @@ impl super::_entities::users::Model {
     }
 }
 
-impl super::_entities::users::ActiveModel {
+impl ActiveModel {
     /// Sets the email verification information for the user and
     /// updates it in the database.
     ///

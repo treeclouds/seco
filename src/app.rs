@@ -91,6 +91,7 @@ use utoipa_swagger_ui::SwaggerUi;
         user::product_get_one,
         user::product_update,
         user::product_remove,
+        user::user_order_list,
         ct_wishlists::user_wishlist_list,
         ct_wishlists::user_wishlist_new,
         ct_wishlists::user_wishlist_delete,

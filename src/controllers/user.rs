@@ -3,23 +3,28 @@ use std::path::PathBuf;
 use axum::extract::Multipart;
 use loco_rs::prelude::*;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use utoipa::ToSchema;
 use bytes::Bytes;
+use sea_orm::ActiveEnum;
 use crate::{
+    controllers::{
+        upload::generate_unique_filename,
+        products::{ProductPostParams, UnauthorizedResponse}
+    },
     models::_entities::{
         users::{self, ActiveModel},
         products::{self, ActiveModel as ProductActiveModel, Entity as ProductEntity, Model as ProductModel},
-        product_images::{ActiveModel as ProductImageActiveModel, Model as ProductImageModel}
+        product_images::{ActiveModel as ProductImageActiveModel, Model as ProductImageModel},
+        orders::{self, Entity as OrderEntity}
     },
-    views::user::CurrentResponse
+    views::{
+        order::OrderResponse,
+        product::ProductResponse,
+        product_image::ProductImageResponse,
+        user::CurrentResponse,
+    },
 };
-use crate::controllers::{
-    upload::generate_unique_filename,
-    products::{ProductPostParams, UnauthorizedResponse}
-};
-use crate::views::product::ProductResponse;
-use crate::views::product_image::ProductImageResponse;
-
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
 pub struct LocationParams {
@@ -319,12 +324,42 @@ pub async fn update_location(
     format::json(CurrentResponse::new(&user))
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/user/orders",
+    tag = "users",
+    responses(
+        (status = 200, description = "Order list based on user login successfully", body = [OrderResponse]),
+        (status = 401, description = "Unauthorized", body = UnauthorizedResponse),
+    ),
+    security(
+        ("jwt_token" = [])
+    )
+)]
+pub async fn user_order_list(auth: auth::JWT, State(ctx): State<AppContext>) -> Result<Response> {
+    let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    let orders = OrderEntity::find().filter(orders::Column::BuyerId.eq(user.id)).all(&ctx.db).await?;
+    let response: Vec<OrderResponse> = orders
+        .into_iter()
+        .map(|o| OrderResponse {
+            order_number: o.order_number,
+            final_price: o.final_price,
+            delivery_address_detail: None,
+            payment_method_detail: o.payment_method_detail,
+            status: o.status.to_value(),
+            order_items: vec![],
+        })
+        .collect();
+    format::json(response)
+}
+
 pub fn routes() -> Routes {
     Routes::new()
         .prefix("/api/user")
         .add("/current", get(current))
         .add("/update_location", post(update_location))
         .add("/products", get(product_list))
+        .add("/orders", get(user_order_list))
         .add("/product/new", post(product_add))
         .add("/product/{id}", get(product_get_one))
         .add("/product/{id}", delete(product_remove))

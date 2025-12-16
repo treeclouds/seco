@@ -3,7 +3,6 @@ use loco_rs::prelude::*;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use axum::extract::Query;
-use sea_orm::QueryOrder;
 use crate::models::_entities::categories::{self, ActiveModel, Model, Entity};
 use crate::views::category::{CategoryResponse, CategoryListResponse, ParentCategoryResponse, CategoryTree};
 use crate::controllers::products::UnauthorizedResponse;
