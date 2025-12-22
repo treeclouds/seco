@@ -11,7 +11,7 @@ use utoipa::ToSchema;
 use crate::models::_entities::{
     products::{Entity as ProductEntity, Model as ProductModel},
     users,
-    wishlists::{self, Entity, ActiveModel, Model}};
+    wishlists::{Entity, ActiveModel, Model}};
 use crate::views::{
     base::BaseResponse,
 };
@@ -58,7 +58,7 @@ async fn load_wishlist(ctx: &AppContext, id: i32) -> Result<Model> {
 #[debug_handler]
 pub async fn user_wishlist_list(auth: auth::JWT, State(ctx): State<AppContext>) -> Result<Response> {
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
-    let wishlists = wishlists::Model::get_wishlist_by_user_id(&ctx.db, &user.id).await?;
+    let wishlists = Model::get_wishlist_by_user_id(&ctx.db, &user.id).await?;
     format::json(wishlists)
 }
 

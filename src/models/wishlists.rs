@@ -8,7 +8,7 @@ impl ActiveModelBehavior for ActiveModel {
     // extend activemodel below (keep comment for generators)
 }
 
-impl super::_entities::wishlists::Model {
+impl Model {
     pub async fn get_wishlist_by_user_id(db: &DatabaseConnection, user_id: &i32)  -> ModelResult<Vec<WishlistListResponse>> {
         let products: Vec<WishlistListResponse> = JsonValue::find_by_statement(Statement::from_sql_and_values(
             DbBackend::Postgres,
@@ -46,7 +46,7 @@ impl super::_entities::wishlists::Model {
     }
 }
 
-impl super::_entities::wishlists::ActiveModel {
+impl ActiveModel {
     pub async fn set_wishlist_deleted(
         mut self,
         db: &DatabaseConnection,

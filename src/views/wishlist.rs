@@ -16,8 +16,8 @@ pub struct WishlistListResponse {
     dimension_height: f32,
     dimension_length: f32,
     dimension_weight: f32,
-    brand: String,
-    material: String,
+    brand_id: Option<i32>,
+    material_id: Option<i32>,
     stock: i32,
     sku: String,
     #[schema(value_type = String, format = Binary)]
