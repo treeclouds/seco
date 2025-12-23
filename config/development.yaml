@@ -64,8 +64,8 @@ server:
       must_exist: true
       precompressed: false
       folder:
-        uri: "/media"
-        path: "storage-uploads"
+        uri: "/static"
+        path: "assets/static"
       fallback: "frontend/dist/404.html"
 
 # Worker Configuration

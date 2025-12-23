@@ -2,6 +2,8 @@ use std::path::Path;
 
 use async_trait::async_trait;
 use axum::Router as AxumRouter;
+use axum::routing::get_service;
+use tower_http::services::ServeDir;
 use loco_rs::{
     app::{AppContext, Hooks, Initializer},
     bgworker::{BackgroundWorker, Queue},
@@ -196,7 +198,9 @@ impl Hooks for App {
 
     async fn after_routes(router: AxumRouter, _ctx: &AppContext) -> Result<AxumRouter> {
         // use AxumRouter to mount your routes and return an AxumRouter
+        let media_service = get_service(ServeDir::new("storage-uploads"));
         let router_app = router
+            .nest_service("/media", media_service)
             .merge(SwaggerUi::new("/swagger").url("/api-docs/openapi.json", ApiDoc::openapi()));
         Ok(router_app)
     }
