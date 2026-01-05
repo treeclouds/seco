@@ -42,6 +42,29 @@ impl LocationParams {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+pub struct ProfileParams {
+    pub first_name: String,
+    pub last_name: String,
+    pub phone: Option<String>,
+    pub email: String,
+    pub location: String,
+    pub latitude: Option<String>,
+    pub longitude: Option<String>,
+}
+
+impl ProfileParams {
+    pub(crate) fn update(&self, item: &mut ActiveModel) {
+        item.first_name = Set(self.first_name.clone());
+        item.last_name = Set(self.last_name.clone());
+        item.phone = Set(Option::from(self.phone.clone()));
+        item.email = Set(self.email.clone());
+        item.location = Set(Option::from(self.location.clone()));
+        item.latitude = Set(Option::from(self.latitude.clone()));
+        item.longitude = Set(Option::from(self.longitude.clone()));
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
 pub struct CreateProductMultipart {
     /// JSON string berisi data produk, sesuai `ProductPostParams`
     ///
@@ -353,11 +376,39 @@ pub async fn user_order_list(auth: auth::JWT, State(ctx): State<AppContext>) -> 
     format::json(response)
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/user/update_profile",
+    tag = "users",
+    request_body = ProfileParams,
+    responses(
+        (status = 200, description = "Product update successfully", body = [CurrentResponse]),
+        (status = 401, description = "Unauthorized", body = UnauthorizedResponse),
+        (status = 404, description = "Product not found", body = UnauthorizedResponse),
+    ),
+    security(
+        ("jwt_token" = [])
+    )
+)]
+pub async fn update_profile(
+    auth: auth::JWT,
+    State(ctx): State<AppContext>,
+    Json(params): Json<ProfileParams>,
+) -> Result<Response> {
+    let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    let mut user = user.into_active_model();
+    params.update(&mut user);
+    user.updated_at = ActiveValue::Set(Local::now().naive_local());
+    let user = user.update(&ctx.db).await?;
+    format::json(CurrentResponse::new(&user))
+}
+
 pub fn routes() -> Routes {
     Routes::new()
         .prefix("/api/user")
         .add("/current", get(current))
         .add("/update_location", post(update_location))
+        .add("/update_profile", post(update_profile))
         .add("/products", get(product_list))
         .add("/orders", get(user_order_list))
         .add("/product/new", post(product_add))
