@@ -457,4 +457,16 @@ impl ActiveModel {
         self.magic_link_expiration = ActiveValue::set(None);
         self.update(db).await.map_err(ModelError::from)
     }
+
+    pub async fn set_blocked(mut self, db: &DatabaseConnection) -> ModelResult<Model> {
+        self.is_blocked = ActiveValue::set(true);
+        self.blocked_at = ActiveValue::set(Some(Local::now().into()));
+        Ok(self.update(db).await?)
+    }
+
+    pub async fn set_unblocked(mut self, db: &DatabaseConnection) -> ModelResult<Model> {
+        self.is_blocked = ActiveValue::set(false);
+        self.blocked_at = ActiveValue::set(None);
+        Ok(self.update(db).await?)
+    }
 }

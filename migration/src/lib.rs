@@ -43,6 +43,7 @@ mod m20251208_134504_order_items;
 mod m20251211_131047_add_price_to_delivery_method_services;
 mod m20251212_034754_add_delivery_method_service_detail_to_order_items;
 mod m20260105_120053_add_phone_to_users;
+mod m20260106_025241_add_is_blocked_and_blocked_at_to_users;
 pub struct Migrator;
 
 #[async_trait::async_trait]
@@ -89,6 +90,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20251211_131047_add_price_to_delivery_method_services::Migration),
             Box::new(m20251212_034754_add_delivery_method_service_detail_to_order_items::Migration),
             Box::new(m20260105_120053_add_phone_to_users::Migration),
+            Box::new(m20260106_025241_add_is_blocked_and_blocked_at_to_users::Migration),
             // inject-above (do not remove this comment)
         ]
     }

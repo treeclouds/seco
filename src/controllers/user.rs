@@ -3,7 +3,6 @@ use std::path::PathBuf;
 use axum::extract::Multipart;
 use loco_rs::prelude::*;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use utoipa::ToSchema;
 use bytes::Bytes;
 use sea_orm::ActiveEnum;
@@ -403,6 +402,87 @@ pub async fn update_profile(
     format::json(CurrentResponse::new(&user))
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/user/{pid}/block",
+    tag = "users",
+    responses(
+        (status = 200, description = "User successfully blocked"),
+        (status = 401, description = "Unauthorized", body = UnauthorizedResponse),
+    ),
+    params(
+        ("pid" = String, Path, description = "User database pid")
+    ),
+    security(
+        ("jwt_token" = [])
+    )
+)]
+pub async fn user_block(auth: auth::JWT, Path(pid): Path<String>, State(ctx): State<AppContext>) -> Result<Response> {
+    let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+
+    if user.pid == pid.parse::<Uuid>().unwrap() {
+        return bad_request("cannot block yourself");
+    } else if user.is_superuser {
+        let u = users::Model::find_by_pid(&ctx.db, &pid).await?;
+        u.into_active_model().set_blocked(&ctx.db).await?;
+    }
+    format::empty()
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/user/{pid}/unblock",
+    tag = "users",
+    responses(
+        (status = 200, description = "User successfully unblocked"),
+        (status = 401, description = "Unauthorized", body = UnauthorizedResponse),
+    ),
+    params(
+        ("pid" = String, Path, description = "User database pid")
+    ),
+    security(
+        ("jwt_token" = [])
+    )
+)]
+pub async fn user_unblock(auth: auth::JWT, Path(pid): Path<String>, State(ctx): State<AppContext>) -> Result<Response> {
+    let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+
+    if user.pid == pid.parse::<Uuid>().unwrap() {
+        return bad_request("cannot block yourself");
+    } else if user.is_superuser {
+        let u = users::Model::find_by_pid(&ctx.db, &pid).await?;
+        u.into_active_model().set_unblocked(&ctx.db).await?;
+    }
+    format::empty()
+}
+
+#[utoipa::path(
+    delete,
+    path = "/api/user/{pid}/delete",
+    tag = "users",
+    responses(
+        (status = 200, description = "User successfully deleted"),
+        (status = 401, description = "Unauthorized", body = UnauthorizedResponse),
+    ),
+    params(
+        ("pid" = String, Path, description = "User database pid")
+    ),
+    security(
+        ("jwt_token" = [])
+    )
+)]
+pub async fn user_delete(auth: auth::JWT, Path(pid): Path<String>, State(ctx): State<AppContext>) -> Result<Response> {
+    let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+
+    if user.pid == pid.parse::<Uuid>().unwrap() {
+        return bad_request("cannot delete yourself");
+    } else if user.is_superuser {
+        let u = users::Model::find_by_pid(&ctx.db, &pid.to_string()).await?;
+        u.delete(&ctx.db).await?;
+    }
+    format::empty()
+}
+
 pub fn routes() -> Routes {
     Routes::new()
         .prefix("/api/user")
@@ -415,4 +495,7 @@ pub fn routes() -> Routes {
         .add("/product/{id}", get(product_get_one))
         .add("/product/{id}", delete(product_remove))
         .add("/product/{id}", post(product_update))
+        .add("/{id}/block", post(user_block))
+        .add("/{id}/unblock", post(user_unblock))
+        .add("/{id}/delete", delete(user_delete))
 }
