@@ -210,6 +210,12 @@ async fn login(
         return bad_request(&msg_error);
     }
 
+    let blocked = user.verify_blocked();
+    if blocked {
+        let msg_error = String::from("Your account is blocked!, please contact support");
+        return bad_request(&msg_error);
+    }
+
     let jwt_secret = ctx.config.get_jwt_config()?;
     let mut exp = jwt_secret.expiration;
 

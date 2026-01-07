@@ -355,6 +355,11 @@ impl Model {
             Err(ModelError::msg("expiration token not exists"))
         }
     }
+
+    #[must_use]
+    pub fn verify_blocked(&self) -> bool {
+        self.is_blocked
+    }
 }
 
 impl ActiveModel {
