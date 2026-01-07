@@ -52,6 +52,7 @@ impl Model {
 
     pub async fn get_all_products(
         db: &DatabaseConnection,
+        title: &Option<&String>,
         condition: &Option<&ProductConditionEnum>,
         location: &Option<&String>,
         brand: &Option<&String>,
@@ -82,6 +83,11 @@ impl Model {
             LEFT JOIN materials m ON m.id = p.material_id
         "#;
         let mut extra_where_clause: String = "WHERE p.seller_id IS NOT NULL".to_owned();
+
+        if title.is_some() {
+            extra_where_clause += &*format!(" AND p.title ILIKE '%{:?}%'", title.unwrap().to_owned()).replace("\"", "")
+        }
+
         if condition.is_some() {
             extra_where_clause += &*format!(" AND p.condition = '{:?}'", condition.unwrap().to_owned());
         }

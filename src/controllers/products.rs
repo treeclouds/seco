@@ -84,6 +84,7 @@ pub struct ProductOfferParams {
 
 #[derive(Debug, Deserialize, IntoParams)]
 pub struct ProductFilterParams {
+    title: Option<String>,
     condition: Option<ProductConditionEnum>,
     location: Option<String>,
     brand: Option<String>,
@@ -109,6 +110,7 @@ pub async fn get_all_products(State(ctx): State<AppContext>, query: Query<Produc
     tracing::info!("===== get_all_products query {:?}", query);
     let products: Vec<ProductsResponse> = Model::get_all_products(
         &ctx.db,
+        &query.title.as_ref(),
         &query.condition.as_ref(),
         &query.location.as_ref(),
         &query.brand.as_ref(),
