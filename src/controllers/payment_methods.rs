@@ -7,7 +7,8 @@ use utoipa::{ToSchema};
 
 use crate::models::_entities::{
     sea_orm_active_enums::{PaymentMethodGatewayEnum, PaymentMethodNameEnum},
-    payment_methods::{ActiveModel, Entity, Model}
+    payment_methods::{ActiveModel, Entity, Model},
+    users,
 };
 use crate::views::payment_method::PaymentMethodResponse;
 use crate::controllers::products::UnauthorizedResponse;
@@ -54,7 +55,7 @@ async fn load_item(ctx: &AppContext, id: i32) -> Result<Model> {
     )
 )]
 #[debug_handler]
-pub async fn payment_method_list(_auth: auth::JWT, State(ctx): State<AppContext>) -> Result<Response> {
+pub async fn payment_method_list(State(ctx): State<AppContext>) -> Result<Response> {
     let payment_methods: Vec<Model> = Entity::find().all(&ctx.db).await?;
     format::json(payment_methods)
 }
@@ -72,7 +73,12 @@ pub async fn payment_method_list(_auth: auth::JWT, State(ctx): State<AppContext>
     )
 )]
 #[debug_handler]
-pub async fn payment_method_add(State(ctx): State<AppContext>, Json(params): Json<PaymentMethodParams>) -> Result<Response> {
+pub async fn payment_method_add(auth: auth::JWT, State(ctx): State<AppContext>, Json(params): Json<PaymentMethodParams>) -> Result<Response> {
+    let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    if !user.is_superuser {
+        return bad_request("You are not allowed to update payment methods. Only superuser can do that.");
+    }
+
     let mut item = ActiveModel {
         ..Default::default()
     };
@@ -89,10 +95,15 @@ pub async fn payment_method_add(State(ctx): State<AppContext>, Json(params): Jso
 
 #[debug_handler]
 pub async fn payment_method_update(
+    auth: auth::JWT,
     Path(id): Path<i32>,
     State(ctx): State<AppContext>,
     Json(params): Json<PaymentMethodParams>,
 ) -> Result<Response> {
+    let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    if !user.is_superuser {
+        return bad_request("You are not allowed to update payment methods. Only superuser can do that.");
+    }
     let item = load_item(&ctx, id).await?;
     let mut item = item.into_active_model();
     params.update(&mut item);
@@ -101,7 +112,11 @@ pub async fn payment_method_update(
 }
 
 #[debug_handler]
-pub async fn payment_method_remove(Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
+pub async fn payment_method_remove(auth: auth::JWT, Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
+    let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    if !user.is_superuser {
+        return bad_request("You are not allowed to update payment methods. Only superuser can do that.");
+    }
     load_item(&ctx, id).await?.delete(&ctx.db).await?;
     format::empty()
 }
