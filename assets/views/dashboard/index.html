@@ -209,6 +209,7 @@
         modalTitle.textContent = title;
         modalExtra.innerHTML = extraHtml;
         modal.classList.remove('hidden');
+        modal.classList.add('flex');
         modal.dataset.open = '1';
         modalForm.onsubmit = async (e) => {
             e.preventDefault();
@@ -225,6 +226,7 @@
     }
     function closeModal(){
         modal.classList.add('hidden');
+        modal.classList.remove('flex');
         modal.dataset.open = '0';
         modalForm.reset();
         modalExtra.innerHTML = '';
