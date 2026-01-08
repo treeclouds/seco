@@ -100,6 +100,7 @@ pub async fn payment_method_update(
     State(ctx): State<AppContext>,
     Json(params): Json<PaymentMethodParams>,
 ) -> Result<Response> {
+    println!("{:?}", &auth.claims.pid);
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
     if !user.is_superuser {
         return bad_request("You are not allowed to update payment methods. Only superuser can do that.");
