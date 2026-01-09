@@ -10,6 +10,7 @@ use crate::models::_entities::delivery_method_services::{ActiveModel, Entity, Mo
 pub struct Params {
     pub delivery_method_id: i32,
     pub name: String,
+    pub price: Decimal,
     pub active: bool,
 }
 
@@ -17,6 +18,7 @@ impl Params {
     fn update(&self, item: &mut ActiveModel) {
         item.delivery_method_id = Set(self.delivery_method_id);
         item.name = Set(self.name.clone());
+        item.price = Set(self.price);
         item.active = Set(self.active);
     }
 }
@@ -69,7 +71,7 @@ pub fn routes() -> Routes {
     Routes::new()
         .prefix("api/delivery_method_services/")
         .add("/", get(delivery_method_service_list))
-        .add("/", post(delivery_method_service_add))
+        .add("/new", post(delivery_method_service_add))
         .add("{id}", get(get_delivery_method_service_one))
         .add("{id}", delete(delivery_method_service_remove))
         .add("{id}", put(delivery_method_service_update))

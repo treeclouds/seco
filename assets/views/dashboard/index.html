@@ -258,6 +258,9 @@
         document.getElementById('delivery_method_active')?.addEventListener('change', (e)=>{
             modalForm.active.value = e.target.checked;
         })
+        document.getElementById('delivery_service_active')?.addEventListener('change', (e)=>{
+            modalForm.active.value = e.target.checked;
+        })
     }
     function closeModal(){
         modal.classList.add('hidden');
@@ -784,12 +787,14 @@
             <td class="p-2">
               <div class="flex gap-2">
                 <button data-id="${m.id}" class="edit-delivery_method rounded-md border px-2 py-1 text-sm">Edit</button>
+                <button data-id="${m.id}" data-delivery_method="${m.name}" class="add-delivery_service rounded-md border px-2 py-1 text-sm">Add Service</button>
                 <button data-id="${m.id}" class="delete-delivery_method rounded-md border px-2 py-1 text-sm text-red-600">Delete</button>
               </div>
             </td>`;
                 deliveryMethodsTbody.appendChild(tr);
             });
             document.querySelectorAll('.edit-delivery_method').forEach(btn=>btn.addEventListener('click', onEditDeliveryMethod));
+            document.querySelectorAll('.add-delivery_service').forEach(btn=>btn.addEventListener('click', onAddDeliveryService));
             document.querySelectorAll('.delete-delivery_method').forEach(btn=>btn.addEventListener('click', onDeleteDeliveryMethod));
         }catch(err){
             console.error(err);
@@ -881,6 +886,42 @@
             if(!res.ok) throw new Error('Delete failed');
             await loadDeliveryMethods();
         }catch(err){ alert('Failed to delete'); console.error(err); }
+    }
+
+    async function onAddDeliveryService(e){
+        const delivery_method_id = e.currentTarget.dataset.id;
+        const delivery_method_name = e.currentTarget.dataset.delivery_method;
+        openModal({
+            title: `${delivery_method_name} - Add Delivery Service`,
+            extraHtml: `<input type="hidden" name="delivery_method_id" value="${delivery_method_id}"><div>
+                <label class="block text-sm text-slate-700 mb-1">Name</label>
+                <input name="name" class="w-full rounded-md border border-slate-200 px-3 py-2" value="" />
+            </div><div>
+                <label class="block text-sm text-slate-700 mb-1">Price</label>
+                <input type="number" name="price" class="w-full rounded-md border border-slate-200 px-3 py-2" value="" />
+            </div>
+            <div><label>
+                <input type="checkbox" id="delivery_service_active" name="active" value="false"> Active
+            </label></div>`,
+            onSubmit: async (formData) => {
+                formData['active'] = formData['active'] === 'true';
+                formData['delivery_method_id'] = parseInt(formData['delivery_method_id'], 10);
+                try{
+                    const r = await fetch(`/api/delivery_method_services/new`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type':'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        },
+                        body: JSON.stringify(formData)
+                    });
+                    if(!r.ok) throw new Error('Add delivery service failed');
+                    await loadDeliveryMethods();
+                    closeModal();
+                }catch(err){ alert('Failed to add delivery service'); console.error(err); }
+            }
+        });
+        // }catch(err){ alert('Failed to fetch delivery method'); console.error(err); }
     }
 
     // Utilities

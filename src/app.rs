@@ -186,6 +186,7 @@ impl Hooks for App {
         AppRoutes::with_default_routes()
             .add_route(controllers::order::routes())
             .add_route(controllers::delivery_method::routes())
+            .add_route(controllers::delivery_method_service::routes())
             .add_route(controllers::payment_methods::routes())
             .add_route(controllers::delivery_address::routes())
             .add_route(controllers::materials::routes())
