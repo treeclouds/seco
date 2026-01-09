@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 use crate::models::_entities::delivery_methods::{ActiveModel, Entity, Model};
+use crate::models::_entities::users;
 use crate::views::delivery_method::DeliveryMethodsAndServicesResponse;
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
@@ -61,10 +62,16 @@ pub async fn delivery_method_add(State(ctx): State<AppContext>, Json(params): Js
 
 #[debug_handler]
 pub async fn delivery_method_update(
+    auth: auth::JWT,
     Path(id): Path<i32>,
     State(ctx): State<AppContext>,
     Json(params): Json<DeliveryMethodParams>,
 ) -> Result<Response> {
+    let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    if !user.is_superuser {
+        return bad_request("You are not allowed to update delivery methods. Only superuser can do that.");
+    }
+
     let item = load_item(&ctx, id).await?;
     let mut item = item.into_active_model();
     params.update(&mut item);
@@ -73,7 +80,11 @@ pub async fn delivery_method_update(
 }
 
 #[debug_handler]
-pub async fn delivery_method_remove(Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
+pub async fn delivery_method_remove(auth: auth::JWT, Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
+    let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    if !user.is_superuser {
+        return bad_request("You are not allowed to delete delivery methods. Only superuser can do that.");
+    }
     load_item(&ctx, id).await?.delete(&ctx.db).await?;
     format::empty()
 }

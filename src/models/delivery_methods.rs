@@ -28,7 +28,9 @@ impl Model {
     ) -> ModelResult<Vec<DeliveryMethodsAndServicesResponse>> {
         let query = r#"
             SELECT
+                dm.id,
                 dm.name,
+                dm.active,
                 COALESCE(
                     json_agg(
                         json_build_object(
@@ -37,7 +39,8 @@ impl Model {
                         )
                     ) FILTER (WHERE dms.id IS NOT NULL),
                     '[]'
-                ) AS services
+                ) AS services,
+                COUNT(dms) as total_services
             FROM delivery_methods dm
             LEFT JOIN delivery_method_services dms ON dms.delivery_method_id = dm.id
             GROUP BY dm.id, dm.name
