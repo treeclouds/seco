@@ -35,7 +35,9 @@ impl Model {
                     json_agg(
                         json_build_object(
                             'id', dms.id,
-                            'name', dms.name
+                            'name', dms.name,
+                            'price', dms.price,
+                            'active', dms.active
                         )
                     ) FILTER (WHERE dms.id IS NOT NULL),
                     '[]'

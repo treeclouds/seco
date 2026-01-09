@@ -210,6 +210,28 @@
     </div>
 </div>
 
+<!-- Delivery Services List Modal -->
+<div id="deliveryServicesList" class="fixed inset-0 hidden items-center justify-center bg-black/40 p-4">
+    <div class="bg-white rounded-2xl w-full max-w-md p-6">
+        <h3 id="delivery-service-modal-title" class="text-lg font-semibold mb-3">Add</h3>
+        <div class="bg-white p-4 rounded-2xl shadow">
+            <table class="w-full text-sm" id="">
+                <thead class="text-slate-600">
+                <tr>
+                    <th class="text-left p-2">#</th>
+                    <th class="text-left p-2">Name</th>
+                    <th class="text-left p-2">Price</th>
+                    <th class="text-left p-2">Active</th>
+                    <th class="text-left p-2">Actions</th>
+                </tr>
+                </thead>
+                <tbody id="delivery-service-modal-body" class="divide-y"></tbody>
+            </table>
+            <p id="delivery-service-modal-empty" class="text-sm text-slate-500 mt-4 hidden">No delivery services yet. Click "Add Delivery Method" to create one.</p>
+        </div>
+    </div>
+</div>
+
 <script>
     // Simple SPA-ish navigation
     const sections = document.querySelectorAll('main section');
@@ -231,8 +253,11 @@
     const modalTitle = document.getElementById('modal-title');
     const modalForm = document.getElementById('modal-form');
     const modalExtra = document.getElementById('modal-extra');
-    const modalSubmit = document.getElementById('modal-submit');
     const modalCancel = document.getElementById('modal-cancel');
+    const deliveryServiceModal = document.getElementById('deliveryServicesList');
+    const deliveryServiceModalTitle = document.getElementById('delivery-service-modal-title');
+    const deliveryServiceModalBody = document.getElementById('delivery-service-modal-body');
+    const deliveryServiceModalEmpty = document.getElementById('delivery-service-modal-empty');
 
     function openModal({title, extraHtml = '', onSubmit}){
         modalTitle.textContent = title;
@@ -262,6 +287,7 @@
             modalForm.active.value = e.target.checked;
         })
     }
+
     function closeModal(){
         modal.classList.add('hidden');
         modal.classList.remove('flex');
@@ -269,8 +295,27 @@
         modalForm.reset();
         modalExtra.innerHTML = '';
     }
+
     modalCancel.addEventListener('click', closeModal);
     modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+
+    // Delivery Services List Modal
+    function openDeliveryServiceModal({title}){
+        deliveryServiceModalTitle.textContent = title;
+        deliveryServiceModal.classList.remove('hidden');
+        deliveryServiceModal.classList.add('flex');
+        deliveryServiceModal.dataset.open = '1';
+    }
+
+    function closeDeliveryServiceModal(){
+        deliveryServiceModal.classList.add('hidden');
+        deliveryServiceModal.classList.remove('flex');
+        deliveryServiceModal.dataset.open = '0';
+        deliveryServiceModalTitle.textContent = '';
+        deliveryServiceModalBody.innerHTML = '';
+    }
+
+    deliveryServiceModal.addEventListener('click', (e) => { if (e.target === deliveryServiceModal) closeDeliveryServiceModal(); });
 
     // --- Brands CRUD (AJAX) ---
     const brandsTbody = document.getElementById('brands-tbody');
@@ -787,6 +832,7 @@
             <td class="p-2">
               <div class="flex gap-2">
                 <button data-id="${m.id}" class="edit-delivery_method rounded-md border px-2 py-1 text-sm">Edit</button>
+                <button data-id="${m.id}" data-delivery_method="${m.name}" class="show-delivery_service rounded-md border px-2 py-1 text-sm">Show Services</button>
                 <button data-id="${m.id}" data-delivery_method="${m.name}" class="add-delivery_service rounded-md border px-2 py-1 text-sm">Add Service</button>
                 <button data-id="${m.id}" class="delete-delivery_method rounded-md border px-2 py-1 text-sm text-red-600">Delete</button>
               </div>
@@ -794,6 +840,7 @@
                 deliveryMethodsTbody.appendChild(tr);
             });
             document.querySelectorAll('.edit-delivery_method').forEach(btn=>btn.addEventListener('click', onEditDeliveryMethod));
+            document.querySelectorAll('.show-delivery_service').forEach(btn=>btn.addEventListener('click', onDeliveryServicesList));
             document.querySelectorAll('.add-delivery_service').forEach(btn=>btn.addEventListener('click', onAddDeliveryService));
             document.querySelectorAll('.delete-delivery_method').forEach(btn=>btn.addEventListener('click', onDeleteDeliveryMethod));
         }catch(err){
@@ -922,6 +969,42 @@
             }
         });
         // }catch(err){ alert('Failed to fetch delivery method'); console.error(err); }
+    }
+
+    async function onDeliveryServicesList(e) {
+        const delivery_method_id = e.currentTarget.dataset.id;
+        const delivery_method_name = e.currentTarget.dataset.delivery_method;
+        let title = `${delivery_method_name} - Delivery Service List`;
+        deliveryServiceModalBody.innerHTML = '';
+        try{
+            const res = await fetch('/api/delivery_methods');
+            if(!res.ok) throw new Error('Failed to load');
+            const data = await res.json();
+            data.forEach((m,i)=>{
+                if (m.id === parseInt(delivery_method_id, 10)) {
+                    m['services'].forEach((s,j)=>{
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                        <td class="p-2">${j+1}</td>
+                        <td class="p-2">${escapeHtml(s.name)}</td>
+                        <td class="p-2">${s.price}</td>
+                        <td class="p-2">${s.active||'false'}</td>
+                        <td class="p-2">
+                          <div class="flex gap-2">
+                            <button data-id="${s.id}" class="edit-delivery_service rounded-md border px-2 py-1 text-sm">Edit</button>
+                            <button data-id="${s.id}" class="delete-delivery_service rounded-md border px-2 py-1 text-sm text-red-600">Delete</button>
+                          </div>
+                        </td>`;
+                        deliveryServiceModalBody.appendChild(tr);
+                    })
+                    openDeliveryServiceModal({title: title});
+                }
+            })
+        }catch(err){
+            console.error(err);
+            deliveryServiceModalEmpty.textContent = 'Unable to load delivery services.';
+            deliveryServiceModalEmpty.classList.remove('hidden');
+        }
     }
 
     // Utilities
