@@ -5,6 +5,7 @@ use loco_rs::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use crate::models::_entities::delivery_method_services::{ActiveModel, Entity, Model};
+use crate::models::_entities::users;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Params {
@@ -34,7 +35,12 @@ pub async fn delivery_method_service_list(State(ctx): State<AppContext>) -> Resu
 }
 
 #[debug_handler]
-pub async fn delivery_method_service_add(State(ctx): State<AppContext>, Json(params): Json<Params>) -> Result<Response> {
+pub async fn delivery_method_service_add(auth: auth::JWT, State(ctx): State<AppContext>, Json(params): Json<Params>) -> Result<Response> {
+    let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    if !user.is_superuser {
+        return bad_request("You are not allowed to add delivery service. Only superuser can do that.");
+    }
+
     let mut item = ActiveModel {
         ..Default::default()
     };
@@ -45,10 +51,15 @@ pub async fn delivery_method_service_add(State(ctx): State<AppContext>, Json(par
 
 #[debug_handler]
 pub async fn delivery_method_service_update(
+    auth: auth::JWT,
     Path(id): Path<i32>,
     State(ctx): State<AppContext>,
     Json(params): Json<Params>,
 ) -> Result<Response> {
+    let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    if !user.is_superuser {
+        return bad_request("You are not allowed to update delivery service. Only superuser can do that.");
+    }
     let item = load_item(&ctx, id).await?;
     let mut item = item.into_active_model();
     params.update(&mut item);
@@ -57,7 +68,11 @@ pub async fn delivery_method_service_update(
 }
 
 #[debug_handler]
-pub async fn delivery_method_service_remove(Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
+pub async fn delivery_method_service_remove(auth: auth::JWT, Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
+    let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    if !user.is_superuser {
+        return bad_request("You are not allowed to delete delivery service. Only superuser can do that.");
+    }
     load_item(&ctx, id).await?.delete(&ctx.db).await?;
     format::empty()
 }
