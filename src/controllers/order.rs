@@ -97,8 +97,10 @@ pub async fn order_list(auth: auth::JWT, State(ctx): State<AppContext>) -> Resul
 #[debug_handler]
 pub async fn order_add(auth: auth::JWT, State(ctx): State<AppContext>, Json(params): Json<OrderParams>) -> Result<Response> {
     let buyer = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
-    let product = products::Entity::find_by_id(params.product_id).one(&ctx.db).await?;
-    let product: products::Model = product.unwrap();
+    let product = products::Entity::find_by_id(params.product_id)
+        .one(&ctx.db)
+        .await?
+        .ok_or_else(|| Error::BadRequest("Product not found".into()))?;
 
     // check product stock
     if product.stock <= 0 {
@@ -108,10 +110,10 @@ pub async fn order_add(auth: auth::JWT, State(ctx): State<AppContext>, Json(para
 
     let delivery_address_detail = match params.delivery_address_id {
         Some(d) if d > 0 => {
-            let delivery_address = delivery_addresses::Entity::find_by_id(d).one(&ctx.db).await?;
-            let delivery_address: delivery_addresses::Model = delivery_address.ok_or_else(|| {
-                Error::BadRequest("Delivery address not found".into())
-            })?;
+            let delivery_address = delivery_addresses::Entity::find_by_id(d)
+                .one(&ctx.db)
+                .await?
+                .ok_or_else(|| Error::BadRequest("Delivery address not found".into()))?;
 
             if delivery_address.user_id != buyer.id {
                 let msg_error = String::from("Delivery address is not yours");
@@ -128,8 +130,10 @@ pub async fn order_add(auth: auth::JWT, State(ctx): State<AppContext>, Json(para
         },
         _ => Some("".to_string()),
     };
-    let payment_method = payment_methods::Entity::find_by_id(params.payment_method_id).one(&ctx.db).await?;
-    let payment_method: payment_methods::Model = payment_method.unwrap();
+    let payment_method = payment_methods::Entity::find_by_id(params.payment_method_id)
+        .one(&ctx.db)
+        .await?
+        .ok_or_else(|| Error::BadRequest("Payment method not found".into()))?;
 
     let payment_gateway = match payment_method.payment_gateway {
         Some(pg) => pg.to_value(),
@@ -153,19 +157,19 @@ pub async fn order_add(auth: auth::JWT, State(ctx): State<AppContext>, Json(para
     let qty = 1;
     let order_item = OrderItemActiveModel {
         order_id: Set(order.id),
-        product_name: Set(Some(product.clone().title)),
-        product_price: Set(product.clone().price),
-        product_sku: Set(Some(product.clone().sku)),
-        product_condition: Set(Option::from(product.clone().condition.unwrap().to_value())),
+        product_name: Set(Some(product.title.clone())),
+        product_price: Set(product.price),
+        product_sku: Set(Some(product.sku.clone())),
+        product_condition: Set(product.condition.as_ref().map(|c| c.to_value())),
         qty: Set(qty),
-        seller_id: Set(product.clone().seller_id),
+        seller_id: Set(product.seller_id),
         product_id: Set(params.product_id),
         ..Default::default()
     };
     order_item.insert(&ctx.db).await?;
 
     // decrease product stock
-    product.into_active_model().set_decrease_stock(&ctx.db, qty.clone()).await?;
+    product.into_active_model().set_decrease_stock(&ctx.db, qty).await?;
 
     format::json(order)
 }
