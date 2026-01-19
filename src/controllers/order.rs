@@ -26,7 +26,7 @@ pub struct OrderParams {
     pub order_number: Option<String>,
     pub final_price: Decimal,
     #[schema(default = 1)]
-    pub delivery_address_id: i32,
+    pub delivery_address_id: Option<i32>,
     #[schema(read_only)]
     pub delivery_address_detail: Option<String>,
     #[schema(default = 1)]
@@ -99,17 +99,36 @@ pub async fn order_add(auth: auth::JWT, State(ctx): State<AppContext>, Json(para
     let buyer = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
     let product = products::Entity::find_by_id(params.product_id).one(&ctx.db).await?;
     let product: products::Model = product.unwrap();
-    let delivery_address = delivery_addresses::Entity::find_by_id(params.delivery_address_id).one(&ctx.db).await?;
-    let delivery_address: delivery_addresses::Model = delivery_address.unwrap();
+
+    // check product stock
+    if product.stock <= 0 {
+        let msg_error = String::from("Product is out of stock");
+        return bad_request(&msg_error);
+    }
+
+    let delivery_address_detail = match params.delivery_address_id {
+        Some(d) => {
+            let delivery_address = delivery_addresses::Entity::find_by_id(d).one(&ctx.db).await?;
+            let delivery_address: delivery_addresses::Model = delivery_address.ok_or_else(|| Error::NotFound)?;
+
+            if delivery_address.user_id != buyer.id {
+                let msg_error = String::from("Delivery address is not yours");
+                return bad_request(&msg_error);
+            }
+
+            json!({
+                "name": delivery_address.name,
+                "phone": delivery_address.phone,
+                "email": delivery_address.email,
+                "city": delivery_address.city,
+                "address": delivery_address.address,
+            }).to_string()
+        },
+        None => "".to_string(),
+    };
     let payment_method = payment_methods::Entity::find_by_id(params.payment_method_id).one(&ctx.db).await?;
     let payment_method: payment_methods::Model = payment_method.unwrap();
-    let delivery_address_detail = json!({
-        "name": delivery_address.clone().name,
-        "phone": delivery_address.clone().phone,
-        "email": delivery_address.clone().email,
-        "city": delivery_address.clone().city,
-        "address": delivery_address.clone().address,
-    });
+
     let payment_gateway = match payment_method.payment_gateway {
         Some(pg) => pg.to_value(),
         None => "-".to_string(),
@@ -123,24 +142,29 @@ pub async fn order_add(auth: auth::JWT, State(ctx): State<AppContext>, Json(para
         buyer_id: Set(buyer.id),
         order_number: Set(generate_custom_string(10)),
         status: Set(OrderStatusEnum::AwaitingPayment),
-        delivery_address_detail: Set(Some(delivery_address_detail.to_string())),
+        delivery_address_detail: Set(Some(delivery_address_detail)),
         payment_method_detail: Set(Some(payment_method_detail)),
         ..Default::default()
     };
     params.update(&mut order);
     let order = order.insert(&ctx.db).await?;
+    let qty = 1;
     let order_item = OrderItemActiveModel {
         order_id: Set(order.id),
         product_name: Set(Some(product.clone().title)),
         product_price: Set(product.clone().price),
         product_sku: Set(Some(product.clone().sku)),
         product_condition: Set(Option::from(product.clone().condition.unwrap().to_value())),
-        qty: Set(1),
+        qty: Set(qty),
         seller_id: Set(product.clone().seller_id),
         product_id: Set(params.product_id),
         ..Default::default()
     };
     order_item.insert(&ctx.db).await?;
+
+    // decrease product stock
+    product.into_active_model().set_decrease_stock(&ctx.db, qty.clone()).await?;
+
     format::json(order)
 }
 

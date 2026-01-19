@@ -20,7 +20,7 @@ pub struct Model {
     pub payment_method_detail: Option<Json>,
     pub status: OrderStatusEnum,
     pub buyer_id: i32,
-    pub delivery_address_id: i32,
+    pub delivery_address_id: Option<i32>,
     pub payment_method_id: i32,
 }
 

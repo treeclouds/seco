@@ -198,8 +198,18 @@ impl ActiveModel {
     pub async fn set_decrease_stock(
         mut self,
         db: &DatabaseConnection,
+        qty_decrease: i32
     ) -> ModelResult<Model> {
-        self.stock = ActiveValue::set(1);
+        self.stock = ActiveValue::set(self.stock.unwrap() - qty_decrease);
+        Ok(self.update(db).await?)
+    }
+
+    pub async fn set_increase_stock(
+        mut self,
+        db: &DatabaseConnection,
+        qty_increase: i32
+    ) -> ModelResult<Model> {
+        self.stock = ActiveValue::set(self.stock.unwrap() + qty_increase);
         Ok(self.update(db).await?)
     }
 }

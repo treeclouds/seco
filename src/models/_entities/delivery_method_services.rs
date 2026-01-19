@@ -14,6 +14,7 @@ pub struct Model {
     pub name: String,
     pub active: bool,
     pub delivery_method_id: i32,
+    #[sea_orm(column_type = "Decimal(Some((10, 2)))")]
     pub price: Decimal,
 }
 
