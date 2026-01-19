@@ -107,24 +107,26 @@ pub async fn order_add(auth: auth::JWT, State(ctx): State<AppContext>, Json(para
     }
 
     let delivery_address_detail = match params.delivery_address_id {
-        Some(d) => {
+        Some(d) if d > 0 => {
             let delivery_address = delivery_addresses::Entity::find_by_id(d).one(&ctx.db).await?;
-            let delivery_address: delivery_addresses::Model = delivery_address.ok_or_else(|| Error::NotFound)?;
+            let delivery_address: delivery_addresses::Model = delivery_address.ok_or_else(|| {
+                Error::BadRequest("Delivery address not found".into())
+            })?;
 
             if delivery_address.user_id != buyer.id {
                 let msg_error = String::from("Delivery address is not yours");
                 return bad_request(&msg_error);
             }
 
-            json!({
+            Some(json!({
                 "name": delivery_address.name,
                 "phone": delivery_address.phone,
                 "email": delivery_address.email,
                 "city": delivery_address.city,
                 "address": delivery_address.address,
-            }).to_string()
+            }).to_string())
         },
-        None => "".to_string(),
+        _ => Some("".to_string()),
     };
     let payment_method = payment_methods::Entity::find_by_id(params.payment_method_id).one(&ctx.db).await?;
     let payment_method: payment_methods::Model = payment_method.unwrap();
@@ -142,7 +144,7 @@ pub async fn order_add(auth: auth::JWT, State(ctx): State<AppContext>, Json(para
         buyer_id: Set(buyer.id),
         order_number: Set(generate_custom_string(10)),
         status: Set(OrderStatusEnum::AwaitingPayment),
-        delivery_address_detail: Set(Some(delivery_address_detail)),
+        delivery_address_detail: Set(delivery_address_detail),
         payment_method_detail: Set(Some(payment_method_detail)),
         ..Default::default()
     };
