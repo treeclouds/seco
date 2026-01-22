@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use bytes::Bytes;
 use sea_orm::ActiveEnum;
+use migration::Condition;
 use crate::{
     controllers::{
         upload::generate_unique_filename,
@@ -15,10 +16,11 @@ use crate::{
         users::{self, ActiveModel},
         products::{self, ActiveModel as ProductActiveModel, Entity as ProductEntity, Model as ProductModel},
         product_images::{ActiveModel as ProductImageActiveModel, Model as ProductImageModel},
-        orders::{self, Entity as OrderEntity}
+        orders::{self, Entity as OrderEntity},
+        order_items::{self, Entity as OrderItemsEntity},
     },
     views::{
-        order::OrderResponse,
+        order::{OrderResponse, OrderItemResponse},
         product::ProductResponse,
         product_image::ProductImageResponse,
         user::CurrentResponse,
@@ -361,17 +363,19 @@ pub async fn update_location(
 pub async fn user_order_list(auth: auth::JWT, State(ctx): State<AppContext>) -> Result<Response> {
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
     let orders = OrderEntity::find().filter(orders::Column::BuyerId.eq(user.id)).all(&ctx.db).await?;
-    let response: Vec<OrderResponse> = orders
-        .into_iter()
-        .map(|o| OrderResponse {
+
+    let mut response = Vec::new();
+    for o in orders {
+        let order_items = o.find_related(order_items::Entity).all(&ctx.db).await?;
+        response.push(OrderResponse {
             order_number: o.order_number,
             final_price: o.final_price,
-            delivery_address_detail: None,
+            delivery_address_detail: o.delivery_address_detail.as_ref().and_then(|s| serde_json::from_str(s).ok()),
             payment_method_detail: o.payment_method_detail,
             status: o.status.to_value(),
-            order_items: vec![],
-        })
-        .collect();
+            order_items: order_items.into_iter().map(OrderItemResponse::from_model).collect(),
+        });
+    }
     format::json(response)
 }
 
@@ -483,6 +487,43 @@ pub async fn user_delete(auth: auth::JWT, Path(pid): Path<String>, State(ctx): S
     format::empty()
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/user/order/{order_number}",
+    tag = "users",
+    responses(
+        (status = 200, description = "Order detail successfully"),
+        (status = 401, description = "Unauthorized", body = UnauthorizedResponse),
+        (status = 404, description = "Order not found", body = UnauthorizedResponse),
+    ),
+    params(
+        ("order_number" = String, Path, description = "Order database order number")
+    ),
+    security(
+        ("jwt_token" = [])
+    )
+)]
+pub async fn user_order_detail(auth: auth::JWT, Path(order_number): Path<String>, State(ctx): State<AppContext>) -> Result<Response> {
+    let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    let order = OrderEntity::find()
+        .filter(
+            Condition::all()
+                .add(orders::Column::BuyerId.eq(user.id))
+                .add(orders::Column::OrderNumber.eq(order_number))
+        ).one(&ctx.db).await?
+        .ok_or_else(|| Error::BadRequest("Order not found".into()))?;
+    let order_items = order.find_related(OrderItemsEntity).all(&ctx.db).await?;
+
+    format::json(OrderResponse {
+        order_number: order.order_number,
+        final_price: order.final_price,
+        delivery_address_detail: order.delivery_address_detail.as_ref().and_then(|s| serde_json::from_str(s).ok()),
+        payment_method_detail: order.payment_method_detail,
+        status: order.status.to_value(),
+        order_items: order_items.into_iter().map(OrderItemResponse::from_model).collect(),
+    })
+}
+
 pub fn routes() -> Routes {
     Routes::new()
         .prefix("/api/user")
@@ -498,4 +539,5 @@ pub fn routes() -> Routes {
         .add("/{id}/block", post(user_block))
         .add("/{id}/unblock", post(user_unblock))
         .add("/{id}/delete", delete(user_delete))
+        .add("/order/{order_number}", get(user_order_detail))
 }

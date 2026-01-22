@@ -1,6 +1,29 @@
 use loco_rs::prelude::Decimal;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
+use crate::models::_entities::order_items::{Model as OrderItemsModel};
+
+
+#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
+pub struct OrderItemResponse {
+    pub id: i32,
+    pub product_name: Option<String>,
+    pub product_price: Decimal,
+    pub product_sku: Option<String>,
+    pub qty: i32,
+}
+
+impl OrderItemResponse {
+    pub fn from_model(m: OrderItemsModel) -> Self {
+        Self {
+            id: m.id,
+            product_name: m.product_name,
+            product_price: m.product_price,
+            product_sku: m.product_sku,
+            qty: m.qty,
+        }
+    }
+}
 
 #[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
 pub struct OrderResponse {
@@ -9,5 +32,5 @@ pub struct OrderResponse {
     pub delivery_address_detail: Option<serde_json::Value>,
     pub payment_method_detail: Option<serde_json::Value>,
     pub status: String,
-    pub order_items: Vec<serde_json::Value>,
+    pub order_items: Vec<OrderItemResponse>,
 }

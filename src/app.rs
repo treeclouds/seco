@@ -98,6 +98,7 @@ use utoipa_swagger_ui::SwaggerUi;
         user::user_block,
         user::user_unblock,
         user::user_delete,
+        user::user_order_detail,
         ct_wishlists::user_wishlist_list,
         ct_wishlists::user_wishlist_new,
         ct_wishlists::user_wishlist_delete,
