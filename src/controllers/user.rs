@@ -26,6 +26,7 @@ use crate::{
         user::CurrentResponse,
     },
 };
+use crate::models::_entities::sea_orm_active_enums::OrderStatusEnum;
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
 pub struct LocationParams {
@@ -524,6 +525,39 @@ pub async fn user_order_detail(auth: auth::JWT, Path(order_number): Path<String>
     })
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/user/order/{order_number}/cancel",
+    tag = "users",
+    responses(
+        (status = 200, description = "Order successfully canceled"),
+        (status = 401, description = "Unauthorized", body = UnauthorizedResponse),
+        (status = 404, description = "Order not found", body = UnauthorizedResponse),
+    ),
+    params(
+        ("order_number" = String, Path, description = "Order database order number")
+    ),
+    security(
+        ("jwt_token" = [])
+    )
+)]
+pub async fn user_order_cancel(auth: auth::JWT, Path(order_number): Path<String>, State(ctx): State<AppContext>) -> Result<Response> {
+    let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    let order = OrderEntity::find()
+        .filter(
+            Condition::all()
+                .add(orders::Column::BuyerId.eq(user.id))
+                .add(orders::Column::OrderNumber.eq(order_number))
+        ).one(&ctx.db).await?
+        .ok_or_else(|| Error::BadRequest("Order not found".into()))?;
+
+    if order.status == OrderStatusEnum::AwaitingPayment && order.buyer_id == user.id {
+        order.into_active_model().set_status_cancelled(&ctx.db).await?;
+        return format::empty();
+    }
+    Err(Error::BadRequest("Only orders awaiting payment can be cancelled".to_string()))
+}
+
 pub fn routes() -> Routes {
     Routes::new()
         .prefix("/api/user")
@@ -540,4 +574,5 @@ pub fn routes() -> Routes {
         .add("/{id}/unblock", post(user_unblock))
         .add("/{id}/delete", delete(user_delete))
         .add("/order/{order_number}", get(user_order_detail))
+        .add("/order/{order_number}/cancel", get(user_order_cancel))
 }
