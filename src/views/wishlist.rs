@@ -7,6 +7,7 @@ use utoipa::ToSchema;
 #[derive(Debug, FromQueryResult, Deserialize, Serialize, ToSchema)]
 pub struct WishlistListResponse {
     id: i32,
+    product_id: i32,
     category_id: Option<i32>,
     title: String,
     description: String,
@@ -30,5 +31,4 @@ pub struct WishlistListResponse {
     images: Option<JsonValue>,
     #[schema(value_type = String, format = Binary)]
     seller: Option<JsonValue>,
-    wishlist_id: i32,
 }
