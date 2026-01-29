@@ -14,40 +14,84 @@ impl Model {
 
     pub async fn get_product_by_id(
         db: &DatabaseConnection,
+        user_id: Option<&i32>,
         product_id: &i32
     ) -> ModelResult<Option<ProductsResponse>> {
-        let product: Option<ProductsResponse> = products::Entity::find()
-            .from_raw_sql(Statement::from_sql_and_values(
-                DbBackend::Postgres,
-                r#"
-            SELECT p.id, p.title, p.category_id, p.description, p.price, p.dimension_width,
-                p.dimension_height, p.dimension_length, p.dimension_weight, p.brand_id, p.material_id,
-                p.stock, p.sku, p.tags::jsonb, p.condition::text, p.created_at,
-                COALESCE((
-                   SELECT json_agg(json_build_object('id', pi2.id, 'image', 'media/' || pi2.image))
-                   FROM product_images pi2 where pi2.product_id = p.id
-                ), '[]'::json) as images,
-                COALESCE (
-                    json_build_object(
-                        'pid', u.pid,
-                        'first_name', u.first_name,
-                        'last_name', u.last_name,
-                        'joined_date', u.created_at,
-                        'location', u.location
-                    ), '{}'::json
-                ) as seller,
-                p.status::text,
-                false as is_wishlisted
-            FROM products p
-            INNER JOIN users u ON u.id = p.seller_id
-            WHERE p.id = $1
-            GROUP BY p.id, u.pid, u.first_name, u.last_name, u.created_at, u.location
-            "#,
-                [(*product_id).into()],
-            ))
+        let (query, _group_by, values): (String, String, Vec<sea_orm::Value>) = if let Some(user_id) = user_id {
+            let q = r#"
+                SELECT p.id, p.title, p.category_id, p.description, p.price, p.dimension_width,
+                    p.dimension_height, p.dimension_length, p.dimension_weight, p.brand_id, p.material_id,
+                    p.stock, p.sku, p.tags::jsonb, p.condition::text, p.created_at,
+                    COALESCE((
+                       SELECT json_agg(json_build_object('id', pi2.id, 'image', 'media/' || pi2.image))
+                       FROM product_images pi2 where pi2.product_id = p.id
+                    ), '[]'::json) as images,
+                    COALESCE (
+                        json_build_object(
+                            'pid', u.pid,
+                            'first_name', u.first_name,
+                            'last_name', u.last_name,
+                            'joined_date', u.created_at,
+                            'location', u.location
+                        ), '{}'::json
+                    ) as seller,
+                    p.status::text,
+                    CASE WHEN w.id IS NULL THEN false ELSE true END as is_wishlisted
+                FROM products p
+                INNER JOIN users u ON u.id = p.seller_id
+                INNER JOIN categories c ON c.id = p.category_id
+                LEFT JOIN brands b ON b.id = p.brand_id
+                LEFT JOIN materials m ON m.id = p.material_id
+                LEFT JOIN wishlists w
+                    ON w.product_id = p.id
+                   AND w.user_id = $1
+                   AND w.is_deleted = false
+                WHERE p.id = $2
+            "#.to_string();
+
+            let gb = "GROUP BY p.id, u.pid, u.first_name, u.last_name, u.created_at, u.location, w.id".to_owned();
+            (q, gb, vec![(*user_id).into(), (*product_id).into()])
+        } else {
+            let q = r#"
+                SELECT p.id, p.title, p.category_id, p.description, p.price, p.dimension_width,
+                    p.dimension_height, p.dimension_length, p.dimension_weight, p.brand_id, p.material_id,
+                    p.stock, p.sku, p.tags::jsonb, p.condition::text, p.created_at,
+                    COALESCE((
+                       SELECT json_agg(json_build_object('id', pi2.id, 'image', 'media/' || pi2.image))
+                       FROM product_images pi2 where pi2.product_id = p.id
+                    ), '[]'::json) as images,
+                    COALESCE (
+                        json_build_object(
+                            'pid', u.pid,
+                            'first_name', u.first_name,
+                            'last_name', u.last_name,
+                            'joined_date', u.created_at,
+                            'location', u.location
+                        ), '{}'::json
+                    ) as seller,
+                    p.status::text,
+                    false as is_wishlisted
+                FROM products p
+                INNER JOIN users u ON u.id = p.seller_id
+                INNER JOIN categories c ON c.id = p.category_id
+                LEFT JOIN brands b ON b.id = p.brand_id
+                LEFT JOIN materials m ON m.id = p.material_id
+                WHERE p.id = $1
+            "#.to_string();
+
+            let gb = "GROUP BY p.id, u.pid, u.first_name, u.last_name, u.created_at, u.location".to_owned();
+            (q, gb, vec![(*product_id).into()])
+        };
+
+        let product: Option<ProductsResponse> = JsonValue::find_by_statement(Statement::from_sql_and_values(
+            DbBackend::Postgres,
+            query,
+            values,
+        ))
             .into_model::<ProductsResponse>()
             .one(db)
             .await?;
+
         Ok(product)
     }
 
@@ -60,7 +104,7 @@ impl Model {
         brand: &Option<&String>,
         category: &Option<&String>,
     ) -> ModelResult<Vec<ProductsResponse>> {
-        let (query, _group_by, values): (String, String, Vec<sea_orm::Value>) = if let Some(user_id) = user_id {
+        let (query, group_by, values): (String, String, Vec<sea_orm::Value>) = if let Some(user_id) = user_id {
             let q = r#"
                 SELECT p.id, p.title, p.category_id, p.description, p.price, p.dimension_width,
                     p.dimension_height, p.dimension_length, p.dimension_weight, p.brand_id, p.material_id,
@@ -146,7 +190,6 @@ impl Model {
             extra_where_clause += &*format!(" AND LOWER(c.name) = LOWER('{:?}')", category.unwrap().to_owned()).replace("\"", "")
         }
 
-        let group_by: String = "GROUP BY p.id, u.pid, u.first_name, u.last_name, u.created_at, u.location".to_owned();
         let combine_query = format!("{} {} {}", query, extra_where_clause, group_by);
 
         println!("===== query {}", combine_query);

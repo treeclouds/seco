@@ -92,8 +92,8 @@ pub struct ProductFilterParams {
     category: Option<String>,
 }
 
-async fn load_item(ctx: &AppContext, id: i32) -> std::result::Result<ProductsResponse, Error> {
-    let item = Model::get_product_by_id(&ctx.db, &id).await?;
+async fn load_item(ctx: &AppContext, id: i32, user_id: Option<i32>) -> std::result::Result<ProductsResponse, Error> {
+    let item = Model::get_product_by_id(&ctx.db, Option::from(&user_id), &id).await?;
     item.ok_or_else(|| Error::NotFound)
 }
 
@@ -106,6 +106,9 @@ async fn load_item(ctx: &AppContext, id: i32) -> std::result::Result<ProductsRes
         (status = 401, description = "Unauthorized", body = UnauthorizedResponse),
     ),
     params(ProductFilterParams),
+    security(
+        ("jwt_token" = [])
+    ),
 )]
 pub async fn get_all_products(
     OptionalJwt(auth): OptionalJwt,
@@ -113,12 +116,14 @@ pub async fn get_all_products(
     query: Query<ProductFilterParams>
 ) -> Result<Response> {
     tracing::info!("===== get_all_products query {:?}", query);
+    tracing::info!("===== get_all_products auth {:?}", auth);
     let user_id: Option<i32> = if let Some(auth) = auth {
         let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
         Some(user.id)
     } else {
         None
     };
+    tracing::info!("===== get_all_products user_id {:?}", user_id);
 
     let products: Vec<ProductsResponse> = Model::get_all_products(
         &ctx.db,
@@ -144,11 +149,27 @@ pub async fn get_all_products(
     params(
         ProductOfferParams,
         ("id" = i32, Path, description = "Product database id")
-    )
+    ),
+    security(
+        ("jwt_token" = [])
+    ),
 )]
-pub async fn get_one(Path(id): Path<i32>, State(ctx): State<AppContext>, query: Query<ProductOfferParams>) -> Result<Response> {
+pub async fn get_one(
+    OptionalJwt(auth): OptionalJwt,
+    Path(id): Path<i32>,
+    State(ctx): State<AppContext>,
+    query: Query<ProductOfferParams>
+) -> Result<Response> {
     tracing::info!("===== get_one query {:?}", query);
-    let product = load_item(&ctx, id).await?;
+    tracing::info!("===== get_one auth {:?}", auth);
+    let user_id: Option<i32> = if let Some(auth) = auth {
+        let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+        Some(user.id)
+    } else {
+        None
+    };
+    tracing::info!("===== get_one user_id {:?}", user_id);
+    let product = load_item(&ctx, id, user_id).await?;
     if query.user_pid.is_some() {
         let user = users::Model::find_by_pid(&ctx.db, &query.user_pid.unwrap().to_string()).await?;
         let offering_deal = offerings::Entity::find()
