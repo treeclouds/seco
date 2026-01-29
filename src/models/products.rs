@@ -17,7 +17,7 @@ impl Model {
         user_id: Option<&i32>,
         product_id: &i32
     ) -> ModelResult<Option<ProductsResponse>> {
-        let (query, _group_by, values): (String, String, Vec<sea_orm::Value>) = if let Some(user_id) = user_id {
+        let (query, _group_by, values): (String, String, Vec<Value>) = if let Some(user_id) = user_id {
             let q = r#"
                 SELECT p.id, p.title, p.category_id, p.description, p.price, p.dimension_width,
                     p.dimension_height, p.dimension_length, p.dimension_weight, p.brand_id, p.material_id,

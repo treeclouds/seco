@@ -1,5 +1,6 @@
 use loco_rs::prelude::Decimal;
 use serde::{Deserialize, Serialize};
+use sea_orm::{FromQueryResult, JsonValue};
 use utoipa::ToSchema;
 use crate::models::_entities::order_items::{Model as OrderItemsModel};
 
@@ -33,4 +34,14 @@ pub struct OrderResponse {
     pub payment_method_detail: Option<serde_json::Value>,
     pub status: String,
     pub order_items: Vec<OrderItemResponse>,
+}
+
+#[derive(Clone, Debug, FromQueryResult, Deserialize, Serialize, ToSchema)]
+pub struct OrderDetailResponse {
+    pub order_number: String,
+    pub final_price: Decimal,
+    pub delivery_address_detail: Option<JsonValue>,
+    pub payment_method_detail: Option<JsonValue>,
+    pub status: String,
+    pub order_items: Option<JsonValue>,
 }

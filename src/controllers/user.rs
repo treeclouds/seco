@@ -5,7 +5,6 @@ use loco_rs::prelude::*;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use bytes::Bytes;
-use sea_orm::ActiveEnum;
 use migration::Condition;
 use crate::{
     controllers::{
@@ -16,17 +15,16 @@ use crate::{
         users::{self, ActiveModel},
         products::{self, ActiveModel as ProductActiveModel, Entity as ProductEntity, Model as ProductModel},
         product_images::{ActiveModel as ProductImageActiveModel, Model as ProductImageModel},
-        orders::{self, Entity as OrderEntity},
-        order_items::{self, Entity as OrderItemsEntity},
+        orders::{self, Entity as OrderEntity, Model as OrderModel},
+        sea_orm_active_enums::OrderStatusEnum,
     },
     views::{
-        order::{OrderResponse, OrderItemResponse},
+        order::OrderDetailResponse,
         product::ProductResponse,
         product_image::ProductImageResponse,
         user::CurrentResponse,
     },
 };
-use crate::models::_entities::sea_orm_active_enums::OrderStatusEnum;
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
 pub struct LocationParams {
@@ -354,7 +352,7 @@ pub async fn update_location(
     path = "/api/user/orders",
     tag = "users",
     responses(
-        (status = 200, description = "Order list based on user login successfully", body = [OrderResponse]),
+        (status = 200, description = "Order list based on user login successfully", body = [OrderDetailResponse]),
         (status = 401, description = "Unauthorized", body = UnauthorizedResponse),
     ),
     security(
@@ -363,21 +361,8 @@ pub async fn update_location(
 )]
 pub async fn user_order_list(auth: auth::JWT, State(ctx): State<AppContext>) -> Result<Response> {
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
-    let orders = OrderEntity::find().filter(orders::Column::BuyerId.eq(user.id)).all(&ctx.db).await?;
-
-    let mut response = Vec::new();
-    for o in orders {
-        let order_items = o.find_related(order_items::Entity).all(&ctx.db).await?;
-        response.push(OrderResponse {
-            order_number: o.order_number,
-            final_price: o.final_price,
-            delivery_address_detail: o.delivery_address_detail.as_ref().and_then(|s| serde_json::from_str(s).ok()),
-            payment_method_detail: o.payment_method_detail,
-            status: o.status.to_value(),
-            order_items: order_items.into_iter().map(OrderItemResponse::from_model).collect(),
-        });
-    }
-    format::json(response)
+    let orders = OrderModel::get_all_orders_by_buyer_id(&ctx.db, &user.id).await?;
+    format::json(orders)
 }
 
 #[utoipa::path(
@@ -506,23 +491,8 @@ pub async fn user_delete(auth: auth::JWT, Path(pid): Path<String>, State(ctx): S
 )]
 pub async fn user_order_detail(auth: auth::JWT, Path(order_number): Path<String>, State(ctx): State<AppContext>) -> Result<Response> {
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
-    let order = OrderEntity::find()
-        .filter(
-            Condition::all()
-                .add(orders::Column::BuyerId.eq(user.id))
-                .add(orders::Column::OrderNumber.eq(order_number))
-        ).one(&ctx.db).await?
-        .ok_or_else(|| Error::BadRequest("Order not found".into()))?;
-    let order_items = order.find_related(OrderItemsEntity).all(&ctx.db).await?;
-
-    format::json(OrderResponse {
-        order_number: order.order_number,
-        final_price: order.final_price,
-        delivery_address_detail: order.delivery_address_detail.as_ref().and_then(|s| serde_json::from_str(s).ok()),
-        payment_method_detail: order.payment_method_detail,
-        status: order.status.to_value(),
-        order_items: order_items.into_iter().map(OrderItemResponse::from_model).collect(),
-    })
+    let order = OrderModel::get_order_by_buyer_id_and_order_number(&ctx.db, &user.id, &order_number).await?;
+    format::json(order)
 }
 
 #[utoipa::path(
