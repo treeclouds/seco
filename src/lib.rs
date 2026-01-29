@@ -6,3 +6,4 @@ pub mod tasks;
 pub mod views;
 pub mod workers;
 pub mod initializers;
+pub mod extractors;

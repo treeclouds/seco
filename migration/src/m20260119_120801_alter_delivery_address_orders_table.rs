@@ -1,4 +1,4 @@
-use sea_orm_migration::{prelude::*, schema::*};
+use sea_orm_migration::prelude::*;
 
 #[derive(DeriveMigrationName)]
 pub struct Migration;
@@ -15,7 +15,7 @@ impl MigrationTrait for Migration {
             .await
     }
 
-    async fn down(&self, m: &SchemaManager) -> Result<(), DbErr> {
+    async fn down(&self, _m: &SchemaManager) -> Result<(), DbErr> {
         Ok(())
     }
 }

@@ -11,6 +11,7 @@ use sea_orm::{query::*, ActiveEnum, Iterable, JsonValue};
 use utoipa::{ToSchema, IntoParams};
 use crate::models::_entities::{products::{ActiveModel, Model}, offerings, sea_orm_active_enums::{Condition as ProductConditionEnum, ProductStatus}, users};
 use crate::views::product::{ProductsResponse, ProductDealResponse};
+use crate::extractors::OptionalJwt;
 
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
@@ -106,10 +107,22 @@ async fn load_item(ctx: &AppContext, id: i32) -> std::result::Result<ProductsRes
     ),
     params(ProductFilterParams),
 )]
-pub async fn get_all_products(State(ctx): State<AppContext>, query: Query<ProductFilterParams>) -> Result<Response> {
+pub async fn get_all_products(
+    OptionalJwt(auth): OptionalJwt,
+    State(ctx): State<AppContext>,
+    query: Query<ProductFilterParams>
+) -> Result<Response> {
     tracing::info!("===== get_all_products query {:?}", query);
+    let user_id: Option<i32> = if let Some(auth) = auth {
+        let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+        Some(user.id)
+    } else {
+        None
+    };
+
     let products: Vec<ProductsResponse> = Model::get_all_products(
         &ctx.db,
+        user_id.as_ref(),
         &query.title.as_ref(),
         &query.condition.as_ref(),
         &query.location.as_ref(),

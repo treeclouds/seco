@@ -103,6 +103,7 @@ pub struct ProductsResponse {
     seller: Option<JsonValue>,
     #[schema(value_type = String)]
     status: String,
+    is_wishlisted: bool,
 }
 
 #[derive(Debug, Deserialize, Serialize, ToSchema)]
