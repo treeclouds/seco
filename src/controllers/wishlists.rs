@@ -97,6 +97,26 @@ pub async fn user_wishlist_new(auth: auth::JWT, State(ctx): State<AppContext>, J
         return Err(Error::CustomError(StatusCode::BAD_REQUEST, ErrorDetail::new("bad_request", &*msg_error)));
     }
 
+    // Check existing via load_wishlist; if exists -> set is_deleted = false
+    match load_wishlist(&ctx, user.id, params.product_id).await {
+        Ok(wishlist) => {
+            wishlist
+                .into_active_model()
+                .set_wishlist_un_deleted(&ctx.db)
+                .await?;
+
+            let message = "Successfully added into wishlist";
+            return format::json(BaseResponse::new(
+                &"success".to_string(),
+                &message.to_string(),
+            ));
+        }
+        Err(Error::CustomError(status, _)) if status == StatusCode::NOT_FOUND => {
+            // not found => continue to create
+        }
+        Err(e) => return Err(e),
+    }
+
     let mut wishlist = ActiveModel {
         user_id: ActiveValue::Set(user.id),
         ..Default::default()

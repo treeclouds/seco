@@ -55,4 +55,12 @@ impl ActiveModel {
         self.is_deleted = ActiveValue::set(true);
         Ok(self.update(db).await?)
     }
+
+    pub async fn set_wishlist_un_deleted(
+        mut self,
+        db: &DatabaseConnection,
+    ) -> ModelResult<Model> {
+        self.is_deleted = ActiveValue::set(false);
+        Ok(self.update(db).await?)
+    }
 }
