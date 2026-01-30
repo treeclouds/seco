@@ -5,7 +5,7 @@ use loco_rs::prelude::*;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use bytes::Bytes;
-use migration::Condition;
+use sea_orm::Condition;
 use crate::{
     controllers::{
         upload::generate_unique_filename,

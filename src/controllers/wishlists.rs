@@ -6,12 +6,10 @@ use loco_rs::prelude::*;
 use axum::debug_handler;
 use axum::http::StatusCode;
 use loco_rs::controller::ErrorDetail;
+use sea_orm::Condition;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-use crate::models::_entities::{
-    products::{Entity as ProductEntity, Model as ProductModel},
-    users,
-    wishlists::{Entity, ActiveModel, Model}};
+use crate::models::_entities::{products::{Entity as ProductEntity, Model as ProductModel}, users, wishlists, wishlists::{Entity, ActiveModel, Model}};
 use crate::views::{
     base::BaseResponse,
 };
@@ -36,9 +34,16 @@ async fn load_product(ctx: &AppContext, id: i32) -> Result<ProductModel> {
     product.ok_or_else(|| Error::CustomError(StatusCode::NOT_FOUND, ErrorDetail::new("not_found", &*msg_error)))
 }
 
-async fn load_wishlist(ctx: &AppContext, id: i32) -> Result<Model> {
+async fn load_wishlist(ctx: &AppContext, user_id: i32, product_id: i32) -> Result<Model> {
     let msg_error = String::from("Wishlist not found!");
-    let wishlist = Entity::find_by_id(id).one(&ctx.db).await?;
+    let wishlist = Entity::find()
+        .filter(
+            Condition::all()
+                .add(wishlists::Column::UserId.eq(user_id))
+                .add(wishlists::Column::ProductId.eq(product_id))
+        )
+        .one(&ctx.db)
+        .await?;
     wishlist.ok_or_else(|| Error::CustomError(StatusCode::NOT_FOUND, ErrorDetail::new("not_found", &*msg_error)))
 }
 
@@ -104,7 +109,7 @@ pub async fn user_wishlist_new(auth: auth::JWT, State(ctx): State<AppContext>, J
 
 #[utoipa::path(
     delete,
-    path = "/api/user/wishlists/{id}/remove",
+    path = "/api/user/wishlists/{product_id}/remove",
     tag = "wishlists",
     responses(
         (status = 200, description = "Wishlist delete successfully"),
@@ -112,19 +117,19 @@ pub async fn user_wishlist_new(auth: auth::JWT, State(ctx): State<AppContext>, J
         (status = 404, description = "Wishlist not found", body = UnauthorizedResponse),
     ),
     params(
-        ("id" = i32, Path, description = "Wishlist database id")
+        ("product_id" = i32, Path, description = "Product database id")
     ),
     security(
         ("jwt_token" = [])
     )
 )]
 #[debug_handler]
-pub async fn user_wishlist_delete(auth: auth::JWT, Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
+pub async fn user_wishlist_delete(auth: auth::JWT, Path(product_id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
     // Start checking user validation
-    users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
     // End checking user validation
 
-    let wishlist = load_wishlist(&ctx, id).await?;
+    let wishlist = load_wishlist(&ctx, user.id, product_id).await?;
     wishlist.into_active_model().set_wishlist_deleted(&ctx.db).await?;
     let message = "Wishlist delete successfully";
     format::json(BaseResponse::new(&"success".to_string(), &message.to_string()))
@@ -135,5 +140,5 @@ pub fn routes() -> Routes {
         .prefix("/api/user/wishlists")
         .add("/", get(user_wishlist_list))
         .add("/new", post(user_wishlist_new))
-        .add("/{id}/remove", delete(user_wishlist_delete))
+        .add("/{product_id}/remove", delete(user_wishlist_delete))
 }
