@@ -22,6 +22,8 @@ pub struct Model {
     pub buyer_id: i32,
     pub delivery_address_id: Option<i32>,
     pub payment_method_id: i32,
+    pub meetup_address_id: Option<i32>,
+    pub meetup_address_detail: Option<Json>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -34,6 +36,14 @@ pub enum Relation {
         on_delete = "Cascade"
     )]
     DeliveryAddresses,
+    #[sea_orm(
+        belongs_to = "super::meetup_addresses::Entity",
+        from = "Column::MeetupAddressId",
+        to = "super::meetup_addresses::Column::Id",
+        on_update = "Cascade",
+        on_delete = "SetNull"
+    )]
+    MeetupAddresses,
     #[sea_orm(has_many = "super::order_items::Entity")]
     OrderItems,
     #[sea_orm(
@@ -57,6 +67,12 @@ pub enum Relation {
 impl Related<super::delivery_addresses::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::DeliveryAddresses.def()
+    }
+}
+
+impl Related<super::meetup_addresses::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::MeetupAddresses.def()
     }
 }
 

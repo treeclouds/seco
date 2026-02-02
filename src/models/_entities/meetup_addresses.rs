@@ -10,9 +10,8 @@ pub struct Model {
     pub updated_at: DateTimeWithTimeZone,
     #[sea_orm(primary_key)]
     pub id: i32,
-    pub name: String,
-    pub phone: String,
-    pub email: String,
+    pub date: Date,
+    pub time: Time,
     pub city: String,
     pub postal_code: String,
     #[sea_orm(column_type = "Text")]
@@ -24,6 +23,8 @@ pub struct Model {
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
+    #[sea_orm(has_many = "super::orders::Entity")]
+    Orders,
     #[sea_orm(
         belongs_to = "super::users::Entity",
         from = "Column::UserId",
@@ -32,6 +33,12 @@ pub enum Relation {
         on_delete = "Cascade"
     )]
     Users,
+}
+
+impl Related<super::orders::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Orders.def()
+    }
 }
 
 impl Related<super::users::Entity> for Entity {

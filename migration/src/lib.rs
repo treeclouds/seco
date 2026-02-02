@@ -46,6 +46,7 @@ mod m20260105_120053_add_phone_to_users;
 mod m20260106_025241_add_is_blocked_and_blocked_at_to_users;
 mod m20260119_120801_alter_delivery_address_orders_table;
 mod m20260202_042737_meetup_addresses;
+mod m20260202_220640_add_meetup_addresses_ref_to_orders;
 pub struct Migrator;
 
 #[async_trait::async_trait]
@@ -95,6 +96,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20260106_025241_add_is_blocked_and_blocked_at_to_users::Migration),
             Box::new(m20260119_120801_alter_delivery_address_orders_table::Migration),
             Box::new(m20260202_042737_meetup_addresses::Migration),
+            Box::new(m20260202_220640_add_meetup_addresses_ref_to_orders::Migration),
             // inject-above (do not remove this comment)
         ]
     }

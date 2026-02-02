@@ -2,6 +2,7 @@
 #![allow(clippy::unnecessary_struct_initialization)]
 #![allow(clippy::unused_async)]
 use loco_rs::prelude::*;
+use sea_orm::prelude::Time;
 use serde::{Deserialize, Serialize};
 
 use crate::models::_entities::meetup_addresses::{ActiveModel, Entity, Model};
@@ -9,9 +10,8 @@ use crate::models::_entities::meetup_addresses::{ActiveModel, Entity, Model};
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Params {
     pub user_id: i32,
-    pub name: String,
-    pub phone: String,
-    pub email: String,
+    pub date: Date,
+    pub time: Time,
     pub city: String,
     pub postal_code: String,
     pub address: String,
@@ -21,9 +21,8 @@ pub struct Params {
 impl Params {
     fn update(&self, item: &mut ActiveModel) {
       item.user_id = Set(self.user_id);
-      item.name = Set(self.name.clone());
-      item.phone = Set(self.phone.clone());
-      item.email = Set(self.email.clone());
+      item.date = Set(self.date.clone());
+      item.time = Set(self.time.clone());
       item.city = Set(self.city.clone());
       item.postal_code = Set(self.postal_code.clone());
       item.address = Set(self.address.clone());
