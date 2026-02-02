@@ -8,3 +8,4 @@ mod delivery_methods;
 mod delivery_method_services;
 mod order_items;
 mod orders;
+mod meetup_addresses;

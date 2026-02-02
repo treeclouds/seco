@@ -14,3 +14,4 @@ pub mod delivery_methods;
 pub mod delivery_method_services;
 pub mod orders;
 pub mod order_items;
+pub mod meetup_addresses;

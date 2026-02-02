@@ -8,6 +8,7 @@ pub mod delivery_addresses;
 pub mod delivery_method_services;
 pub mod delivery_methods;
 pub mod materials;
+pub mod meetup_addresses;
 pub mod offerings;
 pub mod order_items;
 pub mod orders;
