@@ -12,11 +12,20 @@ use crate::models::_entities::{
     orders::{self, ActiveModel, Entity, Model},
     sea_orm_active_enums::OrderStatusEnum,
     users,
-    products,
     delivery_addresses,
+    products,
     payment_methods,
     order_items::{ActiveModel as OrderItemActiveModel},
 };
+
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+pub struct MeetupAddressDetail {
+    pub date: String,
+    pub time: String,
+    pub city: String,
+    pub address: String,
+    pub notes: Option<String>,
+}
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
 pub struct OrderParams {
@@ -37,6 +46,7 @@ pub struct OrderParams {
     pub payment_method_detail: Option<serde_json::Value>,
     #[schema(read_only, value_type = String)]
     pub status: Option<OrderStatusEnum>,
+    pub meetup_address_detail: Option<MeetupAddressDetail>,
 }
 
 impl OrderParams {
@@ -144,12 +154,23 @@ pub async fn order_add(auth: auth::JWT, State(ctx): State<AppContext>, Json(para
         "expiry_time": payment_method.clone().expiry_time,
         "payment_gateway": payment_gateway,
     });
+    let meetup_address_detail = params.meetup_address_detail.as_ref().map(|m| {
+        json!({
+            "date": m.date,
+            "time": m.time,
+            "city": m.city,
+            "address": m.address,
+            "notes": m.notes,
+        })
+    });
+    let meetup_address_detail = meetup_address_detail.map(Into::into);
     let mut order = ActiveModel {
         buyer_id: Set(buyer.id),
         order_number: Set(generate_custom_string(10)),
         status: Set(OrderStatusEnum::AwaitingPayment),
         delivery_address_detail: Set(delivery_address_detail),
         payment_method_detail: Set(Some(payment_method_detail)),
+        meetup_address_detail: Set(meetup_address_detail),
         ..Default::default()
     };
     params.update(&mut order);
