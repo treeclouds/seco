@@ -37,6 +37,7 @@ impl Model {
                    ELSE o.delivery_address_detail::jsonb
                    END AS delivery_address_detail,
                COALESCE(o.payment_method_detail, '{}'::json)::jsonb as payment_method_detail,
+               COALESCE(o.meetup_address_detail, '{}'::json)::jsonb as meetup_address_detail,
                o.status::text,
                COALESCE(
                    jsonb_agg(
@@ -70,7 +71,7 @@ impl Model {
             LEFT JOIN products p ON p.id = oi.product_id
             LEFT JOIN users s ON s.id = oi.seller_id
             WHERE o.buyer_id = $1 AND o.order_number = $2
-            GROUP BY o.order_number, o.final_price, o.delivery_address_detail, COALESCE(o.payment_method_detail, '{}'::json)::jsonb, o.status
+            GROUP BY o.order_number, o.final_price, o.delivery_address_detail, COALESCE(o.payment_method_detail, '{}'::json)::jsonb, COALESCE(o.meetup_address_detail, '{}'::json)::jsonb, o.status
         "#.to_string();
         let values = vec![(*buyer_id).into(), order_numer.clone().into()];
         let order: Option<OrderDetailResponse> = JsonValue::find_by_statement(Statement::from_sql_and_values(
@@ -97,6 +98,7 @@ impl Model {
                    ELSE o.delivery_address_detail::jsonb
                    END AS delivery_address_detail,
                COALESCE(o.payment_method_detail, '{}'::json)::jsonb as payment_method_detail,
+               COALESCE(o.meetup_address_detail, '{}'::json)::jsonb as meetup_address_detail,
                o.status::text,
                COALESCE(
                    jsonb_agg(
@@ -130,7 +132,7 @@ impl Model {
             LEFT JOIN products p ON p.id = oi.product_id
             LEFT JOIN users s ON s.id = oi.seller_id
             WHERE o.buyer_id = $1
-            GROUP BY o.order_number, o.final_price, o.delivery_address_detail, COALESCE(o.payment_method_detail, '{}'::json)::jsonb, o.status
+            GROUP BY o.order_number, o.final_price, o.delivery_address_detail, COALESCE(o.payment_method_detail, '{}'::json)::jsonb, COALESCE(o.meetup_address_detail, '{}'::json)::jsonb, o.status
         "#.to_string();
         let values = vec![(*buyer_id).into()];
         let orders: Vec<OrderDetailResponse> = JsonValue::find_by_statement(Statement::from_sql_and_values(

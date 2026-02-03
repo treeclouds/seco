@@ -42,6 +42,7 @@ pub struct OrderDetailResponse {
     pub final_price: Decimal,
     pub delivery_address_detail: Option<JsonValue>,
     pub payment_method_detail: Option<JsonValue>,
+    pub meetup_address_detail: Option<JsonValue>,
     pub status: String,
     pub order_items: Option<JsonValue>,
 }
