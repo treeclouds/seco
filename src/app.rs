@@ -36,6 +36,7 @@ use crate::{
         payment_methods::{self},
         delivery_method::{self},
         order::{self},
+        seller::{self},
     },
     models::{
         users::{LoginParams, RegisterParams},
@@ -118,6 +119,9 @@ use utoipa_swagger_ui::SwaggerUi;
         order::order_list,
         order::order_add,
         order::order_confirm,
+        seller::seller_order_list,
+        seller::seller_order_detail,
+        seller::seller_order_cancel,
     ),
     components(
         schemas(
@@ -186,7 +190,7 @@ impl Hooks for App {
 
     fn routes(_ctx: &AppContext) -> AppRoutes {
         AppRoutes::with_default_routes()
-            .add_route(controllers::meetup_address::routes())
+            .add_route(controllers::seller::routes())
             .add_route(controllers::order::routes())
             .add_route(controllers::delivery_method::routes())
             .add_route(controllers::delivery_method_service::routes())
