@@ -23,6 +23,7 @@ pub struct MeetupAddressDetail {
     pub date: String,
     pub time: String,
     pub city: String,
+    pub postal_code: String,
     pub address: String,
     pub notes: Option<String>,
 }
@@ -159,6 +160,7 @@ pub async fn order_add(auth: auth::JWT, State(ctx): State<AppContext>, Json(para
             "date": m.date,
             "time": m.time,
             "city": m.city,
+            "postal_code": m.postal_code,
             "address": m.address,
             "notes": m.notes,
         })
