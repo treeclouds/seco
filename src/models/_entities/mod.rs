@@ -3,6 +3,7 @@
 pub mod prelude;
 
 pub mod brands;
+pub mod carts;
 pub mod categories;
 pub mod delivery_addresses;
 pub mod delivery_method_services;
