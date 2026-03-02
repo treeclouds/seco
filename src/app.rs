@@ -37,6 +37,7 @@ use crate::{
         delivery_method::{self},
         order::{self},
         seller::{self},
+        carts::{self},
     },
     models::{
         users::{LoginParams, RegisterParams},
@@ -122,6 +123,8 @@ use utoipa_swagger_ui::SwaggerUi;
         seller::seller_order_list,
         seller::seller_order_detail,
         seller::seller_order_cancel,
+        carts::user_cart_list,
+        carts::user_cart_add,
     ),
     components(
         schemas(
