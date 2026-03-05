@@ -48,6 +48,7 @@ mod m20260119_120801_alter_delivery_address_orders_table;
 mod m20260202_042737_meetup_addresses;
 mod m20260202_220640_add_meetup_addresses_ref_to_orders;
 mod m20260226_114206_carts;
+mod m20260303_155600_seller_verifications;
 pub struct Migrator;
 
 #[async_trait::async_trait]
@@ -99,6 +100,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20260202_042737_meetup_addresses::Migration),
             Box::new(m20260202_220640_add_meetup_addresses_ref_to_orders::Migration),
             Box::new(m20260226_114206_carts::Migration),
+            Box::new(m20260303_155600_seller_verifications::Migration),
             // inject-above (do not remove this comment)
         ]
     }

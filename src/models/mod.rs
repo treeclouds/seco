@@ -16,3 +16,4 @@ pub mod orders;
 pub mod order_items;
 pub mod meetup_addresses;
 pub mod carts;
+pub mod seller_verifications;

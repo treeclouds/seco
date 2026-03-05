@@ -18,5 +18,6 @@ pub mod product_images;
 pub mod products;
 pub mod refresh_sessions;
 pub mod sea_orm_active_enums;
+pub mod seller_verifications;
 pub mod users;
 pub mod wishlists;

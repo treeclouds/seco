@@ -37,11 +37,12 @@ use crate::{
         delivery_method::{self},
         order::{self},
         seller::{self},
+        seller_verification::{self},
         carts::{self},
     },
     models::{
         users::{LoginParams, RegisterParams},
-        _entities::{product_images, products, users, categories, wishlists, offerings},
+        _entities::{product_images, products, users, categories, wishlists, offerings, seller_verifications},
     },
     tasks,
     views::{
@@ -52,6 +53,7 @@ use crate::{
         base::BaseResponse,
         wishlist::WishlistListResponse,
         offering::AddNegotiationProductResponse,
+        seller_verification::SellerVerificationResponse,
     },
     workers::downloader::DownloadWorker,
     initializers,
@@ -123,6 +125,7 @@ use utoipa_swagger_ui::SwaggerUi;
         seller::seller_order_list,
         seller::seller_order_detail,
         seller::seller_order_cancel,
+        seller_verification::verify_seller,
         carts::user_cart_list,
         carts::user_cart_add,
     ),
@@ -132,7 +135,8 @@ use utoipa_swagger_ui::SwaggerUi;
             MagicLinkParams, ProductPostParams, LoginResponse, ProductResponse,
             UnauthorizedResponse, CurrentResponse, CategoryResponse, CategoryPostParams,
             LocationParams, WishListPostParams, BaseResponse, ProductListResponse,
-            AddNegotiationProductParams, AddNegotiationProductResponse, WishlistListResponse
+            AddNegotiationProductParams, AddNegotiationProductResponse, WishlistListResponse,
+            SellerVerificationResponse
         )
     ),
     modifiers(&SecurityAddon),
@@ -195,6 +199,7 @@ impl Hooks for App {
         AppRoutes::with_default_routes()
             .add_route(controllers::carts::routes())
             .add_route(controllers::seller::routes())
+            .add_route(controllers::seller_verification::routes())
             .add_route(controllers::order::routes())
             .add_route(controllers::delivery_method::routes())
             .add_route(controllers::delivery_method_service::routes())

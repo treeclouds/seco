@@ -15,4 +15,5 @@ pub mod delivery_method_service;
 pub mod order;
 pub mod meetup_address;
 pub mod seller;
+pub mod seller_verification;
 pub mod carts;

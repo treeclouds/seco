@@ -14,3 +14,4 @@ pub mod payment_method;
 pub mod delivery_method;
 pub mod order;
 pub mod cart;
+pub mod seller_verification;
