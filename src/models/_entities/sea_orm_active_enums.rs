@@ -100,9 +100,12 @@ pub enum ProductStatus {
     #[sea_orm(string_value = "Sold")]
     Sold,
 }
-
 #[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Copy, Serialize, Deserialize, ToSchema)]
-#[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "verification_status")]
+#[sea_orm(
+    rs_type = "String",
+    db_type = "Enum",
+    enum_name = "verification_status"
+)]
 pub enum VerificationStatus {
     #[sea_orm(string_value = "Pending")]
     Pending,

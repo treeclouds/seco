@@ -7,17 +7,17 @@ pub struct Migration;
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, m: &SchemaManager) -> Result<(), DbErr> {
-        m.create_type(
-            sea_query::extension::postgres::Type::create()
-                .as_enum(Alias::new("verification_status"))
-                .values([
-                    Alias::new("Pending"),
-                    Alias::new("Approved"),
-                    Alias::new("Rejected"),
-                ])
-                .to_owned(),
-        )
-        .await?;
+        // m.create_type(
+        //     sea_query::extension::postgres::Type::create()
+        //         .as_enum(Alias::new("verification_status"))
+        //         .values([
+        //             Alias::new("Pending"),
+        //             Alias::new("Approved"),
+        //             Alias::new("Rejected"),
+        //         ])
+        //         .to_owned(),
+        // )
+        // .await?;
 
         create_table(
             m,
@@ -29,7 +29,11 @@ impl MigrationTrait for Migration {
                 ("ktp_photo", ColType::Text),
                 ("face_ktp_photo", ColType::Text),
                 ("domicile_photo", ColType::Text),
-                ("status", ColType::String),
+                ("status", ColType::EnumWithDefault(
+                    "verification_status".to_string(),
+                    vec!["Pending".to_string(), "Approved".to_string(), "Rejected".to_string()],
+                    "Pending".to_string()
+                )),
                 ("reject_reason", ColType::Text),
             ],
             &[("user", "")],
