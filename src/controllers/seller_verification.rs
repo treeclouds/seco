@@ -8,6 +8,9 @@ use crate::models::_entities::sea_orm_active_enums::VerificationStatus;
 use crate::views::seller_verification::SellerVerificationResponse;
 use crate::controllers::products::UnauthorizedResponse;
 use sea_orm::{ActiveModelTrait, EntityTrait, QueryFilter, ColumnTrait};
+use leptess::LepTess;
+use std::io::Write;
+use tempfile::NamedTempFile;
 
 #[utoipa::path(
     post,
@@ -45,6 +48,7 @@ pub async fn verify_seller(
     let mut ktp_photo = None;
     let mut face_ktp_photo = None;
     let mut domicile_photo = None;
+    let mut ktp_text = None;
 
     while let Some(field) = multipart.next_field().await.map_err(|e| {
         Error::BadRequest(format!("Multipart error: {}", e))
@@ -56,6 +60,10 @@ pub async fn verify_seller(
 
         if data.is_empty() {
             continue;
+        }
+
+        if name == "ktp_photo" {
+            ktp_text = Some(extract_text_from_image(&data)?);
         }
 
         let jwt_config = ctx.config.get_jwt_config()?;
@@ -74,6 +82,7 @@ pub async fn verify_seller(
     let ktp_photo = ktp_photo.ok_or_else(|| Error::BadRequest("ktp_photo is required".into()))?;
     let face_ktp_photo = face_ktp_photo.ok_or_else(|| Error::BadRequest("face_ktp_photo is required".into()))?;
     let domicile_photo = domicile_photo.ok_or_else(|| Error::BadRequest("domicile_photo is required".into()))?;
+    let ktp_text = ktp_text.unwrap_or_default();
 
     let active_model = ActiveModel {
         user_id: Set(user.id),
@@ -81,12 +90,25 @@ pub async fn verify_seller(
         ktp_photo: Set(ktp_photo),
         face_ktp_photo: Set(face_ktp_photo),
         domicile_photo: Set(domicile_photo),
+        ktp_text: Set(ktp_text),
         status: Set(VerificationStatus::Pending),
         ..Default::default()
     };
 
     let model = active_model.insert(&ctx.db).await?;
     format::json(SellerVerificationResponse::new(&model))
+}
+
+fn extract_text_from_image(image_data: &[u8]) -> Result<String> {
+    let mut temp_file = NamedTempFile::new().map_err(|e| Error::BadRequest(format!("Failed to create temp file: {}", e)))?;
+    temp_file.write_all(image_data).map_err(|e| Error::BadRequest(format!("Failed to write to temp file: {}", e)))?;
+    let path = temp_file.path().to_str().ok_or_else(|| Error::BadRequest("Invalid temp file path".into()))?;
+
+    let mut lt = LepTess::new(None, "ind").map_err(|e| Error::BadRequest(format!("Failed to initialize Tesseract: {}", e)))?;
+    lt.set_image(path).map_err(|e| Error::BadRequest(format!("Failed to set image: {}", e)))?;
+    let text = lt.get_utf8_text().map_err(|e| Error::BadRequest(format!("Failed to extract text: {}", e)))?;
+
+    Ok(text)
 }
 
 pub fn routes() -> Routes {

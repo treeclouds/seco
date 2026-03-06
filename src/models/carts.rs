@@ -1,6 +1,6 @@
 use loco_rs::model::ModelResult;
 use sea_orm::entity::prelude::*;
-use sea_orm::{FromQueryResult, DbBackend, JsonValue, Statement, ActiveValue};
+use sea_orm::{FromQueryResult, DbBackend, JsonValue, Statement};
 use crate::views::cart::CartListResponse;
 pub use super::_entities::carts::{ActiveModel, Model, Entity};
 pub type Carts = Entity;

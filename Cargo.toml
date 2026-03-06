@@ -61,6 +61,10 @@ base64 = "0.22.1"
 tower-http = "0.6.6"
 # /view engine
 
+# read text from image
+leptess = "0.14"
+tempfile = "3.10"
+
 [[bin]]
 name = "seco-cli"
 path = "src/bin/main.rs"

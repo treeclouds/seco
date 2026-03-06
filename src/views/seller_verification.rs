@@ -11,6 +11,7 @@ pub struct SellerVerificationResponse {
     pub user_id: i32,
     pub status: VerificationStatus,
     pub reject_reason: Option<String>,
+    pub ktp_text: Option<String>,
 }
 
 impl SellerVerificationResponse {
@@ -20,6 +21,7 @@ impl SellerVerificationResponse {
             user_id: model.user_id,
             status: model.status,
             reject_reason: Option::from(model.reject_reason.clone()),
+            ktp_text: Option::from(model.ktp_text.clone()),
         }
     }
 }

@@ -23,6 +23,7 @@ pub struct Model {
     #[sea_orm(column_type = "Text")]
     pub reject_reason: String,
     pub user_id: i32,
+    pub ktp_text: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
