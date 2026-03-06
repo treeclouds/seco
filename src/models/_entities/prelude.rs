@@ -15,5 +15,6 @@ pub use super::payment_methods::Entity as PaymentMethods;
 pub use super::product_images::Entity as ProductImages;
 pub use super::products::Entity as Products;
 pub use super::refresh_sessions::Entity as RefreshSessions;
+pub use super::seller_verifications::Entity as SellerVerifications;
 pub use super::users::Entity as Users;
 pub use super::wishlists::Entity as Wishlists;

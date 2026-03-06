@@ -1,6 +1,9 @@
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-use crate::models::seller_verifications::{Model, VerificationStatus};
+use crate::models::_entities::{
+    seller_verifications,
+    sea_orm_active_enums::VerificationStatus
+};
 
 #[derive(Serialize, Deserialize, ToSchema)]
 pub struct SellerVerificationResponse {
@@ -11,12 +14,12 @@ pub struct SellerVerificationResponse {
 }
 
 impl SellerVerificationResponse {
-    pub fn new(model: &Model) -> Self {
+    pub fn new(model: &seller_verifications::Model) -> Self {
         Self {
             id: model.id,
             user_id: model.user_id,
             status: model.status,
-            reject_reason: model.reject_reason.clone(),
+            reject_reason: Option::from(model.reject_reason.clone()),
         }
     }
 }

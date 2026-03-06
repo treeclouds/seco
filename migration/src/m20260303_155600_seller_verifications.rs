@@ -24,7 +24,7 @@ impl MigrationTrait for Migration {
             "seller_verifications",
             &[
                 ("id", ColType::PkAuto),
-                ("user_id", ColType::Integer),
+
                 ("face_photo", ColType::Text),
                 ("ktp_photo", ColType::Text),
                 ("face_ktp_photo", ColType::Text),
@@ -32,7 +32,7 @@ impl MigrationTrait for Migration {
                 ("status", ColType::String),
                 ("reject_reason", ColType::Text),
             ],
-            &[("user", "users")],
+            &[("user", "")],
         )
         .await
     }

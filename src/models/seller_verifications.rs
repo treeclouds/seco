@@ -1,5 +1,6 @@
+use sea_orm::entity::prelude::*;
 use loco_rs::prelude::*;
-pub use super::_entities::seller_verifications::{ActiveModel, Entity, Model, VerificationStatus};
+pub use super::_entities::seller_verifications::{self, ActiveModel, Entity, Model};
 use aes_gcm::{
     aead::{Aead, KeyInit},
     Aes256Gcm, Nonce,
@@ -7,7 +8,23 @@ use aes_gcm::{
 use base64::{engine::general_purpose, Engine as _};
 use rand::RngCore;
 
-// impl ActiveModelBehavior for ActiveModel {}
+pub type SellerVerifications = Entity;
+
+#[async_trait::async_trait]
+impl ActiveModelBehavior for ActiveModel {
+    async fn before_save<C>(self, _db: &C, insert: bool) -> std::result::Result<Self, DbErr>
+    where
+        C: ConnectionTrait,
+    {
+        if !insert && self.updated_at.is_unchanged() {
+            let mut this = self;
+            this.updated_at = sea_orm::ActiveValue::Set(chrono::Utc::now().into());
+            Ok(this)
+        } else {
+            Ok(self)
+        }
+    }
+}
 
 impl Model {
     pub fn encrypt_data(data: &[u8], key_str: &str) -> Result<String> {

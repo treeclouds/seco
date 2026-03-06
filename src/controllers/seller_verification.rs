@@ -2,9 +2,9 @@ use loco_rs::prelude::*;
 use axum::extract::Multipart;
 use crate::models::{
     users,
-    seller_verifications::{self, VerificationStatus, Entity},
 };
-use crate::models::_entities::seller_verifications::Column;
+use crate::models::_entities::seller_verifications::{self, ActiveModel, Entity};
+use crate::models::_entities::sea_orm_active_enums::VerificationStatus;
 use crate::views::seller_verification::SellerVerificationResponse;
 use crate::controllers::products::UnauthorizedResponse;
 use sea_orm::{ActiveModelTrait, EntityTrait, QueryFilter, ColumnTrait};
@@ -31,7 +31,7 @@ pub async fn verify_seller(
     
     // Check if there is already a pending or approved verification
     let existing = Entity::find()
-        .filter(Column::UserId.eq(user.id))
+        .filter(seller_verifications::Column::UserId.eq(user.id))
         .one(&ctx.db)
         .await?;
 
@@ -75,7 +75,7 @@ pub async fn verify_seller(
     let face_ktp_photo = face_ktp_photo.ok_or_else(|| Error::BadRequest("face_ktp_photo is required".into()))?;
     let domicile_photo = domicile_photo.ok_or_else(|| Error::BadRequest("domicile_photo is required".into()))?;
 
-    let active_model = seller_verifications::ActiveModel {
+    let active_model = ActiveModel {
         user_id: Set(user.id),
         face_photo: Set(face_photo),
         ktp_photo: Set(ktp_photo),

@@ -36,7 +36,7 @@ pub async fn verify_page(
     format::text("Account has been verified successfully!")
 }
 
-pub async fn render_home(State(ctx): State<AppContext>, ViewEngine(v): ViewEngine<TeraView>) -> Result<impl IntoResponse> {
+pub async fn render_home(State(_ctx): State<AppContext>, ViewEngine(v): ViewEngine<TeraView>) -> Result<impl IntoResponse> {
     views::base::home(v)
 }
 
@@ -46,7 +46,7 @@ pub async fn render_dashboard(ViewEngine(v): ViewEngine<TeraView>) -> Result<imp
 
 pub fn routes() -> Routes {
 
-    let dashboard_routes = Routes::new()
+    let _dashboard_routes = Routes::new()
         .add("/", get(render_dashboard));
         // .add("/brands", get(list_brands))
         // .add("/materials", get(list_materials))
