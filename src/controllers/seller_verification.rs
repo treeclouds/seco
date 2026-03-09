@@ -10,12 +10,27 @@ use crate::controllers::products::UnauthorizedResponse;
 use sea_orm::{ActiveModelTrait, EntityTrait, QueryFilter, ColumnTrait};
 use leptess::LepTess;
 use std::io::Write;
+use serde::{Deserialize, Serialize};
 use tempfile::NamedTempFile;
+use utoipa::ToSchema;
+
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+pub struct CreateVerifyMultipart {
+    #[schema(value_type = String, format = Binary)]
+    pub face_photo: String,
+    #[schema(value_type = String, format = Binary)]
+    pub ktp_photo: String,
+    #[schema(value_type = String, format = Binary)]
+    pub face_ktp_photo: String,
+    #[schema(value_type = String, format = Binary)]
+    pub domicile_photo: String,
+}
 
 #[utoipa::path(
     post,
     path = "/api/seller/verify",
     tag = "sellers",
+    request_body(content = CreateVerifyMultipart, content_type = "multipart/form-data"),
     responses(
         (status = 200, description = "Verification data uploaded successfully", body = SellerVerificationResponse),
         (status = 401, description = "Unauthorized", body = UnauthorizedResponse),
@@ -30,6 +45,7 @@ pub async fn verify_seller(
     State(ctx): State<AppContext>,
     mut multipart: Multipart,
 ) -> Result<Response> {
+    println!("================================================");
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
     
     // Check if there is already a pending or approved verification
@@ -54,6 +70,7 @@ pub async fn verify_seller(
         Error::BadRequest(format!("Multipart error: {}", e))
     })? {
         let name = field.name().unwrap_or("").to_string();
+        let file_name = field.file_name().unwrap_or("photo.jpg").to_string();
         let data = field.bytes().await.map_err(|e| {
             Error::BadRequest(format!("Byte error: {}", e))
         })?;
@@ -66,14 +83,29 @@ pub async fn verify_seller(
             ktp_text = Some(extract_text_from_image(&data)?);
         }
 
-        let jwt_config = ctx.config.get_jwt_config()?;
-        let encrypted = seller_verifications::Model::encrypt_data(&data, &jwt_config.secret)?;
+        let timestamp = chrono::Utc::now().timestamp();
+        let extension = std::path::Path::new(&file_name)
+            .extension()
+            .and_then(|s| s.to_str())
+            .unwrap_or("jpg");
+        
+        let storage_filename = format!("{}_{}_{}.{}", user.id, name, timestamp, extension);
+        let storage_path = std::path::PathBuf::from("seller_verifications")
+            .join(user.id.to_string())
+            .join(storage_filename);
+
+        ctx.storage
+            .as_ref()
+            .upload(storage_path.as_path(), &data)
+            .await?;
+
+        let stored_path = storage_path.to_string_lossy().into_owned();
 
         match name.as_str() {
-            "face_photo" => face_photo = Some(encrypted),
-            "ktp_photo" => ktp_photo = Some(encrypted),
-            "face_ktp_photo" => face_ktp_photo = Some(encrypted),
-            "domicile_photo" => domicile_photo = Some(encrypted),
+            "face_photo" => face_photo = Some(stored_path),
+            "ktp_photo" => ktp_photo = Some(stored_path),
+            "face_ktp_photo" => face_ktp_photo = Some(stored_path),
+            "domicile_photo" => domicile_photo = Some(stored_path),
             _ => {}
         }
     }
@@ -84,13 +116,15 @@ pub async fn verify_seller(
     let domicile_photo = domicile_photo.ok_or_else(|| Error::BadRequest("domicile_photo is required".into()))?;
     let ktp_text = ktp_text.unwrap_or_default();
 
+    println!("ktp_text {}", ktp_text);
+
     let active_model = ActiveModel {
         user_id: Set(user.id),
         face_photo: Set(face_photo),
         ktp_photo: Set(ktp_photo),
         face_ktp_photo: Set(face_ktp_photo),
         domicile_photo: Set(domicile_photo),
-        ktp_text: Set(ktp_text),
+        ktp_text: Set(Some(ktp_text)),
         status: Set(VerificationStatus::Pending),
         ..Default::default()
     };
