@@ -2,10 +2,6 @@
 FROM ekidd/rust-musl-builder:latest AS builder
 WORKDIR /app
 
-RUN apt-get update && \
-    apt-get install -y postgresql-client build-essential pkg-config libssl-dev && \
-    rm -rf /var/lib/apt/lists/*
-
 # copy cargo manifest first to cache deps
 COPY Cargo.toml Cargo.lock ./
 # create dummy src to cache cargo fetch/build layers
