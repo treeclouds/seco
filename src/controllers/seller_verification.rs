@@ -8,10 +8,8 @@ use crate::models::_entities::sea_orm_active_enums::VerificationStatus;
 use crate::views::seller_verification::SellerVerificationResponse;
 use crate::controllers::products::UnauthorizedResponse;
 use sea_orm::{ActiveModelTrait, EntityTrait, QueryFilter, ColumnTrait};
-use leptess::LepTess;
-use std::io::Write;
 use serde::{Deserialize, Serialize};
-use tempfile::NamedTempFile;
+use base64::{engine::general_purpose, Engine as _};
 use utoipa::ToSchema;
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
@@ -80,7 +78,7 @@ pub async fn verify_seller(
         }
 
         if name == "ktp_photo" {
-            ktp_text = Some(extract_text_from_image(&data)?);
+            ktp_text = Some(extract_text_from_image(&data).await?);
         }
 
         let timestamp = chrono::Utc::now().timestamp();
@@ -133,16 +131,55 @@ pub async fn verify_seller(
     format::json(SellerVerificationResponse::new(&model))
 }
 
-fn extract_text_from_image(image_data: &[u8]) -> Result<String> {
-    let mut temp_file = NamedTempFile::new().map_err(|e| Error::BadRequest(format!("Failed to create temp file: {}", e)))?;
-    temp_file.write_all(image_data).map_err(|e| Error::BadRequest(format!("Failed to write to temp file: {}", e)))?;
-    let path = temp_file.path().to_str().ok_or_else(|| Error::BadRequest("Invalid temp file path".into()))?;
+async fn extract_text_from_image(image_data: &[u8]) -> Result<String> {
+    let client = reqwest::Client::new();
+    let base64_image = general_purpose::STANDARD.encode(image_data);
+    let vllm_url = std::env::var("VLLM_URL").unwrap_or_else(|_| "http://localhost:11434/api/chat".to_string());
 
-    let mut lt = LepTess::new(None, "ind").map_err(|e| Error::BadRequest(format!("Failed to initialize Tesseract: {}", e)))?;
-    lt.set_image(path).map_err(|e| Error::BadRequest(format!("Failed to set image: {}", e)))?;
-    let text = lt.get_utf8_text().map_err(|e| Error::BadRequest(format!("Failed to extract text: {}", e)))?;
+    let payload = serde_json::json!({
+        "model": "Qwen/Qwen3.5-0.8B",
+        "messages": [
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "Please extract and return all text visible in this ID card (KTP) image. Output only the text found."
+                    },
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": format!("data:image/jpeg;base64,{}", base64_image)
+                        }
+                    }
+                ]
+            }
+        ]
+    });
 
-    Ok(text)
+    let response = client
+        .post(&vllm_url)
+        .json(&payload)
+        .send()
+        .await
+        .map_err(|e| Error::BadRequest(format!("Failed to call Qwen API: {}", e)))?;
+
+    if !response.status().is_success() {
+        let status = response.status();
+        let body = response.text().await.unwrap_or_default();
+        return Err(Error::BadRequest(format!("Qwen API error ({}): {}", status, body)));
+    }
+
+    let result: serde_json::Value = response
+        .json()
+        .await
+        .map_err(|e| Error::BadRequest(format!("Failed to parse Qwen response: {}", e)))?;
+
+    let text = result["choices"][0]["message"]["content"]
+        .as_str()
+        .ok_or_else(|| Error::BadRequest("Invalid Qwen response format: missing content".into()))?;
+
+    Ok(text.to_string())
 }
 
 pub fn routes() -> Routes {

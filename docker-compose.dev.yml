@@ -9,10 +9,12 @@ services:
       - db
       - redis
       - mailer
+      - vllm
     networks:
       - db
       - redis
       - mailer
+      - vllm
     ports:
       - "5150:5150"
     volumes:
@@ -20,7 +22,33 @@ services:
       - cargo-target:/app/target
     env_file:
       - .env
+    environment:
+      - VLLM_URL=http://vllm:8000/v1/chat/completions
     tty: true
+
+  vllm:
+    image: public.ecr.aws/q9t5s3a7/vllm-cpu-release-repo:latest
+    command: >
+      --model Qwen/Qwen3.5-0.8B
+      --device cpu
+      --dtype bfloat16
+      --port 8000
+      --max-model-len 2048
+      --disable-log-requests
+    ports:
+      - "8000:8000"
+    networks:
+      - vllm
+    volumes:
+      - huggingface-cache:/root/.cache/huggingface
+    environment:
+      - VLLM_LOGGING_LEVEL=WARNING
+    restart: unless-stopped
+    shm_size: "4gb"
+    cap_add:
+      - SYS_NICE
+    security_opt:
+      - seccomp=unconfined
 
   db:
     image: postgres:17.4-bookworm
@@ -33,6 +61,7 @@ services:
       - postgres-data:/var/lib/postgresql/data
     env_file:
       - .env
+
   redis:
     image: redis:latest
     restart: unless-stopped
@@ -40,6 +69,7 @@ services:
       - "6379:6379"
     networks:
       - redis
+
   mailer:
     image: mailtutan/mailtutan:latest
     restart: unless-stopped
@@ -51,9 +81,11 @@ services:
 
 volumes:
   postgres-data: {}
-  cargo-target:
+  cargo-target: {}
+  huggingface-cache: {}
 
 networks:
   db:
   redis:
   mailer:
+  vllm:

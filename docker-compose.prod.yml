@@ -17,12 +17,39 @@ services:
     depends_on:
       - db
       - redis
+      - vllm
     ports:
       - "5150:5150"
     volumes:
       - .:/app
       - cargo-target:/app/target
+    environment:
+      - VLLM_URL=http://vllm:8000/v1/chat/completions
     restart: unless-stopped
+
+  vllm:
+    image: public.ecr.aws/q9t5s3a7/vllm-cpu-release-repo:latest
+    command: >
+      --model Qwen/Qwen3.5-0.8B
+      --device cpu
+      --dtype bfloat16
+      --port 8000
+      --max-model-len 2048
+      --disable-log-requests
+    ports:
+      - "8000:8000"
+    networks:
+      - vllm
+    volumes:
+      - huggingface-cache:/root/.cache/huggingface
+    environment:
+      - VLLM_LOGGING_LEVEL=WARNING
+    restart: unless-stopped
+    shm_size: "4gb"
+    cap_add:
+      - SYS_NICE
+    security_opt:
+      - seccomp=unconfined
 
   redis:
     image: redis:latest
@@ -32,10 +59,25 @@ services:
     networks:
       - redis
 
+#  traefik:
+#    build:
+#      context: .
+#      dockerfile: ./compose/production/traefik/Dockerfile
+#    image: seco_production_traefik
+#    depends_on:
+#      - django
+#    volumes:
+#      - production_traefik:/etc/traefik/acme:z
+#    ports:
+#      - "0.0.0.0:80:80"
+#      - "0.0.0.0:443:443"
+
 volumes:
-  postgres-data:
-  cargo-target:
+  postgres-data: {}
+  cargo-target: {}
+  huggingface-cache: {}
 
 networks:
   db:
   redis:
+  vllm:

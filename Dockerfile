@@ -3,7 +3,7 @@ FROM rust:1.91
 
 # install minimal runtime tools (pg_isready)
 RUN apt-get update && \
-    apt-get install -y postgresql-client build-essential pkg-config libssl-dev tesseract-ocr libleptonica-dev libtesseract-dev && \
+    apt-get install -y postgresql-client build-essential pkg-config libssl-dev && \
     rm -rf /var/lib/apt/lists/*
 
 # install cargo-watch once

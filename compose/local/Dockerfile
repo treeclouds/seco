@@ -1,9 +1,5 @@
 FROM rust:1.94
 
-RUN apt-get update && \
-    apt-get install -y postgresql-client build-essential pkg-config libssl-dev tesseract-ocr libleptonica-dev libtesseract-dev && \
-    rm -rf /var/lib/apt/lists/*
-
 # Tools dev
 RUN cargo install watchexec-cli loco
 
