@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use std::sync::OnceLock;
 use chrono::{offset::Local, Duration};
 use loco_rs::{auth::jwt, hash, prelude::*};
 use sea_orm::{entity::prelude::*, ActiveValue, DatabaseConnection, DbErr, TransactionTrait};
@@ -29,6 +30,18 @@ pub struct RegisterParams {
     pub last_name: String,
 }
 
+#[derive(Debug, Deserialize, Serialize, ToSchema)]
+pub struct AdminUserCreateParams {
+    pub email: String,
+    pub password: String,
+    pub first_name: String,
+    pub last_name: String,
+    pub phone: Option<String>,
+    pub location: Option<String>,
+    pub is_active: Option<bool>,
+    pub is_superuser: Option<bool>,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct RefreshClaims {
     pub pid: String,
@@ -57,13 +70,23 @@ impl Validatable for ActiveModel {
     }
 }
 
-const REFRESH_SECRET: &[u8] = b"bc258e3ed29962ca";
+fn refresh_secret() -> &'static [u8] {
+    static SECRET: OnceLock<Vec<u8>> = OnceLock::new();
+    SECRET.get_or_init(|| {
+        std::env::var("REFRESH_SECRET")
+            .unwrap_or_else(|_| {
+                tracing::error!("REFRESH_SECRET environment variable is not set");
+                std::process::exit(1);
+            })
+            .into_bytes()
+    })
+}
 
 
 pub async fn verify_refresh(db: &DatabaseConnection, token: &str) -> Result<RefreshClaims> {
     let result = decode::<RefreshClaims>(
         token,
-        &DecodingKey::from_secret(REFRESH_SECRET),
+        &DecodingKey::from_secret(refresh_secret()),
         &Validation::default(),
     );
 
@@ -113,7 +136,7 @@ pub async fn verify_refresh(db: &DatabaseConnection, token: &str) -> Result<Refr
 pub async fn revoke_refresh_session(db: &DatabaseConnection, token: &str) -> Result<()> {
     let result = decode::<RefreshClaims>(
         token,
-        &DecodingKey::from_secret(REFRESH_SECRET),
+        &DecodingKey::from_secret(refresh_secret()),
         &Validation::default(),
     );
 
@@ -296,6 +319,49 @@ impl Model {
         Ok(user)
     }
 
+    /// Creates a user with the given params as an admin (superuser). Unlike
+    /// public registration this sets `is_active` (no email verification) and
+    /// allows setting `is_superuser` directly.
+    ///
+    /// # Errors
+    ///
+    /// When email already exists, hashing fails, or the DB insert fails.
+    pub async fn create_by_admin(
+        db: &DatabaseConnection,
+        params: &AdminUserCreateParams,
+    ) -> ModelResult<Self> {
+        let txn = db.begin().await?;
+
+        if users::Entity::find()
+            .filter(users::Column::Email.eq(&params.email))
+            .one(&txn)
+            .await?
+            .is_some()
+        {
+            return Err(ModelError::EntityAlreadyExists {});
+        }
+
+        let password_hash =
+            hash::hash_password(&params.password).map_err(|e| ModelError::Any(e.into()))?;
+        let user = users::ActiveModel {
+            email: ActiveValue::set(params.email.to_string()),
+            password: ActiveValue::set(password_hash),
+            first_name: ActiveValue::set(params.first_name.to_string()),
+            last_name: ActiveValue::set(params.last_name.to_string()),
+            phone: ActiveValue::set(params.phone.clone()),
+            location: ActiveValue::set(params.location.clone()),
+            is_active: ActiveValue::set(params.is_active.unwrap_or(true)),
+            is_superuser: ActiveValue::set(params.is_superuser.unwrap_or(false)),
+            ..Default::default()
+        }
+        .insert(&txn)
+        .await?;
+
+        txn.commit().await?;
+
+        Ok(user)
+    }
+
     /// Creates a JWT
     ///
     /// # Errors
@@ -316,7 +382,7 @@ impl Model {
             token_type: "refresh".to_string(),
             jti: jti.clone(),
         };
-        let token = encode(&Header::default(), &claims, &EncodingKey::from_secret(REFRESH_SECRET)).map_err(|e| ModelError::Any(e.into()))?;
+        let token = encode(&Header::default(), &claims, &EncodingKey::from_secret(refresh_secret())).map_err(|e| ModelError::Any(e.into()))?;
         Ok(token)
     }
 

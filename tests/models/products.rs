@@ -1,6 +1,7 @@
 use insta::assert_debug_snapshot;
 use seco::{
     app::App,
+    models::_entities::categories,
     models::products::{self, Model},
 };
 use loco_rs::testing::prelude::*;
@@ -26,7 +27,7 @@ async fn test_can_validate_product_model() {
         .await
         .expect("Failed to boot test application");
 
-    let user_res = users::ActiveModel {
+    let user = users::ActiveModel {
         first_name: ActiveValue::set("User".to_string()),
         last_name: ActiveValue::set("Test".to_string()),
         email: ActiveValue::set("test@gmail.com".to_string()),
@@ -34,11 +35,20 @@ async fn test_can_validate_product_model() {
         ..Default::default()
     }
     .insert(&boot.app_context.db)
-    .await;
+    .await
+    .expect("failed to insert user");
+
+    let category = categories::ActiveModel {
+        name: ActiveValue::set("Test category".to_string()),
+        ..Default::default()
+    }
+    .insert(&boot.app_context.db)
+    .await
+    .expect("failed to insert category");
 
     let res = products::ActiveModel {
-        seller_id: ActiveValue::set(user_res.unwrap().id),
-        category_id: ActiveValue::set(Option::from(1)),
+        seller_id: ActiveValue::set(user.id),
+        category_id: ActiveValue::set(Some(category.id)),
         title: ActiveValue::set("Product 1".to_string()),
         description: ActiveValue::set("Product 1".to_string()),
         price: ActiveValue::set(Decimal::new(40000, 0)),
@@ -55,7 +65,7 @@ async fn test_can_validate_product_model() {
     .insert(&boot.app_context.db)
     .await;
 
-    assert_debug_snapshot!(res);
+    assert!(res.is_ok(), "valid product insert must succeed: {res:?}");
 }
 
 #[tokio::test]

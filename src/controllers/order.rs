@@ -34,6 +34,7 @@ pub struct OrderParams {
     pub buyer_id: Option<i32>,
     #[schema(read_only)]
     pub order_number: Option<String>,
+    #[schema(read_only)]
     pub final_price: Decimal,
     #[schema(default = 1)]
     pub delivery_address_id: Option<i32>,
@@ -52,7 +53,6 @@ pub struct OrderParams {
 
 impl OrderParams {
     fn update(&self, item: &mut ActiveModel) {
-        item.final_price = Set(self.final_price);
         item.delivery_address_id = Set(self.delivery_address_id);
         item.payment_method_id = Set(self.payment_method_id);
     }
@@ -170,6 +170,7 @@ pub async fn order_add(auth: auth::JWT, State(ctx): State<AppContext>, Json(para
         buyer_id: Set(buyer.id),
         order_number: Set(generate_custom_string(10)),
         status: Set(OrderStatusEnum::AwaitingPayment),
+        final_price: Set(product.price),
         delivery_address_detail: Set(delivery_address_detail),
         payment_method_detail: Set(Some(payment_method_detail)),
         meetup_address_detail: Set(meetup_address_detail),
@@ -199,11 +200,16 @@ pub async fn order_add(auth: auth::JWT, State(ctx): State<AppContext>, Json(para
 
 #[debug_handler]
 pub async fn order_update(
+    auth: auth::JWT,
     Path(id): Path<i32>,
     State(ctx): State<AppContext>,
     Json(params): Json<OrderParams>,
 ) -> Result<Response> {
+    let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
     let item = load_item(&ctx, id).await?;
+    if item.buyer_id != user.id {
+        return Err(Error::NotFound);
+    }
     let mut item = item.into_active_model();
     params.update(&mut item);
     let item = item.update(&ctx.db).await?;
@@ -211,14 +217,24 @@ pub async fn order_update(
 }
 
 #[debug_handler]
-pub async fn order_remove(Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
-    load_item(&ctx, id).await?.delete(&ctx.db).await?;
+pub async fn order_remove(auth: auth::JWT, Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
+    let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    let item = load_item(&ctx, id).await?;
+    if item.buyer_id != user.id {
+        return Err(Error::NotFound);
+    }
+    item.delete(&ctx.db).await?;
     format::empty()
 }
 
 #[debug_handler]
-pub async fn get_order_one(Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
-    format::json(load_item(&ctx, id).await?)
+pub async fn get_order_one(auth: auth::JWT, Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
+    let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    let item = load_item(&ctx, id).await?;
+    if item.buyer_id != user.id {
+        return Err(Error::NotFound);
+    }
+    format::json(item)
 }
 
 #[utoipa::path(

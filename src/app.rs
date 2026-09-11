@@ -54,7 +54,6 @@ use crate::{
         offering::AddNegotiationProductResponse,
     },
     workers::downloader::DownloadWorker,
-    initializers,
 };
 
 use utoipa::{
@@ -186,9 +185,7 @@ impl Hooks for App {
     }
 
     async fn initializers(_ctx: &AppContext) -> Result<Vec<Box<dyn Initializer>>> {
-        Ok(vec![Box::new(
-            initializers::view_engine::ViewEngineInitializer,
-        )])
+        Ok(vec![])
     }
 
     fn routes(_ctx: &AppContext) -> AppRoutes {
@@ -208,6 +205,7 @@ impl Hooks for App {
             .add_route(controllers::offering::routes())
             .add_route(controllers::auth::routes())
             .add_route(controllers::user::routes())
+            .add_route(controllers::user::admin_routes())
             .add_route(controllers::wishlists::routes())
             .add_route(controllers::upload::routes())
     }

@@ -2,28 +2,31 @@ use seco::app::App;
 use loco_rs::testing::prelude::*;
 use serial_test::serial;
 
+/// The offering endpoints are JWT-gated; a missing token must yield 401.
+/// (Replaces the stale scaffold `echo`/`hello` tests that pointed at `/offering`
+/// routes which no longer exist.)
 #[tokio::test]
 #[serial]
-async fn can_get_echo() {
+async fn offering_endpoints_require_auth() {
     request::<App, _, _>(|request, _ctx| async move {
-        let payload = serde_json::json!({
-            "foo": "bar",
-        });
+        let res = request.get("/api/offering/negotiations/fb-test").await;
+        assert_eq!(res.status_code(), 401, "get negotiation must require auth");
 
-        let res = request.post("/offering/echo").json(&payload).await;
-        assert_eq!(res.status_code(), 200);
-        assert_eq!(res.text(), serde_json::to_string(&payload).unwrap());
-    })
-    .await;
-}
+        let res = request
+            .post("/api/offering/negotiations/new")
+            .json(&serde_json::json!({
+                "product_id": 1,
+                "offer": 100,
+                "firebase_id": "fb-test"
+            }))
+            .await;
+        assert_eq!(res.status_code(), 401, "add negotiation must require auth");
 
-#[tokio::test]
-#[serial]
-async fn can_request_root() {
-    request::<App, _, _>(|request, _ctx| async move {
-        let res = request.get("/offering").await;
-        assert_eq!(res.status_code(), 200);
-        assert_eq!(res.text(), "hello");
+        let res = request
+            .post("/api/offering/negotiations/1/do")
+            .json(&serde_json::json!({ "status": "Accepted" }))
+            .await;
+        assert_eq!(res.status_code(), 401, "do negotiation must require auth");
     })
     .await;
 }

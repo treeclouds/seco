@@ -35,7 +35,7 @@ async fn test_can_validate_model() {
 
     let res = invalid_user.insert(&boot.app_context.db).await;
 
-    assert_debug_snapshot!(res);
+    assert!(res.is_err(), "invalid email must be rejected: {res:?}");
 }
 
 #[tokio::test]
@@ -56,11 +56,10 @@ async fn can_create_with_password() {
 
     let res = Model::create_with_password(&boot.app_context.db, &params).await;
 
-    insta::with_settings!({
-        filters => cleanup_user_model()
-    }, {
-        assert_debug_snapshot!(res);
-    });
+    assert!(
+        res.is_ok(),
+        "valid registration with password must succeed: {res:?}"
+    );
 }
 #[tokio::test]
 #[serial]

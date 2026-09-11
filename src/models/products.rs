@@ -168,31 +168,44 @@ impl Model {
             (q, gb, vec![])
         };
 
+        let mut values = values;
+        // Placeholder counter starts past any already-bound params (e.g. user_id = $1).
+        let mut next_param: usize = values.len() + 1;
+
         let mut extra_where_clause: String = "WHERE p.seller_id IS NOT NULL".to_owned();
 
-        if title.is_some() {
-            extra_where_clause += &*format!(" AND p.title ILIKE '%{:?}%'", title.unwrap().to_owned()).replace("\"", "")
+        if let Some(title) = title {
+            extra_where_clause += &format!(" AND p.title ILIKE ${next_param}");
+            values.push(format!("%{}%", title).into());
+            next_param += 1;
         }
 
-        if condition.is_some() {
-            extra_where_clause += &*format!(" AND p.condition = '{:?}'", condition.unwrap().to_owned());
+        if let Some(condition) = condition {
+            extra_where_clause += &format!(" AND p.condition = ${next_param}");
+            values.push(format!("{:?}", condition).into());
+            next_param += 1;
         }
 
-        if location.is_some() {
-            extra_where_clause += &*format!(" AND LOWER(u.location) = LOWER('{:?}')", location.unwrap().to_owned()).replace("\"", "")
+        if let Some(location) = location {
+            extra_where_clause += &format!(" AND LOWER(u.location) = LOWER(${next_param})");
+            values.push(location.to_string().into());
+            next_param += 1;
         }
 
-        if brand.is_some() {
-            extra_where_clause += &*format!(" AND LOWER(b.name) = LOWER('{:?}')", brand.unwrap().to_owned()).replace("\"", "")
+        if let Some(brand) = brand {
+            extra_where_clause += &format!(" AND LOWER(b.name) = LOWER(${next_param})");
+            values.push(brand.to_string().into());
+            next_param += 1;
         }
 
-        if category.is_some() {
-            extra_where_clause += &*format!(" AND LOWER(c.name) = LOWER('{:?}')", category.unwrap().to_owned()).replace("\"", "")
+        if let Some(category) = category {
+            extra_where_clause += &format!(" AND LOWER(c.name) = LOWER(${next_param})");
+            values.push(category.to_string().into());
         }
 
         let combine_query = format!("{} {} {}", query, extra_where_clause, group_by);
 
-        println!("===== query {}", combine_query);
+        tracing::debug!(query = %combine_query, "get_all_products combined query");
 
         let products: Vec<ProductsResponse> = JsonValue::find_by_statement(Statement::from_sql_and_values(
             DbBackend::Postgres,

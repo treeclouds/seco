@@ -43,7 +43,7 @@ impl Model {
                 c.*,
                 c.id::text AS path
             FROM categories c
-            WHERE parent_id IS NULL
+            WHERE parent_id IS NULL OR parent_id = 0
 
             UNION ALL
 

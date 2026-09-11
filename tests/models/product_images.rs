@@ -1,35 +1,66 @@
-use seco::app::App;
 use loco_rs::testing::prelude::*;
+use sea_orm::{ActiveModelTrait, EntityTrait, IntoActiveModel, ModelTrait, Set};
+use seco::app::App;
+use seco::models::_entities::{product_images, products, users};
 use serial_test::serial;
-
-macro_rules! configure_insta {
-    ($($expr:expr),*) => {
-        let mut settings = insta::Settings::clone_current();
-        settings.set_prepend_module_to_snapshot(false);
-        let _guard = settings.bind_to_scope();
-    };
-}
 
 #[tokio::test]
 #[serial]
-async fn test_model() {
-    configure_insta!();
+async fn product_image_insert_find_update_delete() {
+    let boot = boot_test::<App>().await.expect("boot test app");
+    let db = &boot.app_context.db;
 
-    let boot = boot_test::<App>()
+    let seller = users::ActiveModel {
+        email: Set("pi-seller@test.com".to_string()),
+        password: Set("x".to_string()),
+        first_name: Set("Seller".to_string()),
+        last_name: Set("Model".to_string()),
+        ..Default::default()
+    }
+    .insert(db)
+    .await
+    .expect("insert seller");
+
+    let product = products::ActiveModel {
+        seller_id: Set(seller.id),
+        title: Set("PI product".to_string()),
+        description: Set("d".to_string()),
+        price: Set(sea_orm::prelude::Decimal::new(100, 0)),
+        dimension_width: Set(1.0),
+        dimension_height: Set(1.0),
+        dimension_length: Set(1.0),
+        dimension_weight: Set(1.0),
+        stock: Set(5),
+        sku: Set("SKU-PI".to_string()),
+        ..Default::default()
+    }
+    .insert(db)
+    .await
+    .expect("insert product");
+
+    let image = product_images::ActiveModel {
+        product_id: Set(product.id),
+        image: Set("product_images/1/photo.jpg".to_string()),
+        ..Default::default()
+    }
+    .insert(db)
+    .await
+    .expect("insert product image");
+
+    assert_eq!(image.product_id, product.id);
+
+    let found = product_images::Entity::find_by_id(image.id)
+        .one(db)
         .await
-        .expect("Failed to boot test application");
-    seed::<App>(&boot.app_context)
-        .await
-        .expect("Failed to seed database");
+        .unwrap()
+        .expect("find product image");
+    assert_eq!(found.image, "product_images/1/photo.jpg");
 
-    // query your model, e.g.:
-    //
-    // let item = models::posts::Model::find_by_pid(
-    //     &boot.app_context.db,
-    //     "11111111-1111-1111-1111-111111111111",
-    // )
-    // .await;
+    let mut am = found.into_active_model();
+    am.image = Set("product_images/1/photo2.jpg".to_string());
+    let updated = am.update(db).await.expect("update product image");
+    assert_eq!(updated.image, "product_images/1/photo2.jpg");
 
-    // snapshot the result:
-    // assert_debug_snapshot!(item);
+    let res = updated.delete(db).await.expect("delete product image");
+    assert_eq!(res.rows_affected, 1);
 }

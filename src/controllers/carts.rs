@@ -11,6 +11,7 @@ use migration::Condition;
 use crate::models::_entities::{
     carts::{self, ActiveModel, Entity, Model},
     users,
+    products,
 };
 use crate::controllers::products::UnauthorizedResponse;
 use crate::views::{
@@ -20,14 +21,12 @@ use crate::views::{
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
 pub struct CartPostParams {
-    pub user_id: i32,
     pub product_id: i32,
     pub qty: i32,
 }
 
 impl CartPostParams {
     fn update(&self, item: &mut ActiveModel) {
-        item.user_id = Set(self.user_id);
         item.product_id = Set(self.product_id);
         item.qty = Set(self.qty);
     }
@@ -89,6 +88,15 @@ pub async fn user_cart_list(auth: auth::JWT, State(ctx): State<AppContext>) -> R
 #[debug_handler]
 pub async fn user_cart_add(auth: auth::JWT, State(ctx): State<AppContext>, Json(params): Json<CartPostParams>) -> Result<Response> {
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    let product = products::Entity::find_by_id(params.product_id)
+        .one(&ctx.db)
+        .await?
+        .ok_or_else(|| Error::NotFound)?;
+
+    if product.seller_id == user.id {
+        return Err(Error::BadRequest("You are not allowed to add your own products to the cart".to_string()));
+    }
+
     let mut item = ActiveModel {
         user_id: ActiveValue::Set(user.id),
         ..Default::default()
@@ -100,11 +108,16 @@ pub async fn user_cart_add(auth: auth::JWT, State(ctx): State<AppContext>, Json(
 
 #[debug_handler]
 pub async fn user_cart_update(
+    auth: auth::JWT,
     Path(id): Path<i32>,
     State(ctx): State<AppContext>,
     Json(params): Json<CartPostParams>,
 ) -> Result<Response> {
+    let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
     let item = load_item(&ctx, id).await?;
+    if item.user_id != user.id {
+        return Err(Error::NotFound);
+    }
     let mut item = item.into_active_model();
     params.update(&mut item);
     let item = item.update(&ctx.db).await?;
@@ -112,14 +125,24 @@ pub async fn user_cart_update(
 }
 
 #[debug_handler]
-pub async fn user_cart_remove(Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
-    load_item(&ctx, id).await?.delete(&ctx.db).await?;
+pub async fn user_cart_remove(auth: auth::JWT, Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
+    let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    let item = load_item(&ctx, id).await?;
+    if item.user_id != user.id {
+        return Err(Error::NotFound);
+    }
+    item.delete(&ctx.db).await?;
     format::empty()
 }
 
 #[debug_handler]
-pub async fn get_user_cart_one(Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
-    format::json(load_item(&ctx, id).await?)
+pub async fn get_user_cart_one(auth: auth::JWT, Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
+    let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    let item = load_item(&ctx, id).await?;
+    if item.user_id != user.id {
+        return Err(Error::NotFound);
+    }
+    format::json(item)
 }
 
 #[utoipa::path(

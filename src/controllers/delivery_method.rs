@@ -51,7 +51,12 @@ pub async fn delivery_method_list(State(ctx): State<AppContext>) -> Result<Respo
     )
 )]
 #[debug_handler]
-pub async fn delivery_method_add(State(ctx): State<AppContext>, Json(params): Json<DeliveryMethodParams>) -> Result<Response> {
+pub async fn delivery_method_add(auth: auth::JWT, State(ctx): State<AppContext>, Json(params): Json<DeliveryMethodParams>) -> Result<Response> {
+    let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    if !user.is_superuser {
+        return bad_request("You are not allowed to create delivery methods. Only superuser can do that.");
+    }
+
     let mut item = ActiveModel {
         ..Default::default()
     };

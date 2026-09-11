@@ -1,4 +1,4 @@
-use loco_rs::prelude::*;
+use axum::response::{Html, IntoResponse};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
@@ -18,10 +18,12 @@ impl BaseResponse {
     }
 }
 
-pub fn home(v: impl ViewRenderer) -> Result<impl IntoResponse> {
-    format::render().view(&v, "home/login.html", data!({"test": "test"}))
+/// Serves the static login page (embedded at compile time).
+pub fn home() -> impl IntoResponse {
+    Html(include_str!("../../frontend/login.html"))
 }
 
-pub fn dashboard(v: impl ViewRenderer) -> Result<impl IntoResponse> {
-    format::render().view(&v, "dashboard/index.html", data!({"test": "test"}))
+/// Serves the static admin dashboard (embedded at compile time).
+pub fn dashboard() -> impl IntoResponse {
+    Html(include_str!("../../frontend/dashboard.html"))
 }

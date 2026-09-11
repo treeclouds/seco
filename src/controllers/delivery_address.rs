@@ -41,11 +41,6 @@ impl DeliveryAddressParams {
     }
 }
 
-async fn load_item(ctx: &AppContext, id: i32) -> Result<Model> {
-    let item = Entity::find_by_id(id).one(&ctx.db).await?;
-    item.ok_or_else(|| Error::NotFound)
-}
-
 #[utoipa::path(
     get,
     path = "/api/user/delivery_addresses",
@@ -90,14 +85,36 @@ pub async fn delivery_address_add(auth: auth::JWT, State(ctx): State<AppContext>
     format::json(DeliveryAddressResponse::new(&item))
 }
 
+#[utoipa::path(
+    put,
+    path = "/api/user/delivery_address/{id}",
+    tag = "delivery_addresses",
+    request_body = DeliveryAddressParams,
+    responses(
+        (status = 200, description = "Delivery address update successfully", body = DeliveryAddressResponse),
+        (status = 401, description = "Unauthorized", body = UnauthorizedResponse),
+        (status = 404, description = "Delivery address not found", body = UnauthorizedResponse),
+    ),
+    params(
+        ("id" = i32, Path, description = "Delivery address database id")
+    ),
+    security(
+        ("jwt_token" = [])
+    )
+)]
 #[debug_handler]
 pub async fn delivery_address_update(
+    auth: auth::JWT,
     Path(id): Path<i32>,
     State(ctx): State<AppContext>,
     Json(params): Json<DeliveryAddressParams>,
 ) -> Result<Response> {
-    let item = load_item(&ctx, id).await?;
-    let mut item = item.into_active_model();
+    let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    let Ok(delivery_address) = Model::find_by_id_and_user_id(&ctx.db, id, user.id).await else {
+        let msg_error = String::from("Not found delivery address with this id and user id");
+        return bad_request(&msg_error);
+    };
+    let mut item = delivery_address.into_active_model();
     params.update(&mut item);
     let item = item.update(&ctx.db).await?;
     format::json(DeliveryAddressResponse::new(&item))

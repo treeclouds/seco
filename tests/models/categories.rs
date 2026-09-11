@@ -1,36 +1,38 @@
-use seco::app::App;
 use loco_rs::testing::prelude::*;
+use sea_orm::{ActiveModelTrait, EntityTrait, IntoActiveModel, ModelTrait, Set};
+use seco::app::App;
+use seco::models::_entities::categories;
 use serial_test::serial;
-
-macro_rules! configure_insta {
-    ($($expr:expr),*) => {
-        let mut settings = insta::Settings::clone_current();
-        settings.set_prepend_module_to_snapshot(false);
-        settings.set_snapshot_suffix("categories");
-        let _guard = settings.bind_to_scope();
-    };
-}
 
 #[tokio::test]
 #[serial]
-async fn test_model() {
-    configure_insta!();
+async fn category_insert_find_update_delete() {
+    let boot = boot_test::<App>().await.expect("boot test app");
+    let db = &boot.app_context.db;
 
-    let boot = boot_test::<App>()
+    let category = categories::ActiveModel {
+        name: Set("Electronics".to_string()),
+        parent_id: Set(None),
+        ..Default::default()
+    }
+    .insert(db)
+    .await
+    .expect("insert category");
+
+    assert_eq!(category.name, "Electronics");
+
+    let found = categories::Entity::find_by_id(category.id)
+        .one(db)
         .await
-        .expect("Failed to boot test application");
-    seed::<App>(&boot.app_context)
-        .await
-        .expect("Failed to seed database");
+        .unwrap()
+        .expect("find category");
+    assert_eq!(found.name, "Electronics");
 
-    // query your model, e.g.:
-    //
-    // let item = models::posts::Model::find_by_pid(
-    //     &boot.app_context.db,
-    //     "11111111-1111-1111-1111-111111111111",
-    // )
-    // .await;
+    let mut am = found.into_active_model();
+    am.name = Set("Consumer Electronics".to_string());
+    let updated = am.update(db).await.expect("update category");
+    assert_eq!(updated.name, "Consumer Electronics");
 
-    // snapshot the result:
-    // assert_debug_snapshot!(item);
+    let res = updated.delete(db).await.expect("delete category");
+    assert_eq!(res.rows_affected, 1);
 }

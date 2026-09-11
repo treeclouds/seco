@@ -17,7 +17,10 @@ pub struct CategoryPostParams {
 impl CategoryPostParams {
     pub(crate) fn update(&self, item: &mut ActiveModel) {
         item.name = Set(self.name.clone());
-        item.parent_id = Set(self.parent_id.clone());
+        // Normalize "no parent": treat 0 and None both as NULL so the
+        // convention is consistent across list/tree queries.
+        let parent_id = self.parent_id.filter(|&id| id != 0);
+        item.parent_id = Set(parent_id);
     }
 }
 

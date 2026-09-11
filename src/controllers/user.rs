@@ -22,9 +22,11 @@ use crate::{
         order::OrderDetailResponse,
         product::ProductResponse,
         product_image::ProductImageResponse,
-        user::CurrentResponse,
+        user::{CurrentResponse, AdminUserResponse},
     },
 };
+
+use crate::models::users::AdminUserCreateParams;
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
 pub struct LocationParams {
@@ -62,6 +64,17 @@ impl ProfileParams {
         item.latitude = Set(Option::from(self.latitude.clone()));
         item.longitude = Set(Option::from(self.longitude.clone()));
     }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+pub struct AdminUserUpdateParams {
+    pub email: Option<String>,
+    pub first_name: Option<String>,
+    pub last_name: Option<String>,
+    pub phone: Option<String>,
+    pub location: Option<String>,
+    pub is_active: Option<bool>,
+    pub is_superuser: Option<bool>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
@@ -410,12 +423,17 @@ pub async fn update_profile(
 pub async fn user_block(auth: auth::JWT, Path(pid): Path<String>, State(ctx): State<AppContext>) -> Result<Response> {
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
 
-    if user.pid == pid.parse::<Uuid>().unwrap() {
+    let target_pid = pid.parse::<Uuid>().map_err(|_| Error::BadRequest("invalid user id".to_string()))?;
+    if user.pid == target_pid {
         return bad_request("cannot block yourself");
-    } else if user.is_superuser {
-        let u = users::Model::find_by_pid(&ctx.db, &pid).await?;
-        u.into_active_model().set_blocked(&ctx.db).await?;
     }
+
+    if !user.is_superuser {
+        return unauthorized("forbidden");
+    }
+
+    let u = users::Model::find_by_pid(&ctx.db, &pid).await?;
+    u.into_active_model().set_blocked(&ctx.db).await?;
     format::empty()
 }
 
@@ -437,12 +455,17 @@ pub async fn user_block(auth: auth::JWT, Path(pid): Path<String>, State(ctx): St
 pub async fn user_unblock(auth: auth::JWT, Path(pid): Path<String>, State(ctx): State<AppContext>) -> Result<Response> {
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
 
-    if user.pid == pid.parse::<Uuid>().unwrap() {
+    let target_pid = pid.parse::<Uuid>().map_err(|_| Error::BadRequest("invalid user id".to_string()))?;
+    if user.pid == target_pid {
         return bad_request("cannot block yourself");
-    } else if user.is_superuser {
-        let u = users::Model::find_by_pid(&ctx.db, &pid).await?;
-        u.into_active_model().set_unblocked(&ctx.db).await?;
     }
+
+    if !user.is_superuser {
+        return unauthorized("forbidden");
+    }
+
+    let u = users::Model::find_by_pid(&ctx.db, &pid).await?;
+    u.into_active_model().set_unblocked(&ctx.db).await?;
     format::empty()
 }
 
@@ -464,12 +487,17 @@ pub async fn user_unblock(auth: auth::JWT, Path(pid): Path<String>, State(ctx): 
 pub async fn user_delete(auth: auth::JWT, Path(pid): Path<String>, State(ctx): State<AppContext>) -> Result<Response> {
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
 
-    if user.pid == pid.parse::<Uuid>().unwrap() {
+    let target_pid = pid.parse::<Uuid>().map_err(|_| Error::BadRequest("invalid user id".to_string()))?;
+    if user.pid == target_pid {
         return bad_request("cannot delete yourself");
-    } else if user.is_superuser {
-        let u = users::Model::find_by_pid(&ctx.db, &pid.to_string()).await?;
-        u.delete(&ctx.db).await?;
     }
+
+    if !user.is_superuser {
+        return unauthorized("forbidden");
+    }
+
+    let u = users::Model::find_by_pid(&ctx.db, &pid.to_string()).await?;
+    u.delete(&ctx.db).await?;
     format::empty()
 }
 
@@ -528,6 +556,144 @@ pub async fn user_order_cancel(auth: auth::JWT, Path(order_number): Path<String>
     Err(Error::BadRequest("Only orders awaiting payment can be cancelled".to_string()))
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/users",
+    tag = "users",
+    responses(
+        (status = 200, description = "List all users", body = [AdminUserResponse]),
+        (status = 401, description = "Unauthorized", body = UnauthorizedResponse),
+    ),
+    security(("jwt_token" = []))
+)]
+#[debug_handler]
+pub async fn admin_user_list(auth: auth::JWT, State(ctx): State<AppContext>) -> Result<Response> {
+    let admin = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    if !admin.is_superuser {
+        return unauthorized("forbidden");
+    }
+
+    let all = users::Entity::find().all(&ctx.db).await?;
+    let response: Vec<AdminUserResponse> = all.iter().map(AdminUserResponse::new).collect();
+    format::json(response)
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/user/new",
+    tag = "users",
+    request_body = AdminUserCreateParams,
+    responses(
+        (status = 200, description = "Create user successfully", body = AdminUserResponse),
+        (status = 400, description = "Bad request", body = UnauthorizedResponse),
+        (status = 401, description = "Unauthorized", body = UnauthorizedResponse),
+    ),
+    security(("jwt_token" = []))
+)]
+#[debug_handler]
+pub async fn admin_user_add(
+    auth: auth::JWT,
+    State(ctx): State<AppContext>,
+    Json(params): Json<AdminUserCreateParams>,
+) -> Result<Response> {
+    let admin = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    if !admin.is_superuser {
+        return unauthorized("forbidden");
+    }
+
+    let user = users::Model::create_by_admin(&ctx.db, &params)
+        .await
+        .map_err(|e| Error::BadRequest(e.to_string()))?;
+    format::json(AdminUserResponse::new(&user))
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/user/{pid}",
+    tag = "users",
+    params(("pid" = String, Path, description = "User pid (UUID)")),
+    responses(
+        (status = 200, description = "User detail", body = AdminUserResponse),
+        (status = 401, description = "Unauthorized", body = UnauthorizedResponse),
+        (status = 404, description = "Not found", body = UnauthorizedResponse),
+    ),
+    security(("jwt_token" = []))
+)]
+#[debug_handler]
+pub async fn admin_user_get(
+    auth: auth::JWT,
+    Path(pid): Path<String>,
+    State(ctx): State<AppContext>,
+) -> Result<Response> {
+    let admin = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    if !admin.is_superuser {
+        return unauthorized("forbidden");
+    }
+
+    let user = users::Model::find_by_pid(&ctx.db, &pid).await?;
+    format::json(AdminUserResponse::new(&user))
+}
+
+#[utoipa::path(
+    put,
+    path = "/api/user/{pid}",
+    tag = "users",
+    params(("pid" = String, Path, description = "User pid (UUID)")),
+    request_body = AdminUserUpdateParams,
+    responses(
+        (status = 200, description = "Update user successfully", body = AdminUserResponse),
+        (status = 401, description = "Unauthorized", body = UnauthorizedResponse),
+        (status = 404, description = "Not found", body = UnauthorizedResponse),
+    ),
+    security(("jwt_token" = []))
+)]
+#[debug_handler]
+pub async fn admin_user_update(
+    auth: auth::JWT,
+    Path(pid): Path<String>,
+    State(ctx): State<AppContext>,
+    Json(params): Json<AdminUserUpdateParams>,
+) -> Result<Response> {
+    let admin = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    if !admin.is_superuser {
+        return unauthorized("forbidden");
+    }
+
+    let user = users::Model::find_by_pid(&ctx.db, &pid).await?;
+    let mut item = user.into_active_model();
+
+    if let Some(email) = params.email {
+        item.email = ActiveValue::Set(email);
+    }
+    if let Some(first_name) = params.first_name {
+        item.first_name = ActiveValue::Set(first_name);
+    }
+    if let Some(last_name) = params.last_name {
+        item.last_name = ActiveValue::Set(last_name);
+    }
+    if let Some(phone) = params.phone {
+        item.phone = ActiveValue::Set(Some(phone));
+    }
+    if let Some(location) = params.location {
+        item.location = ActiveValue::Set(Some(location));
+    }
+    if let Some(is_active) = params.is_active {
+        item.is_active = ActiveValue::Set(is_active);
+    }
+    if let Some(is_superuser) = params.is_superuser {
+        item.is_superuser = ActiveValue::Set(is_superuser);
+    }
+
+    let user = item.update(&ctx.db).await?;
+    format::json(AdminUserResponse::new(&user))
+}
+
+pub fn admin_routes() -> Routes {
+    Routes::new()
+        .prefix("/api")
+        .add("/users", get(admin_user_list))
+}
+
 pub fn routes() -> Routes {
     Routes::new()
         .prefix("/api/user")
@@ -536,6 +702,10 @@ pub fn routes() -> Routes {
         .add("/update_profile", post(update_profile))
         .add("/products", get(product_list))
         .add("/orders", get(user_order_list))
+        .add("/new", post(admin_user_add))
+        .add("/{pid}", get(admin_user_get))
+        .add("/{pid}", put(admin_user_update))
+        .add("/{pid}", delete(user_delete))
         .add("/product/new", post(product_add))
         .add("/product/{id}", get(product_get_one))
         .add("/product/{id}", delete(product_remove))

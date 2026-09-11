@@ -28,6 +28,7 @@
             <button data-section="materials" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50">Materials</button>
             <button data-section="payment_methods" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50">Payment Methods</button>
             <button data-section="delivery_methods" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50">Delivery Methods</button>
+            <button data-section="users" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50">Users</button>
             <button data-section="settings" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50">Settings</button>
         </nav>
     </aside>
@@ -192,6 +193,35 @@
                 </div>
             </section>
 
+            <!-- Users -->
+            <section id="users" class="hidden">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-semibold">Users</h2>
+                    <div class="flex items-center gap-3">
+                        <button id="refresh-users" class="rounded-md border px-3 py-1 text-sm">Refresh</button>
+                        <button id="add-user" class="rounded-md bg-violet-600 text-white px-3 py-1 text-sm">Add User</button>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 rounded-2xl shadow">
+                    <table class="w-full text-sm" id="users-table">
+                        <thead class="text-slate-600">
+                        <tr>
+                            <th class="text-left p-2">#</th>
+                            <th class="text-left p-2">Name</th>
+                            <th class="text-left p-2">Email</th>
+                            <th class="text-left p-2">Phone</th>
+                            <th class="text-left p-2">Active</th>
+                            <th class="text-left p-2">Superuser</th>
+                            <th class="text-left p-2">Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody id="users-tbody" class="divide-y"></tbody>
+                    </table>
+                    <p id="users-empty" class="text-sm text-slate-500 mt-4 hidden">No users yet. Click "Add User" to create one.</p>
+                </div>
+            </section>
+
         </main>
     </div>
 </div>
@@ -245,6 +275,7 @@
         if (id === 'materials') loadMaterials();
         if (id === 'payment_methods') loadPaymentMethods();
         if (id === 'delivery_methods') loadDeliveryMethods();
+        if (id === 'users') loadUsers();
     }
     navBtns.forEach(b => b.addEventListener('click', () => showSection(b.dataset.section)));
 
@@ -285,6 +316,12 @@
         })
         document.getElementById('delivery_service_active')?.addEventListener('change', (e)=>{
             modalForm.active.value = e.target.checked;
+        })
+        document.getElementById('user_is_active')?.addEventListener('change', (e)=>{
+            modalForm.is_active.value = e.target.checked;
+        })
+        document.getElementById('user_is_superuser')?.addEventListener('change', (e)=>{
+            modalForm.is_superuser.value = e.target.checked;
         })
     }
 
@@ -1064,6 +1101,142 @@
             });
             if(!res.ok) throw new Error('Delete failed');
             document.querySelectorAll('.show-delivery_service').forEach(btn=>btn.click());
+        }catch(err){ alert('Failed to delete'); console.error(err); }
+    }
+
+    // --- Users CRUD (AJAX, superuser only) ---
+    const usersTbody = document.getElementById('users-tbody');
+    const usersEmpty = document.getElementById('users-empty');
+    const userAuthHeaders = () => ({
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+    });
+
+    async function loadUsers(){
+        usersTbody.innerHTML = '';
+        try{
+            const res = await fetch('/api/users', { headers: userAuthHeaders() });
+            if(!res.ok) throw new Error('Failed to load');
+            const data = await res.json();
+            if(!data.length){ usersEmpty.classList.remove('hidden'); return; } else usersEmpty.classList.add('hidden');
+            data.forEach((u,i)=>{
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+            <td class="p-2">${i+1}</td>
+            <td class="p-2">${escapeHtml(((u.first_name||'')+' '+(u.last_name||'')).trim())}</td>
+            <td class="p-2">${escapeHtml(u.email)}</td>
+            <td class="p-2">${escapeHtml(u.phone||'—')}</td>
+            <td class="p-2">${u.is_active ? '✓' : '—'}</td>
+            <td class="p-2">${u.is_superuser ? '✓' : '—'}</td>
+            <td class="p-2">
+              <div class="flex gap-2">
+                <button data-pid="${u.pid}" class="edit-user rounded-md border px-2 py-1 text-sm">Edit</button>
+                <button data-pid="${u.pid}" class="delete-user rounded-md border px-2 py-1 text-sm text-red-600">Delete</button>
+              </div>
+            </td>`;
+                usersTbody.appendChild(tr);
+            });
+            document.querySelectorAll('.edit-user').forEach(btn=>btn.addEventListener('click', onEditUser));
+            document.querySelectorAll('.delete-user').forEach(btn=>btn.addEventListener('click', onDeleteUser));
+        }catch(err){
+            console.error(err);
+            usersEmpty.textContent = 'Unable to load users.';
+            usersEmpty.classList.remove('hidden');
+        }
+    }
+
+    document.getElementById('refresh-users').addEventListener('click', loadUsers);
+    document.getElementById('add-user').addEventListener('click', ()=>{
+        openModal({
+            title: 'Add User',
+            extraHtml: `<div>
+                <label class="block text-sm text-slate-700 mb-1">First Name</label>
+                <input name="first_name" class="w-full rounded-md border border-slate-200 px-3 py-2" value="" />
+            </div><div>
+                <label class="block text-sm text-slate-700 mb-1">Last Name</label>
+                <input name="last_name" class="w-full rounded-md border border-slate-200 px-3 py-2" value="" />
+            </div><div>
+                <label class="block text-sm text-slate-700 mb-1">Email</label>
+                <input name="email" type="email" class="w-full rounded-md border border-slate-200 px-3 py-2" value="" />
+            </div><div>
+                <label class="block text-sm text-slate-700 mb-1">Password</label>
+                <input name="password" type="password" class="w-full rounded-md border border-slate-200 px-3 py-2" value="" />
+            </div><div>
+                <label class="block text-sm text-slate-700 mb-1">Phone</label>
+                <input name="phone" class="w-full rounded-md border border-slate-200 px-3 py-2" value="" />
+            </div>
+            <div><label>
+                <input type="checkbox" id="user_is_active" name="is_active" value="false"> Active
+            </label></div>
+            <div><label>
+                <input type="checkbox" id="user_is_superuser" name="is_superuser" value="false"> Superuser
+            </label></div>`,
+            onSubmit: async (formData) => {
+                formData['is_active'] = formData['is_active'] === 'true';
+                formData['is_superuser'] = formData['is_superuser'] === 'true';
+                await saveUser(formData);
+                closeModal();
+            }
+        });
+    });
+
+    async function saveUser(payload){
+        try{
+            const res = await fetch('/api/user/new', {method:'POST',headers:userAuthHeaders(),body:JSON.stringify(payload)});
+            if(!res.ok) throw new Error('Save failed');
+            await loadUsers();
+        }catch(err){ alert('Failed to save user'); console.error(err); }
+    }
+
+    async function onEditUser(e){
+        const pid = e.currentTarget.dataset.pid;
+        try{
+            const res = await fetch(`/api/user/${pid}`, { headers: userAuthHeaders() });
+            if(!res.ok) throw new Error('Not found');
+            const u = await res.json();
+            openModal({
+                title: 'Edit User',
+                extraHtml: `<div>
+                    <label class="block text-sm text-slate-700 mb-1">First Name</label>
+                    <input name="first_name" class="w-full rounded-md border border-slate-200 px-3 py-2" value="${escapeHtml(u.first_name||'')}" />
+                </div><div>
+                    <label class="block text-sm text-slate-700 mb-1">Last Name</label>
+                    <input name="last_name" class="w-full rounded-md border border-slate-200 px-3 py-2" value="${escapeHtml(u.last_name||'')}" />
+                </div><div>
+                    <label class="block text-sm text-slate-700 mb-1">Email</label>
+                    <input name="email" type="email" class="w-full rounded-md border border-slate-200 px-3 py-2" value="${escapeHtml(u.email||'')}" />
+                </div><div>
+                    <label class="block text-sm text-slate-700 mb-1">Phone</label>
+                    <input name="phone" class="w-full rounded-md border border-slate-200 px-3 py-2" value="${escapeHtml(u.phone||'')}" />
+                </div>
+                <div><label>
+                    <input type="checkbox" id="user_is_active" name="is_active" value="${u.is_active}"${u.is_active? ' checked' : ''}> Active
+                </label></div>
+                <div><label>
+                    <input type="checkbox" id="user_is_superuser" name="is_superuser" value="${u.is_superuser}"${u.is_superuser? ' checked' : ''}> Superuser
+                </label></div>`,
+                onSubmit: async (formData) => {
+                    formData['is_active'] = formData['is_active'] === 'true';
+                    formData['is_superuser'] = formData['is_superuser'] === 'true';
+                    if (!formData['email']) delete formData['email'];
+                    try{
+                        const r = await fetch(`/api/user/${pid}`, {method:'PUT',headers:userAuthHeaders(),body:JSON.stringify(formData)});
+                        if(!r.ok) throw new Error('Update failed');
+                        await loadUsers();
+                        closeModal();
+                    }catch(err){ alert('Failed to update'); console.error(err); }
+                }
+            });
+        }catch(err){ alert('Failed to fetch user'); console.error(err); }
+    }
+
+    async function onDeleteUser(e){
+        const pid = e.currentTarget.dataset.pid;
+        if(!confirm('Delete this user?')) return;
+        try{
+            const res = await fetch(`/api/user/${pid}`, {method:'DELETE',headers:userAuthHeaders()});
+            if(!res.ok) throw new Error('Delete failed');
+            await loadUsers();
         }catch(err){ alert('Failed to delete'); console.error(err); }
     }
 

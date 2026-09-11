@@ -1,10 +1,9 @@
 #![allow(clippy::unused_async)]
+use axum::response::IntoResponse;
 use loco_rs::prelude::*;
 use crate::models::_entities::users;
 use crate::views::base::BaseResponse;
 use crate::views;
-use loco_rs::{auth::jwt};
-use axum::{http::{StatusCode, HeaderMap}, middleware, response::{Redirect}};
 
 pub async fn echo(req_body: String) -> String {
     req_body
@@ -36,12 +35,12 @@ pub async fn verify_page(
     format::text("Account has been verified successfully!")
 }
 
-pub async fn render_home(State(ctx): State<AppContext>, ViewEngine(v): ViewEngine<TeraView>) -> Result<impl IntoResponse> {
-    views::base::home(v)
+pub async fn render_home() -> impl IntoResponse {
+    views::base::home()
 }
 
-pub async fn render_dashboard(ViewEngine(v): ViewEngine<TeraView>) -> Result<impl IntoResponse> {
-    views::base::dashboard(v)
+pub async fn render_dashboard() -> impl IntoResponse {
+    views::base::dashboard()
 }
 
 pub fn routes() -> Routes {

@@ -191,7 +191,7 @@ impl Model {
             INNER JOIN order_items oi ON o.id = oi.order_id
             LEFT JOIN products p ON p.id = oi.product_id
             LEFT JOIN users s ON s.id = oi.seller_id
-            WHERE o.seller_id = $1
+            WHERE oi.seller_id = $1
             GROUP BY o.order_number, o.final_price, o.delivery_address_detail, COALESCE(o.payment_method_detail, '{}'::json)::jsonb, COALESCE(o.meetup_address_detail, '{}'::json)::jsonb, o.status
         "#.to_string();
         let values = vec![(*seller_id).into()];
@@ -251,7 +251,7 @@ impl Model {
             INNER JOIN order_items oi ON o.id = oi.order_id
             LEFT JOIN products p ON p.id = oi.product_id
             LEFT JOIN users s ON s.id = oi.seller_id
-            WHERE o.seller_id = $1 AND o.order_number = $2
+            WHERE oi.seller_id = $1 AND o.order_number = $2
             GROUP BY o.order_number, o.final_price, o.delivery_address_detail, COALESCE(o.payment_method_detail, '{}'::json)::jsonb, COALESCE(o.meetup_address_detail, '{}'::json)::jsonb, o.status
         "#.to_string();
         let values = vec![(*seller_id).into(), order_numer.clone().into()];

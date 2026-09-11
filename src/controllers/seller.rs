@@ -8,6 +8,7 @@ use crate::{
     models::_entities::{
         users,
         orders,
+        order_items,
         sea_orm_active_enums::OrderStatusEnum,
     },
     views::order::OrderDetailResponse,
@@ -72,14 +73,23 @@ pub async fn seller_order_detail(auth: auth::JWT, Path(order_number): Path<Strin
 pub async fn seller_order_cancel(auth: auth::JWT, Path(order_number): Path<String>, State(ctx): State<AppContext>) -> Result<Response> {
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
     let order = orders::Entity::find()
-        .filter(
-            Condition::all()
-                .add(orders::Column::BuyerId.eq(user.id))
-                .add(orders::Column::OrderNumber.eq(order_number))
-        ).one(&ctx.db).await?
+        .filter(orders::Column::OrderNumber.eq(order_number))
+        .one(&ctx.db).await?
         .ok_or_else(|| Error::BadRequest("Order not found".into()))?;
 
-    if order.status == OrderStatusEnum::AwaitingPayment && order.buyer_id == user.id {
+    let is_seller = order_items::Entity::find()
+        .filter(
+            Condition::all()
+                .add(order_items::Column::OrderId.eq(order.id))
+                .add(order_items::Column::SellerId.eq(user.id))
+        ).one(&ctx.db).await?
+        .is_some();
+
+    if !is_seller {
+        return Err(Error::BadRequest("Order not found".into()));
+    }
+
+    if order.status == OrderStatusEnum::AwaitingPayment {
         order.into_active_model().set_status_cancelled(&ctx.db).await?;
         return format::empty();
     }
