@@ -1,6 +1,7 @@
 #![allow(clippy::unused_async)]
 use axum::response::IntoResponse;
 use loco_rs::prelude::*;
+use loco_rs::controller::ErrorDetail;
 use crate::models::_entities::users;
 use crate::views::base::BaseResponse;
 use crate::views;
@@ -57,4 +58,20 @@ pub fn routes() -> Routes {
         // .nest("/dashboard", dashboard_routes)
         .add("/dashboard", get(render_dashboard))
         .add("/verify/{token}", get(verify_page))
+}
+
+/// Load the acting user and require `is_superuser`. Returns 403 otherwise.
+pub async fn require_superuser(ctx: &AppContext, auth: &auth::JWT) -> Result<users::Model> {
+    let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    if !user.is_superuser {
+        return Err(forbidden("only superuser can do that"));
+    }
+    Ok(user)
+}
+
+pub fn forbidden(msg: &str) -> Error {
+    Error::CustomError(
+        axum::http::StatusCode::FORBIDDEN,
+        ErrorDetail::new("forbidden", msg),
+    )
 }

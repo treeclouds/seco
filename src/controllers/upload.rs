@@ -32,21 +32,60 @@ async fn load_product(ctx: &AppContext, user: users::Model, id: i32) -> Result<M
     item.ok_or_else(|| Error::NotFound)
 }
 
-pub async fn generate_unique_filename(base_filename: &str, product_id: i32) -> std::io::Result<PathBuf> {
-    let mut filename = base_filename.to_owned();
+const ALLOWED_IMAGE_EXTENSIONS: &[&str] = &["jpg", "jpeg", "png", "webp", "gif", "heic", "heif"];
+const MAX_IMAGE_BYTES: usize = 10 * 1024 * 1024;
+
+/// Reduce a client-supplied file name to a safe basename with an allowed image
+/// extension. Rejects path separators, `..`, absolute paths, control chars and
+/// unknown extensions. Returns (stem, lowercase extension).
+pub fn sanitize_image_filename(raw: &str) -> std::result::Result<(String, String), &'static str> {
+    if raw.contains('/') || raw.contains('\\') || raw.contains("..") || raw.contains('\0') {
+        return Err("invalid file name");
+    }
+    let name = raw.trim();
+    if name.is_empty() || name.starts_with('.') {
+        return Err("invalid file name");
+    }
+    let (stem, ext) = match name.rsplit_once('.') {
+        Some((s, e)) if !s.is_empty() && !e.is_empty() => (s, e.to_ascii_lowercase()),
+        _ => return Err("file must have an image extension"),
+    };
+    if !ALLOWED_IMAGE_EXTENSIONS.contains(&ext.as_str()) {
+        return Err("unsupported file type; allowed: jpg, jpeg, png, webp, gif, heic, heif");
+    }
+    let stem: String = stem
+        .chars()
+        .map(|c| if c.is_ascii_alphanumeric() || c == '-' || c == '_' { c } else { '_' })
+        .take(100)
+        .collect();
+    Ok((stem, ext))
+}
+
+/// Very small magic-byte sniff so a renamed non-image is rejected.
+fn looks_like_image(ext: &str, b: &[u8]) -> bool {
+    match ext {
+        "jpg" | "jpeg" => b.starts_with(&[0xFF, 0xD8, 0xFF]),
+        "png" => b.starts_with(&[0x89, b'P', b'N', b'G']),
+        "gif" => b.starts_with(b"GIF8"),
+        "webp" => b.len() >= 12 && &b[0..4] == b"RIFF" && &b[8..12] == b"WEBP",
+        "heic" | "heif" => b.len() >= 12 && &b[4..8] == b"ftyp",
+        _ => false,
+    }
+}
+
+pub async fn generate_unique_filename(stem: &str, ext: &str, product_id: i32) -> std::io::Result<PathBuf> {
+    let mut filename = format!("{stem}.{ext}");
     let mut counter = 0u32;
 
     loop {
-        let new_filename = format!("{product_id}/{filename}");
-        let path_buf = PathBuf::from("storage-uploads/product_images").join(new_filename);
+        let path_buf = PathBuf::from("storage-uploads/product_images")
+            .join(product_id.to_string())
+            .join(&filename);
         if !path_buf.exists() {
             return Ok(filename.into());
         }
-
-        let (name, ext) = base_filename.split_once('.').unwrap();
-
         counter += 1;
-        filename = format!("{}_{:03}.{}", name, counter, ext.to_string());
+        filename = format!("{stem}_{counter:03}.{ext}");
     }
 }
 
@@ -96,17 +135,33 @@ async fn upload_product_image_file(
             _ => return Err(Error::BadRequest("file name not found".into())),
         };
 
+        let (stem, ext) = sanitize_image_filename(&file_name)
+            .map_err(|e| Error::BadRequest(e.into()))?;
+
         let content = field.bytes().await.map_err(|err| {
             tracing::error!(error = ?err,"could not read bytes");
             Error::BadRequest("could not read bytes".into())
         })?;
 
+        if content.len() > MAX_IMAGE_BYTES {
+            return Err(Error::BadRequest("file too large".into()));
+        }
+        if !looks_like_image(&ext, &content) {
+            return Err(Error::BadRequest("file content is not a valid image".into()));
+        }
+
         // generate nama file unik per product
-        let unique_file_name = generate_unique_filename(&file_name, product_id).await?;
+        let unique_file_name = generate_unique_filename(&stem, &ext, product_id).await?;
         let unique_file_name_str = unique_file_name.to_string_lossy().to_string();
         let new_filename = format!("{product_id}/{unique_file_name_str}");
 
         let path = PathBuf::from("product_images").join(&new_filename);
+        // defense in depth: final path must be exactly product_images/<id>/<basename>
+        if path.components().count() != 3
+            || path.components().any(|c| !matches!(c, std::path::Component::Normal(_)))
+        {
+            return Err(Error::BadRequest("invalid file name".into()));
+        }
 
         // upload ke storage
         ctx.storage
