@@ -16,6 +16,13 @@ pub struct Params {
 }
 
 impl Params {
+    pub(crate) fn validate(&self) -> loco_rs::Result<()> {
+        if self.price < Decimal::ZERO {
+            return Err(loco_rs::Error::BadRequest("price must be >= 0".into()));
+        }
+        Ok(())
+    }
+
     fn update(&self, item: &mut ActiveModel) {
         item.delivery_method_id = Set(self.delivery_method_id);
         item.name = Set(self.name.clone());
@@ -36,6 +43,7 @@ pub async fn delivery_method_service_list(State(ctx): State<AppContext>) -> Resu
 
 #[debug_handler]
 pub async fn delivery_method_service_add(auth: auth::JWT, State(ctx): State<AppContext>, Json(params): Json<Params>) -> Result<Response> {
+    params.validate()?;
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
     if !user.is_superuser {
         return bad_request("You are not allowed to add delivery service. Only superuser can do that.");
@@ -56,6 +64,7 @@ pub async fn delivery_method_service_update(
     State(ctx): State<AppContext>,
     Json(params): Json<Params>,
 ) -> Result<Response> {
+    params.validate()?;
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
     if !user.is_superuser {
         return bad_request("You are not allowed to update delivery service. Only superuser can do that.");

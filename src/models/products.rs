@@ -46,7 +46,7 @@ impl Model {
                     ON w.product_id = p.id
                    AND w.user_id = $1
                    AND w.is_deleted = false
-                WHERE p.id = $2
+                WHERE p.id = $2 AND (p.status <> 'Draft' OR p.seller_id = $1)
             "#.to_string();
 
             let gb = "GROUP BY p.id, u.pid, u.first_name, u.last_name, u.created_at, u.location, w.id".to_owned();
@@ -76,7 +76,7 @@ impl Model {
                 INNER JOIN categories c ON c.id = p.category_id
                 LEFT JOIN brands b ON b.id = p.brand_id
                 LEFT JOIN materials m ON m.id = p.material_id
-                WHERE p.id = $1
+                WHERE p.id = $1 AND p.status <> 'Draft'
             "#.to_string();
 
             let gb = "GROUP BY p.id, u.pid, u.first_name, u.last_name, u.created_at, u.location".to_owned();
@@ -172,7 +172,7 @@ impl Model {
         // Placeholder counter starts past any already-bound params (e.g. user_id = $1).
         let mut next_param: usize = values.len() + 1;
 
-        let mut extra_where_clause: String = "WHERE p.seller_id IS NOT NULL".to_owned();
+        let mut extra_where_clause: String = "WHERE p.seller_id IS NOT NULL AND p.status <> 'Draft'".to_owned();
 
         if let Some(title) = title {
             extra_where_clause += &format!(" AND p.title ILIKE ${next_param}");
@@ -181,8 +181,8 @@ impl Model {
         }
 
         if let Some(condition) = condition {
-            extra_where_clause += &format!(" AND p.condition = ${next_param}");
-            values.push(format!("{:?}", condition).into());
+            extra_where_clause += &format!(" AND p.condition::text = ${next_param}");
+            values.push(sea_orm::ActiveEnum::to_value(*condition).into());
             next_param += 1;
         }
 

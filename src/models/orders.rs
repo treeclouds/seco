@@ -298,3 +298,45 @@ impl ActiveModel {
 
 // implement your custom finders, selectors oriented logic here
 impl Entity {}
+
+/// Cancel an order and put each item's qty back into product stock, atomically.
+/// Only `AwaitingPayment` orders may be cancelled; anything else is rejected
+/// (re-checked inside the transaction with a row lock to avoid double-restores).
+pub async fn cancel_and_restore_stock(
+    db: &DatabaseConnection,
+    order_id: i32,
+) -> std::result::Result<Model, loco_rs::Error> {
+    use sea_orm::{QueryFilter, QuerySelect, TransactionTrait, sea_query::Expr};
+    use super::_entities::{order_items, products};
+
+    let txn = db.begin().await?;
+    let order = Entity::find_by_id(order_id)
+        .lock_exclusive()
+        .one(&txn)
+        .await?
+        .ok_or(loco_rs::Error::NotFound)?;
+    if order.status != OrderStatusEnum::AwaitingPayment {
+        return Err(loco_rs::Error::BadRequest(
+            "Only orders awaiting payment can be cancelled".to_string(),
+        ));
+    }
+    let items = order_items::Entity::find()
+        .filter(order_items::Column::OrderId.eq(order.id))
+        .all(&txn)
+        .await?;
+    for it in items {
+        products::Entity::update_many()
+            .col_expr(
+                products::Column::Stock,
+                Expr::col(products::Column::Stock).add(it.qty),
+            )
+            .filter(products::Column::Id.eq(it.product_id))
+            .exec(&txn)
+            .await?;
+    }
+    let mut am: ActiveModel = order.into();
+    am.status = ActiveValue::set(OrderStatusEnum::Cancelled);
+    let order = am.update(&txn).await?;
+    txn.commit().await?;
+    Ok(order)
+}

@@ -32,6 +32,24 @@ impl CartPostParams {
     }
 }
 
+/// Validate qty and that the product exists and isn't the buyer's own.
+async fn validate_cart_params(ctx: &AppContext, user: &users::Model, params: &CartPostParams) -> Result<()> {
+    if params.qty <= 0 {
+        return Err(Error::BadRequest("qty must be greater than 0".to_string()));
+    }
+    let product = products::Entity::find_by_id(params.product_id)
+        .one(&ctx.db)
+        .await?
+        .ok_or_else(|| Error::NotFound)?;
+    if product.seller_id == user.id {
+        return Err(Error::BadRequest("You are not allowed to add your own products to the cart".to_string()));
+    }
+    if params.qty > product.stock {
+        return Err(Error::BadRequest("qty exceeds available stock".to_string()));
+    }
+    Ok(())
+}
+
 async fn load_item(ctx: &AppContext, id: i32) -> Result<Model> {
     let item = Entity::find_by_id(id).one(&ctx.db).await?;
     item.ok_or_else(|| Error::NotFound)
@@ -88,14 +106,7 @@ pub async fn user_cart_list(auth: auth::JWT, State(ctx): State<AppContext>) -> R
 #[debug_handler]
 pub async fn user_cart_add(auth: auth::JWT, State(ctx): State<AppContext>, Json(params): Json<CartPostParams>) -> Result<Response> {
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
-    let product = products::Entity::find_by_id(params.product_id)
-        .one(&ctx.db)
-        .await?
-        .ok_or_else(|| Error::NotFound)?;
-
-    if product.seller_id == user.id {
-        return Err(Error::BadRequest("You are not allowed to add your own products to the cart".to_string()));
-    }
+    validate_cart_params(&ctx, &user, &params).await?;
 
     let mut item = ActiveModel {
         user_id: ActiveValue::Set(user.id),
@@ -118,6 +129,7 @@ pub async fn user_cart_update(
     if item.user_id != user.id {
         return Err(Error::NotFound);
     }
+    validate_cart_params(&ctx, &user, &params).await?;
     let mut item = item.into_active_model();
     params.update(&mut item);
     let item = item.update(&ctx.db).await?;

@@ -9,7 +9,6 @@ use crate::{
         users,
         orders,
         order_items,
-        sea_orm_active_enums::OrderStatusEnum,
     },
     views::order::OrderDetailResponse,
 };
@@ -55,7 +54,7 @@ pub async fn seller_order_detail(auth: auth::JWT, Path(order_number): Path<Strin
 }
 
 #[utoipa::path(
-    get,
+    post,
     path = "/api/seller/order/{order_number}/cancel",
     tag = "sellers",
     responses(
@@ -89,11 +88,8 @@ pub async fn seller_order_cancel(auth: auth::JWT, Path(order_number): Path<Strin
         return Err(Error::BadRequest("Order not found".into()));
     }
 
-    if order.status == OrderStatusEnum::AwaitingPayment {
-        order.into_active_model().set_status_cancelled(&ctx.db).await?;
-        return format::empty();
-    }
-    Err(Error::BadRequest("Only orders awaiting payment can be cancelled".to_string()))
+    crate::models::orders::cancel_and_restore_stock(&ctx.db, order.id).await?;
+    format::empty()
 }
 
 pub fn routes() -> Routes {
@@ -101,5 +97,5 @@ pub fn routes() -> Routes {
         .prefix("api/seller/")
         .add("/orders", get(seller_order_list))
         .add("/order/{order_number}", get(seller_order_detail))
-        .add("/order/{order_number}/cancel", get(seller_order_cancel))
+        .add("/order/{order_number}/cancel", post(seller_order_cancel))
 }

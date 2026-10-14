@@ -177,6 +177,9 @@ pub async fn order_add(auth: auth::JWT, State(ctx): State<AppContext>, Json(para
         ..Default::default()
     };
     params.update(&mut order);
+    if !matches!(params.delivery_address_id, Some(d) if d > 0) {
+        order.delivery_address_id = Set(None);
+    }
     let order = order.insert(&ctx.db).await?;
     let qty = 1;
     let order_item = OrderItemActiveModel {
@@ -210,8 +213,48 @@ pub async fn order_update(
     if item.buyer_id != user.id {
         return Err(Error::NotFound);
     }
+    if item.status != OrderStatusEnum::AwaitingPayment {
+        return bad_request("Only orders awaiting payment can be updated");
+    }
+
+    let payment_method = payment_methods::Entity::find_by_id(params.payment_method_id)
+        .one(&ctx.db)
+        .await?
+        .ok_or_else(|| Error::BadRequest("Payment method not found".into()))?;
+
     let mut item = item.into_active_model();
-    params.update(&mut item);
+    match params.delivery_address_id {
+        Some(d) if d > 0 => {
+            let addr = delivery_addresses::Entity::find_by_id(d)
+                .one(&ctx.db)
+                .await?
+                .ok_or_else(|| Error::BadRequest("Delivery address not found".into()))?;
+            if addr.user_id != user.id {
+                return bad_request("Delivery address is not yours");
+            }
+            item.delivery_address_detail = Set(Some(json!({
+                "name": addr.name,
+                "phone": addr.phone,
+                "email": addr.email,
+                "city": addr.city,
+                "address": addr.address,
+            }).to_string()));
+            item.delivery_address_id = Set(Some(d));
+        }
+        _ => {
+            item.delivery_address_id = Set(None);
+        }
+    }
+    let payment_gateway = match payment_method.payment_gateway {
+        Some(ref pg) => pg.to_value(),
+        None => "-".to_string(),
+    };
+    item.payment_method_id = Set(payment_method.id);
+    item.payment_method_detail = Set(Some(json!({
+        "name": payment_method.name,
+        "expiry_time": payment_method.expiry_time,
+        "payment_gateway": payment_gateway,
+    })));
     let item = item.update(&ctx.db).await?;
     format::json(item)
 }
@@ -238,7 +281,7 @@ pub async fn get_order_one(auth: auth::JWT, Path(id): Path<i32>, State(ctx): Sta
 }
 
 #[utoipa::path(
-    get,
+    post,
     path = "/api/orders/{id}/confirm",
     tag = "orders",
     responses(
@@ -258,6 +301,9 @@ pub async fn order_confirm(auth: auth::JWT, Path(id): Path<i32>, State(ctx): Sta
         return Err(Error::BadRequest("Order is not yours".to_string()));
     }
 
+    if matches!(item.status, OrderStatusEnum::Cancelled | OrderStatusEnum::Completed | OrderStatusEnum::Returned) {
+        return Err(Error::BadRequest(format!("Order is already {:?}", item.status)));
+    }
     if item.status != OrderStatusEnum::Shipped {
         return Err(Error::BadRequest("Order is not shipped yet".to_string()));
     }
@@ -275,5 +321,5 @@ pub fn routes() -> Routes {
         .add("{id}", delete(order_remove))
         .add("{id}", put(order_update))
         .add("{id}", patch(order_update))
-        .add("{id}/confirm", get(order_confirm))
+        .add("{id}/confirm", post(order_confirm))
 }

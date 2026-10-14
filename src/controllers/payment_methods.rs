@@ -27,6 +27,13 @@ pub struct PaymentMethodParams {
 }
 
 impl PaymentMethodParams {
+    pub(crate) fn validate(&self) -> loco_rs::Result<()> {
+        if self.expiry_time <= 0 {
+            return Err(loco_rs::Error::BadRequest("expiry_time must be > 0".into()));
+        }
+        Ok(())
+    }
+
     fn update(&self, item: &mut ActiveModel) {
         item.name = Set(self.name.to_owned());
         item.description = Set(self.description.clone());
@@ -74,6 +81,7 @@ pub async fn payment_method_list(State(ctx): State<AppContext>) -> Result<Respon
 )]
 #[debug_handler]
 pub async fn payment_method_add(auth: auth::JWT, State(ctx): State<AppContext>, Json(params): Json<PaymentMethodParams>) -> Result<Response> {
+    params.validate()?;
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
     if !user.is_superuser {
         return bad_request("You are not allowed to update payment methods. Only superuser can do that.");
@@ -100,6 +108,7 @@ pub async fn payment_method_update(
     State(ctx): State<AppContext>,
     Json(params): Json<PaymentMethodParams>,
 ) -> Result<Response> {
+    params.validate()?;
     println!("{:?}", &auth.claims.pid);
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
     if !user.is_superuser {
