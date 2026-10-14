@@ -25,7 +25,8 @@ async fn can_register() {
     request::<App, _, _>(|request, ctx| async move {
         let email = "test@loco.com";
         let payload = serde_json::json!({
-            "name": "loco",
+            "first_name": "loco",
+            "last_name": "loco",
             "email": email,
             "password": "12341234"
         });
@@ -67,7 +68,8 @@ async fn can_login_with_verify(#[case] test_name: &str, #[case] password: &str) 
     request::<App, _, _>(|request, ctx| async move {
         let email = "test@loco.com";
         let register_payload = serde_json::json!({
-            "name": "loco",
+            "first_name": "loco",
+            "last_name": "loco",
             "email": email,
             "password": "12341234"
         });
@@ -88,9 +90,11 @@ async fn can_login_with_verify(#[case] test_name: &str, #[case] password: &str) 
         let email_verification_token = user
             .email_verification_token
             .expect("Email verification token should be generated");
-        request
-            .get(&format!("/api/auth/verify/{email_verification_token}"))
+        let verify_response = request
+            .post("/api/auth/verify")
+            .json(&serde_json::json!({ "token": email_verification_token }))
             .await;
+        assert_eq!(verify_response.status_code(), 200, "verify should succeed");
 
         //verify user request
         let response = request
@@ -130,7 +134,8 @@ async fn can_login_without_verify() {
         let email = "test@loco.com";
         let password = "12341234";
         let register_payload = serde_json::json!({
-            "name": "loco",
+            "first_name": "loco",
+            "last_name": "loco",
             "email": email,
             "password": password
         });

@@ -23,5 +23,7 @@ storage-uploads/product_images/**
 /target
 .shuttle*
 Secrets*.toml
-/tests
+# insta pending snapshots
+*.snap.new
+*.pending-snap
 .env
