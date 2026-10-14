@@ -411,6 +411,7 @@ pub async fn update_profile(
 ) -> Result<Response> {
     params.validate()?;
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    let old_email = user.email.clone();
     let new_email = params.email.trim().to_lowercase();
     let email_changed = !new_email.eq_ignore_ascii_case(user.email.trim());
     if email_changed {
@@ -437,7 +438,7 @@ pub async fn update_profile(
         user.email_verification_sent_at = Set(None);
     } else {
         // don't let a case/whitespace-only edit change the stored email
-        user.email = ActiveValue::NotSet;
+        user.email = Set(old_email);
     }
     user.updated_at = ActiveValue::Set(Local::now().naive_local());
     let user = user.update(&ctx.db).await?;

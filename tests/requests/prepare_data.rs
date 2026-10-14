@@ -138,3 +138,55 @@ pub fn auth_header_for(
     let value = HeaderValue::from_str(&format!("Bearer {token}")).unwrap();
     (HeaderName::from_static("authorization"), value)
 }
+
+/// Insert a COD payment method (unique by name) and return it.
+pub async fn create_payment_method(
+    db: &sea_orm::DatabaseConnection,
+) -> seco::models::_entities::payment_methods::Model {
+    use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
+    use seco::models::_entities::{payment_methods, sea_orm_active_enums::PaymentMethodNameEnum};
+    // name is UNIQUE and the DB is only truncated once per run, so reuse it
+    if let Some(pm) = payment_methods::Entity::find()
+        .filter(payment_methods::Column::Name.eq(PaymentMethodNameEnum::COD))
+        .one(db).await.unwrap()
+    {
+        return pm;
+    }
+    payment_methods::ActiveModel {
+        name: Set(PaymentMethodNameEnum::COD),
+        expiry_time: Set(60),
+        active: Set(true),
+        ..Default::default()
+    }
+    .insert(db)
+    .await
+    .expect("failed to insert payment method")
+}
+
+/// Insert a delivery address owned by `user_id`.
+pub async fn create_address(
+    db: &sea_orm::DatabaseConnection,
+    user_id: i32,
+) -> seco::models::_entities::delivery_addresses::Model {
+    use seco::models::_entities::delivery_addresses;
+    delivery_addresses::ActiveModel {
+        user_id: Set(user_id),
+        name: Set("Home".into()),
+        phone: Set("1".into()),
+        email: Set("a@b.c".into()),
+        city: Set("City".into()),
+        postal_code: Set("1".into()),
+        address: Set("Street 1".into()),
+        is_default: Set(false),
+        ..Default::default()
+    }
+    .insert(db)
+    .await
+    .expect("failed to insert address")
+}
+
+/// Reload a product's current stock.
+pub async fn product_stock(db: &sea_orm::DatabaseConnection, id: i32) -> i32 {
+    use sea_orm::EntityTrait;
+    products::Entity::find_by_id(id).one(db).await.unwrap().unwrap().stock
+}
