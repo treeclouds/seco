@@ -1,0 +1,718 @@
+use chrono::Local;
+use std::path::PathBuf;
+use axum::extract::Multipart;
+use loco_rs::prelude::*;
+use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
+use bytes::Bytes;
+use sea_orm::Condition;
+use crate::{
+    controllers::{
+        upload::generate_unique_filename,
+        products::{ProductPostParams, UnauthorizedResponse}
+    },
+    models::_entities::{
+        users::{self, ActiveModel},
+        products::{self, ActiveModel as ProductActiveModel, Entity as ProductEntity, Model as ProductModel},
+        product_images::{ActiveModel as ProductImageActiveModel, Model as ProductImageModel},
+        orders::{self, Entity as OrderEntity, Model as OrderModel},
+        sea_orm_active_enums::OrderStatusEnum,
+    },
+    views::{
+        order::OrderDetailResponse,
+        product::ProductResponse,
+        product_image::ProductImageResponse,
+        user::{CurrentResponse, AdminUserResponse},
+    },
+};
+
+use crate::models::users::AdminUserCreateParams;
+
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+pub struct LocationParams {
+    pub location: String,
+    pub latitude: Option<String>,
+    pub longitude: Option<String>,
+}
+
+impl LocationParams {
+    pub(crate) fn update(&self, item: &mut ActiveModel) {
+        item.location = Set(Option::from(self.location.clone()));
+        item.latitude = Set(Option::from(self.latitude.clone()));
+        item.longitude = Set(Option::from(self.longitude.clone()));
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+pub struct ProfileParams {
+    pub first_name: String,
+    pub last_name: String,
+    pub phone: Option<String>,
+    pub email: String,
+    pub location: String,
+    pub latitude: Option<String>,
+    pub longitude: Option<String>,
+}
+
+impl ProfileParams {
+    pub(crate) fn update(&self, item: &mut ActiveModel) {
+        item.first_name = Set(self.first_name.clone());
+        item.last_name = Set(self.last_name.clone());
+        item.phone = Set(Option::from(self.phone.clone()));
+        item.email = Set(self.email.clone());
+        item.location = Set(Option::from(self.location.clone()));
+        item.latitude = Set(Option::from(self.latitude.clone()));
+        item.longitude = Set(Option::from(self.longitude.clone()));
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+pub struct AdminUserUpdateParams {
+    pub email: Option<String>,
+    pub first_name: Option<String>,
+    pub last_name: Option<String>,
+    pub phone: Option<String>,
+    pub location: Option<String>,
+    pub is_active: Option<bool>,
+    pub is_superuser: Option<bool>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+pub struct CreateProductMultipart {
+    /// JSON string berisi data produk, sesuai `ProductPostParams`
+    ///
+    /// Example:
+    /// `{"title":"Produk A","price":10000}`
+    // #[schema(value_type = String, example = r#"{"title":"Produk A","price":10000}"#)]
+    pub product: ProductPostParams,
+
+    /// File gambar produk (boleh lebih dari satu).
+    ///
+    /// Secara OpenAPI ini adalah array of binary files.
+    #[schema(value_type = [String], format = Binary)]
+    pub files: Option<Vec<String>>,
+}
+
+struct PendingFile {
+    file_name: String,
+    content: Bytes,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+pub struct ProductWithImagesResponse {
+    product: ProductResponse,
+    images: Vec<ProductImageResponse>,
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/user/current",
+    tag = "users",
+    responses(
+        (status = 200, description = "Current user", body = [CurrentResponse]),
+        (status = 401, description = "Unauthorized", body = UnauthorizedResponse),
+    ),
+    security(
+        ("jwt_token" = [])
+    )
+)]
+async fn current(auth: auth::JWT, State(ctx): State<AppContext>) -> Result<Response> {
+    let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    format::json(CurrentResponse::new(&user))
+}
+
+async fn load_item(ctx: &AppContext, user: users::Model, id: i32) -> Result<ProductModel> {
+    let item = user.find_related(ProductEntity).filter(products::Column::Id.eq(id)).one(&ctx.db).await?;
+    item.ok_or_else(|| Error::NotFound)
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/user/products",
+    tag = "users",
+    responses(
+        (status = 200, description = "Product list based on user login successfully", body = [ProductResponse]),
+        (status = 401, description = "Unauthorized", body = UnauthorizedResponse),
+    ),
+    security(
+        ("jwt_token" = [])
+    )
+)]
+pub async fn product_list(auth: auth::JWT, State(ctx): State<AppContext>) -> Result<Response> {
+    let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    let products = products::Model::get_all_products_by_user_id(&ctx.db, &user.id).await?;
+    format::json(products)
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/user/product/new",
+    tag = "users",
+    request_body(content = CreateProductMultipart, content_type = "multipart/form-data"),
+    responses(
+        (status = 200, description = "Create a new product successfully", body = ProductWithImagesResponse)
+    ),
+    security(
+        ("jwt_token" = [])
+    )
+)]
+pub async fn product_add(auth: auth::JWT, State(ctx): State<AppContext>, mut multipart: Multipart) -> Result<Response> {
+    let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    let mut product_params: Option<ProductPostParams> = None;
+    let mut pending_files: Vec<PendingFile> = Vec::new();
+
+    // 1. Read all fields from the multipart request
+    while let Some(field) = multipart
+        .next_field()
+        .await
+        .map_err(|err| {
+            tracing::error!(error = ?err, "could not read multipart");
+            Error::BadRequest("could not read multipart".into())
+        })?
+    {
+        let field_name = field.name().map(|s| s.to_string());
+
+        match field_name.as_deref() {
+            // The text field contains the product JSON
+            Some("product") => {
+                let text = field.text().await.map_err(|err| {
+                    tracing::error!(error = ?err, "could not read product field as text");
+                    Error::BadRequest("could not read product field".into())
+                })?;
+
+                let params: ProductPostParams = serde_json::from_str(&text).map_err(|err| {
+                    tracing::error!(error = ?err, "invalid product json");
+                    Error::BadRequest("invalid product json".into())
+                })?;
+
+                product_params = Some(params);
+            }
+
+            // The file fields contain the images
+            Some("files") => {
+                let file_name = match field.file_name() {
+                    Some(file_name) => file_name.to_string(),
+                    None => {
+                        return bad_request("file name not found")
+                    }
+                };
+
+                let content = field.bytes().await.map_err(|err| {
+                    tracing::error!(error = ?err, "could not read file bytes");
+                    Error::BadRequest("could not read file bytes".into())
+                })?;
+
+                pending_files.push(PendingFile { file_name, content });
+            }
+
+            _ => {
+                // Ignore other fields
+            }
+        }
+    }
+
+    // 2. Ensure the product payload exists
+    let product_params = product_params.ok_or_else(|| {
+        Error::BadRequest("product data not found in multipart".into())
+    })?;
+
+    // 3. Insert the product first
+    let mut item = ProductActiveModel {
+        seller_id: Set(user.id),
+        ..Default::default()
+    };
+    product_params.update(&mut item);
+
+    let item = item.insert(&ctx.db).await?;
+    let product_id = item.id;
+
+    // 4. Process all uploaded files → upload to storage + save to the database
+    let mut images: Vec<ProductImageResponse> = Vec::new();
+
+    for f in pending_files {
+        let unique_file_name = generate_unique_filename(&f.file_name, product_id).await?;
+        let unique_file_name_str = unique_file_name.to_string_lossy().to_string();
+        let new_filename = format!("{product_id}/{unique_file_name_str}");
+        let path = PathBuf::from("product_images").join(&new_filename);
+
+        ctx.storage
+            .as_ref()
+            .upload(path.as_path(), &f.content)
+            .await?;
+
+        let product_image = ProductImageActiveModel {
+            product_id: Set(product_id),
+            image: Set(path.to_string_lossy().into_owned()),
+            ..Default::default()
+        };
+
+        let product_image: ProductImageModel = product_image.insert(&ctx.db).await?;
+        images.push(ProductImageResponse::new(&product_image));
+    }
+
+    let resp = ProductWithImagesResponse {
+        product: ProductResponse::new(&item),
+        images,
+    };
+
+    format::json(resp)
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/user/product/{id}",
+    tag = "users",
+    responses(
+        (status = 200, description = "Product detail successfully", body = ProductResponse),
+        (status = 401, description = "Unauthorized", body = UnauthorizedResponse),
+        (status = 404, description = "Product not found", body = UnauthorizedResponse),
+    ),
+    params(
+        ("id" = i32, Path, description = "Product database id")
+    ),
+    security(
+        ("jwt_token" = [])
+    )
+)]
+pub async fn product_get_one(auth: auth::JWT, Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
+    let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    let product = products::Model::get_product_by_id_and_user_id(&ctx.db, &id, &user.id).await?;
+    format::json(product)
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/user/product/{id}",
+    tag = "users",
+    responses(
+        (status = 200, description = "Product update successfully", body = [ProductResponse]),
+        (status = 401, description = "Unauthorized", body = UnauthorizedResponse),
+        (status = 404, description = "Product not found", body = UnauthorizedResponse),
+    ),
+    params(
+        ("id" = i32, Path, description = "Product database id")
+    ),
+    security(
+        ("jwt_token" = [])
+    )
+)]
+pub async fn product_update(
+    auth: auth::JWT,
+    Path(id): Path<i32>,
+    State(ctx): State<AppContext>,
+    Json(params): Json<ProductPostParams>,
+) -> Result<Response> {
+    let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    let item = load_item(&ctx, user, id).await?;
+    let mut item = item.into_active_model();
+    params.update(&mut item);
+    item.updated_at = ActiveValue::Set(Local::now().naive_local());
+    let item = item.update(&ctx.db).await?;
+    format::json(ProductResponse::new(&item))
+}
+
+#[utoipa::path(
+    delete,
+    path = "/api/user/product/{id}",
+    tag = "users",
+    responses(
+        (status = 200, description = "Product delete successfully"),
+        (status = 401, description = "Unauthorized", body = UnauthorizedResponse),
+        (status = 404, description = "Product not found", body = UnauthorizedResponse),
+    ),
+    params(
+        ("id" = i32, Path, description = "Product database id")
+    ),
+    security(
+        ("jwt_token" = [])
+    )
+)]
+pub async fn product_remove(auth: auth::JWT, Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
+    let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    load_item(&ctx, user, id).await?.delete(&ctx.db).await?;
+    format::empty()
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/user/update_location",
+    tag = "users",
+    request_body = LocationParams,
+    responses(
+        (status = 200, description = "Product update successfully", body = [CurrentResponse]),
+        (status = 401, description = "Unauthorized", body = UnauthorizedResponse),
+        (status = 404, description = "Product not found", body = UnauthorizedResponse),
+    ),
+    security(
+        ("jwt_token" = [])
+    )
+)]
+pub async fn update_location(
+    auth: auth::JWT,
+    State(ctx): State<AppContext>,
+    Json(params): Json<LocationParams>,
+) -> Result<Response> {
+    let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    let mut user = user.into_active_model();
+    params.update(&mut user);
+    user.updated_at = ActiveValue::Set(Local::now().naive_local());
+    let user = user.update(&ctx.db).await?;
+    format::json(CurrentResponse::new(&user))
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/user/orders",
+    tag = "users",
+    responses(
+        (status = 200, description = "Order list based on user login successfully", body = [OrderDetailResponse]),
+        (status = 401, description = "Unauthorized", body = UnauthorizedResponse),
+    ),
+    security(
+        ("jwt_token" = [])
+    )
+)]
+pub async fn user_order_list(auth: auth::JWT, State(ctx): State<AppContext>) -> Result<Response> {
+    let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    let orders = OrderModel::get_all_orders_by_buyer_id(&ctx.db, &user.id).await?;
+    format::json(orders)
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/user/update_profile",
+    tag = "users",
+    request_body = ProfileParams,
+    responses(
+        (status = 200, description = "Product update successfully", body = [CurrentResponse]),
+        (status = 401, description = "Unauthorized", body = UnauthorizedResponse),
+        (status = 404, description = "Product not found", body = UnauthorizedResponse),
+    ),
+    security(
+        ("jwt_token" = [])
+    )
+)]
+pub async fn update_profile(
+    auth: auth::JWT,
+    State(ctx): State<AppContext>,
+    Json(params): Json<ProfileParams>,
+) -> Result<Response> {
+    let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    let mut user = user.into_active_model();
+    params.update(&mut user);
+    user.updated_at = ActiveValue::Set(Local::now().naive_local());
+    let user = user.update(&ctx.db).await?;
+    format::json(CurrentResponse::new(&user))
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/user/{pid}/block",
+    tag = "users",
+    responses(
+        (status = 200, description = "User successfully blocked"),
+        (status = 401, description = "Unauthorized", body = UnauthorizedResponse),
+    ),
+    params(
+        ("pid" = String, Path, description = "User database pid")
+    ),
+    security(
+        ("jwt_token" = [])
+    )
+)]
+pub async fn user_block(auth: auth::JWT, Path(pid): Path<String>, State(ctx): State<AppContext>) -> Result<Response> {
+    let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+
+    let target_pid = pid.parse::<Uuid>().map_err(|_| Error::BadRequest("invalid user id".to_string()))?;
+    if user.pid == target_pid {
+        return bad_request("cannot block yourself");
+    }
+
+    if !user.is_superuser {
+        return unauthorized("forbidden");
+    }
+
+    let u = users::Model::find_by_pid(&ctx.db, &pid).await?;
+    u.into_active_model().set_blocked(&ctx.db).await?;
+    format::empty()
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/user/{pid}/unblock",
+    tag = "users",
+    responses(
+        (status = 200, description = "User successfully unblocked"),
+        (status = 401, description = "Unauthorized", body = UnauthorizedResponse),
+    ),
+    params(
+        ("pid" = String, Path, description = "User database pid")
+    ),
+    security(
+        ("jwt_token" = [])
+    )
+)]
+pub async fn user_unblock(auth: auth::JWT, Path(pid): Path<String>, State(ctx): State<AppContext>) -> Result<Response> {
+    let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+
+    let target_pid = pid.parse::<Uuid>().map_err(|_| Error::BadRequest("invalid user id".to_string()))?;
+    if user.pid == target_pid {
+        return bad_request("cannot block yourself");
+    }
+
+    if !user.is_superuser {
+        return unauthorized("forbidden");
+    }
+
+    let u = users::Model::find_by_pid(&ctx.db, &pid).await?;
+    u.into_active_model().set_unblocked(&ctx.db).await?;
+    format::empty()
+}
+
+#[utoipa::path(
+    delete,
+    path = "/api/user/{pid}/delete",
+    tag = "users",
+    responses(
+        (status = 200, description = "User successfully deleted"),
+        (status = 401, description = "Unauthorized", body = UnauthorizedResponse),
+    ),
+    params(
+        ("pid" = String, Path, description = "User database pid")
+    ),
+    security(
+        ("jwt_token" = [])
+    )
+)]
+pub async fn user_delete(auth: auth::JWT, Path(pid): Path<String>, State(ctx): State<AppContext>) -> Result<Response> {
+    let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+
+    let target_pid = pid.parse::<Uuid>().map_err(|_| Error::BadRequest("invalid user id".to_string()))?;
+    if user.pid == target_pid {
+        return bad_request("cannot delete yourself");
+    }
+
+    if !user.is_superuser {
+        return unauthorized("forbidden");
+    }
+
+    let u = users::Model::find_by_pid(&ctx.db, &pid.to_string()).await?;
+    u.delete(&ctx.db).await?;
+    format::empty()
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/user/order/{order_number}",
+    tag = "users",
+    responses(
+        (status = 200, description = "Order detail successfully"),
+        (status = 401, description = "Unauthorized", body = UnauthorizedResponse),
+        (status = 404, description = "Order not found", body = UnauthorizedResponse),
+    ),
+    params(
+        ("order_number" = String, Path, description = "Order database order number")
+    ),
+    security(
+        ("jwt_token" = [])
+    )
+)]
+pub async fn user_order_detail(auth: auth::JWT, Path(order_number): Path<String>, State(ctx): State<AppContext>) -> Result<Response> {
+    let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    let order = OrderModel::get_order_by_buyer_id_and_order_number(&ctx.db, &user.id, &order_number).await?;
+    format::json(order)
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/user/order/{order_number}/cancel",
+    tag = "users",
+    responses(
+        (status = 200, description = "Order successfully canceled"),
+        (status = 401, description = "Unauthorized", body = UnauthorizedResponse),
+        (status = 404, description = "Order not found", body = UnauthorizedResponse),
+    ),
+    params(
+        ("order_number" = String, Path, description = "Order database order number")
+    ),
+    security(
+        ("jwt_token" = [])
+    )
+)]
+pub async fn user_order_cancel(auth: auth::JWT, Path(order_number): Path<String>, State(ctx): State<AppContext>) -> Result<Response> {
+    let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    let order = OrderEntity::find()
+        .filter(
+            Condition::all()
+                .add(orders::Column::BuyerId.eq(user.id))
+                .add(orders::Column::OrderNumber.eq(order_number))
+        ).one(&ctx.db).await?
+        .ok_or_else(|| Error::BadRequest("Order not found".into()))?;
+
+    if order.status == OrderStatusEnum::AwaitingPayment && order.buyer_id == user.id {
+        order.into_active_model().set_status_cancelled(&ctx.db).await?;
+        return format::empty();
+    }
+    Err(Error::BadRequest("Only orders awaiting payment can be cancelled".to_string()))
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/users",
+    tag = "users",
+    responses(
+        (status = 200, description = "List all users", body = [AdminUserResponse]),
+        (status = 401, description = "Unauthorized", body = UnauthorizedResponse),
+    ),
+    security(("jwt_token" = []))
+)]
+#[debug_handler]
+pub async fn admin_user_list(auth: auth::JWT, State(ctx): State<AppContext>) -> Result<Response> {
+    let admin = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    if !admin.is_superuser {
+        return unauthorized("forbidden");
+    }
+
+    let all = users::Entity::find().all(&ctx.db).await?;
+    let response: Vec<AdminUserResponse> = all.iter().map(AdminUserResponse::new).collect();
+    format::json(response)
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/user/new",
+    tag = "users",
+    request_body = AdminUserCreateParams,
+    responses(
+        (status = 200, description = "Create user successfully", body = AdminUserResponse),
+        (status = 400, description = "Bad request", body = UnauthorizedResponse),
+        (status = 401, description = "Unauthorized", body = UnauthorizedResponse),
+    ),
+    security(("jwt_token" = []))
+)]
+#[debug_handler]
+pub async fn admin_user_add(
+    auth: auth::JWT,
+    State(ctx): State<AppContext>,
+    Json(params): Json<AdminUserCreateParams>,
+) -> Result<Response> {
+    let admin = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    if !admin.is_superuser {
+        return unauthorized("forbidden");
+    }
+
+    let user = users::Model::create_by_admin(&ctx.db, &params)
+        .await
+        .map_err(|e| Error::BadRequest(e.to_string()))?;
+    format::json(AdminUserResponse::new(&user))
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/user/{pid}",
+    tag = "users",
+    params(("pid" = String, Path, description = "User pid (UUID)")),
+    responses(
+        (status = 200, description = "User detail", body = AdminUserResponse),
+        (status = 401, description = "Unauthorized", body = UnauthorizedResponse),
+        (status = 404, description = "Not found", body = UnauthorizedResponse),
+    ),
+    security(("jwt_token" = []))
+)]
+#[debug_handler]
+pub async fn admin_user_get(
+    auth: auth::JWT,
+    Path(pid): Path<String>,
+    State(ctx): State<AppContext>,
+) -> Result<Response> {
+    let admin = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    if !admin.is_superuser {
+        return unauthorized("forbidden");
+    }
+
+    let user = users::Model::find_by_pid(&ctx.db, &pid).await?;
+    format::json(AdminUserResponse::new(&user))
+}
+
+#[utoipa::path(
+    put,
+    path = "/api/user/{pid}",
+    tag = "users",
+    params(("pid" = String, Path, description = "User pid (UUID)")),
+    request_body = AdminUserUpdateParams,
+    responses(
+        (status = 200, description = "Update user successfully", body = AdminUserResponse),
+        (status = 401, description = "Unauthorized", body = UnauthorizedResponse),
+        (status = 404, description = "Not found", body = UnauthorizedResponse),
+    ),
+    security(("jwt_token" = []))
+)]
+#[debug_handler]
+pub async fn admin_user_update(
+    auth: auth::JWT,
+    Path(pid): Path<String>,
+    State(ctx): State<AppContext>,
+    Json(params): Json<AdminUserUpdateParams>,
+) -> Result<Response> {
+    let admin = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    if !admin.is_superuser {
+        return unauthorized("forbidden");
+    }
+
+    let user = users::Model::find_by_pid(&ctx.db, &pid).await?;
+    let mut item = user.into_active_model();
+
+    if let Some(email) = params.email {
+        item.email = ActiveValue::Set(email);
+    }
+    if let Some(first_name) = params.first_name {
+        item.first_name = ActiveValue::Set(first_name);
+    }
+    if let Some(last_name) = params.last_name {
+        item.last_name = ActiveValue::Set(last_name);
+    }
+    if let Some(phone) = params.phone {
+        item.phone = ActiveValue::Set(Some(phone));
+    }
+    if let Some(location) = params.location {
+        item.location = ActiveValue::Set(Some(location));
+    }
+    if let Some(is_active) = params.is_active {
+        item.is_active = ActiveValue::Set(is_active);
+    }
+    if let Some(is_superuser) = params.is_superuser {
+        item.is_superuser = ActiveValue::Set(is_superuser);
+    }
+
+    let user = item.update(&ctx.db).await?;
+    format::json(AdminUserResponse::new(&user))
+}
+
+pub fn admin_routes() -> Routes {
+    Routes::new()
+        .prefix("/api")
+        .add("/users", get(admin_user_list))
+}
+
+pub fn routes() -> Routes {
+    Routes::new()
+        .prefix("/api/user")
+        .add("/current", get(current))
+        .add("/update_location", post(update_location))
+        .add("/update_profile", post(update_profile))
+        .add("/products", get(product_list))
+        .add("/orders", get(user_order_list))
+        .add("/new", post(admin_user_add))
+        .add("/{pid}", get(admin_user_get))
+        .add("/{pid}", put(admin_user_update))
+        .add("/{pid}", delete(user_delete))
+        .add("/product/new", post(product_add))
+        .add("/product/{id}", get(product_get_one))
+        .add("/product/{id}", delete(product_remove))
+        .add("/product/{id}", post(product_update))
+        .add("/{id}/block", post(user_block))
+        .add("/{id}/unblock", post(user_unblock))
+        .add("/{id}/delete", delete(user_delete))
+        .add("/order/{order_number}", get(user_order_detail))
+        .add("/order/{order_number}/cancel", get(user_order_cancel))
+}

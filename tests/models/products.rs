@@ -1,0 +1,93 @@
+use insta::assert_debug_snapshot;
+use seco::{
+    app::App,
+    models::_entities::categories,
+    models::products::{self, Model},
+};
+use loco_rs::testing::prelude::*;
+use sea_orm::{ActiveModelTrait, ActiveValue};
+use serial_test::serial;
+use sea_orm::prelude::Decimal;
+use seco::models::users;
+
+macro_rules! configure_insta {
+    ($($expr:expr),*) => {
+        let mut settings = insta::Settings::clone_current();
+        settings.set_prepend_module_to_snapshot(false);
+        let _guard = settings.bind_to_scope();
+    };
+}
+
+#[tokio::test]
+#[serial]
+async fn test_can_validate_product_model() {
+    configure_insta!();
+
+    let boot = boot_test::<App>()
+        .await
+        .expect("Failed to boot test application");
+
+    let user = users::ActiveModel {
+        first_name: ActiveValue::set("User".to_string()),
+        last_name: ActiveValue::set("Test".to_string()),
+        email: ActiveValue::set("test@gmail.com".to_string()),
+        password: ActiveValue::set("tester1234".to_string()),
+        ..Default::default()
+    }
+    .insert(&boot.app_context.db)
+    .await
+    .expect("failed to insert user");
+
+    let category = categories::ActiveModel {
+        name: ActiveValue::set("Test category".to_string()),
+        ..Default::default()
+    }
+    .insert(&boot.app_context.db)
+    .await
+    .expect("failed to insert category");
+
+    let res = products::ActiveModel {
+        seller_id: ActiveValue::set(user.id),
+        category_id: ActiveValue::set(Some(category.id)),
+        title: ActiveValue::set("Product 1".to_string()),
+        description: ActiveValue::set("Product 1".to_string()),
+        price: ActiveValue::set(Decimal::new(40000, 0)),
+        dimension_width: ActiveValue::set(1f32),
+        dimension_height: ActiveValue::set(5f32),
+        dimension_length: ActiveValue::set(3f32),
+        dimension_weight: ActiveValue::set(2f32),
+        brand_id: ActiveValue::set(Option::from(1)),
+        material_id: ActiveValue::set(Option::from(1)),
+        stock: ActiveValue::set(3),
+        sku: ActiveValue::set("test sku".to_string()),
+        ..Default::default()
+    }
+    .insert(&boot.app_context.db)
+    .await;
+
+    assert!(res.is_ok(), "valid product insert must succeed: {res:?}");
+}
+
+#[tokio::test]
+#[serial]
+async fn test_get_product_by_id() {
+    configure_insta!();
+
+    let boot = boot_test::<App>()
+        .await
+        .expect("Failed to boot test application");
+    seed::<App>(&boot.app_context)
+        .await
+        .expect("Failed to seed database");
+
+    // query your model, e.g.:
+    //
+    // let item = models::posts::Model::find_by_pid(
+    //     &boot.app_context.db,
+    //     "11111111-1111-1111-1111-111111111111",
+    // )
+    // .await;
+
+    // snapshot the result:
+    // assert_debug_snapshot!(item);
+}

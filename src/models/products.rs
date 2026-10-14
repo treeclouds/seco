@@ -1,0 +1,322 @@
+use loco_rs::model::ModelResult;
+use sea_orm::entity::prelude::*;
+use sea_orm::{FromQueryResult, JsonValue, Statement, DbBackend, ActiveValue};
+use crate::models::_entities::sea_orm_active_enums::{Condition as ProductConditionEnum};
+use crate::views::product::ProductsResponse;
+pub use super::_entities::products::{self, ActiveModel, Entity, Model};
+
+#[async_trait::async_trait]
+impl ActiveModelBehavior for ActiveModel {
+    // extend activemodel below (keep comment for generators)
+}
+
+impl Model {
+
+    pub async fn get_product_by_id(
+        db: &DatabaseConnection,
+        user_id: Option<&i32>,
+        product_id: &i32
+    ) -> ModelResult<Option<ProductsResponse>> {
+        let (query, _group_by, values): (String, String, Vec<Value>) = if let Some(user_id) = user_id {
+            let q = r#"
+                SELECT p.id, p.title, p.category_id, p.description, p.price, p.dimension_width,
+                    p.dimension_height, p.dimension_length, p.dimension_weight, p.brand_id, p.material_id,
+                    p.stock, p.sku, p.tags::jsonb, p.condition::text, p.created_at,
+                    COALESCE((
+                       SELECT json_agg(json_build_object('id', pi2.id, 'image', 'media/' || pi2.image))
+                       FROM product_images pi2 where pi2.product_id = p.id
+                    ), '[]'::json) as images,
+                    COALESCE (
+                        json_build_object(
+                            'pid', u.pid,
+                            'first_name', u.first_name,
+                            'last_name', u.last_name,
+                            'joined_date', u.created_at,
+                            'location', u.location
+                        ), '{}'::json
+                    ) as seller,
+                    p.status::text,
+                    CASE WHEN w.id IS NULL THEN false ELSE true END as is_wishlisted
+                FROM products p
+                INNER JOIN users u ON u.id = p.seller_id
+                INNER JOIN categories c ON c.id = p.category_id
+                LEFT JOIN brands b ON b.id = p.brand_id
+                LEFT JOIN materials m ON m.id = p.material_id
+                LEFT JOIN wishlists w
+                    ON w.product_id = p.id
+                   AND w.user_id = $1
+                   AND w.is_deleted = false
+                WHERE p.id = $2
+            "#.to_string();
+
+            let gb = "GROUP BY p.id, u.pid, u.first_name, u.last_name, u.created_at, u.location, w.id".to_owned();
+            (q, gb, vec![(*user_id).into(), (*product_id).into()])
+        } else {
+            let q = r#"
+                SELECT p.id, p.title, p.category_id, p.description, p.price, p.dimension_width,
+                    p.dimension_height, p.dimension_length, p.dimension_weight, p.brand_id, p.material_id,
+                    p.stock, p.sku, p.tags::jsonb, p.condition::text, p.created_at,
+                    COALESCE((
+                       SELECT json_agg(json_build_object('id', pi2.id, 'image', 'media/' || pi2.image))
+                       FROM product_images pi2 where pi2.product_id = p.id
+                    ), '[]'::json) as images,
+                    COALESCE (
+                        json_build_object(
+                            'pid', u.pid,
+                            'first_name', u.first_name,
+                            'last_name', u.last_name,
+                            'joined_date', u.created_at,
+                            'location', u.location
+                        ), '{}'::json
+                    ) as seller,
+                    p.status::text,
+                    false as is_wishlisted
+                FROM products p
+                INNER JOIN users u ON u.id = p.seller_id
+                INNER JOIN categories c ON c.id = p.category_id
+                LEFT JOIN brands b ON b.id = p.brand_id
+                LEFT JOIN materials m ON m.id = p.material_id
+                WHERE p.id = $1
+            "#.to_string();
+
+            let gb = "GROUP BY p.id, u.pid, u.first_name, u.last_name, u.created_at, u.location".to_owned();
+            (q, gb, vec![(*product_id).into()])
+        };
+
+        let product: Option<ProductsResponse> = JsonValue::find_by_statement(Statement::from_sql_and_values(
+            DbBackend::Postgres,
+            query,
+            values,
+        ))
+            .into_model::<ProductsResponse>()
+            .one(db)
+            .await?;
+
+        Ok(product)
+    }
+
+    pub async fn get_all_products(
+        db: &DatabaseConnection,
+        user_id: Option<&i32>,
+        title: &Option<&String>,
+        condition: &Option<&ProductConditionEnum>,
+        location: &Option<&String>,
+        brand: &Option<&String>,
+        category: &Option<&String>,
+    ) -> ModelResult<Vec<ProductsResponse>> {
+        let (query, group_by, values): (String, String, Vec<sea_orm::Value>) = if let Some(user_id) = user_id {
+            let q = r#"
+                SELECT p.id, p.title, p.category_id, p.description, p.price, p.dimension_width,
+                    p.dimension_height, p.dimension_length, p.dimension_weight, p.brand_id, p.material_id,
+                    p.stock, p.sku, p.tags::jsonb, p.condition::text, p.created_at,
+                    COALESCE((
+                       SELECT json_agg(json_build_object('id', pi2.id, 'image', 'media/' || pi2.image))
+                       FROM product_images pi2 where pi2.product_id = p.id
+                    ), '[]'::json) as images,
+                    COALESCE (
+                        json_build_object(
+                            'pid', u.pid,
+                            'first_name', u.first_name,
+                            'last_name', u.last_name,
+                            'joined_date', u.created_at,
+                            'location', u.location
+                        ), '{}'::json
+                    ) as seller,
+                    p.status::text,
+                    CASE WHEN w.id IS NULL THEN false ELSE true END as is_wishlisted
+                FROM products p
+                INNER JOIN users u ON u.id = p.seller_id
+                INNER JOIN categories c ON c.id = p.category_id
+                LEFT JOIN brands b ON b.id = p.brand_id
+                LEFT JOIN materials m ON m.id = p.material_id
+                LEFT JOIN wishlists w
+                    ON w.product_id = p.id
+                   AND w.user_id = $1
+                   AND w.is_deleted = false
+            "#.to_string();
+
+            let gb = "GROUP BY p.id, u.pid, u.first_name, u.last_name, u.created_at, u.location, w.id".to_owned();
+            (q, gb, vec![(*user_id).into()])
+        } else {
+            let q = r#"
+                SELECT p.id, p.title, p.category_id, p.description, p.price, p.dimension_width,
+                    p.dimension_height, p.dimension_length, p.dimension_weight, p.brand_id, p.material_id,
+                    p.stock, p.sku, p.tags::jsonb, p.condition::text, p.created_at,
+                    COALESCE((
+                       SELECT json_agg(json_build_object('id', pi2.id, 'image', 'media/' || pi2.image))
+                       FROM product_images pi2 where pi2.product_id = p.id
+                    ), '[]'::json) as images,
+                    COALESCE (
+                        json_build_object(
+                            'pid', u.pid,
+                            'first_name', u.first_name,
+                            'last_name', u.last_name,
+                            'joined_date', u.created_at,
+                            'location', u.location
+                        ), '{}'::json
+                    ) as seller,
+                    p.status::text,
+                    false as is_wishlisted
+                FROM products p
+                INNER JOIN users u ON u.id = p.seller_id
+                INNER JOIN categories c ON c.id = p.category_id
+                LEFT JOIN brands b ON b.id = p.brand_id
+                LEFT JOIN materials m ON m.id = p.material_id
+            "#.to_string();
+
+            let gb = "GROUP BY p.id, u.pid, u.first_name, u.last_name, u.created_at, u.location".to_owned();
+            (q, gb, vec![])
+        };
+
+        let mut values = values;
+        // Placeholder counter starts past any already-bound params (e.g. user_id = $1).
+        let mut next_param: usize = values.len() + 1;
+
+        let mut extra_where_clause: String = "WHERE p.seller_id IS NOT NULL".to_owned();
+
+        if let Some(title) = title {
+            extra_where_clause += &format!(" AND p.title ILIKE ${next_param}");
+            values.push(format!("%{}%", title).into());
+            next_param += 1;
+        }
+
+        if let Some(condition) = condition {
+            extra_where_clause += &format!(" AND p.condition = ${next_param}");
+            values.push(format!("{:?}", condition).into());
+            next_param += 1;
+        }
+
+        if let Some(location) = location {
+            extra_where_clause += &format!(" AND LOWER(u.location) = LOWER(${next_param})");
+            values.push(location.to_string().into());
+            next_param += 1;
+        }
+
+        if let Some(brand) = brand {
+            extra_where_clause += &format!(" AND LOWER(b.name) = LOWER(${next_param})");
+            values.push(brand.to_string().into());
+            next_param += 1;
+        }
+
+        if let Some(category) = category {
+            extra_where_clause += &format!(" AND LOWER(c.name) = LOWER(${next_param})");
+            values.push(category.to_string().into());
+        }
+
+        let combine_query = format!("{} {} {}", query, extra_where_clause, group_by);
+
+        tracing::debug!(query = %combine_query, "get_all_products combined query");
+
+        let products: Vec<ProductsResponse> = JsonValue::find_by_statement(Statement::from_sql_and_values(
+            DbBackend::Postgres,
+            combine_query,
+            values,
+        ))
+            .into_model::<ProductsResponse>()
+            .all(db)
+            .await?;
+
+        Ok(products)
+    }
+
+    pub async fn get_product_by_id_and_user_id(
+        db: &DatabaseConnection,
+        product_id: &i32,
+        user_id: &i32
+    ) -> Result<ProductsResponse, loco_rs::Error> {
+        let product: Option<ProductsResponse> = products::Entity::find()
+            .from_raw_sql(Statement::from_sql_and_values(
+                DbBackend::Postgres,
+                r#"
+            SELECT p.id, p.title, p.category_id, p.description, p.price, p.dimension_width,
+                p.dimension_height, p.dimension_length, p.dimension_weight, p.brand_id, p.material_id,
+                p.stock, p.sku, p.tags::jsonb, p.condition::text, p.created_at,
+                COALESCE((
+                   SELECT json_agg(json_build_object('id', pi2.id, 'image', 'media/' || pi2.image))
+                   FROM product_images pi2 where pi2.product_id = p.id
+                ), '[]'::json) as images,
+                COALESCE (
+                    json_build_object(
+                        'pid', u.pid,
+                        'first_name', u.first_name,
+                        'last_name', u.last_name,
+                        'joined_date', u.created_at,
+                        'location', u.location
+                    ), '{}'::json
+                ) as seller,
+                p.status::text,
+                false as is_wishlisted
+            FROM products p
+            INNER JOIN users u ON u.id = p.seller_id
+            WHERE p.id = $1 AND u.id = $2
+            GROUP BY p.id, u.pid, u.first_name, u.last_name, u.created_at, u.location
+            "#,
+                [(*product_id).into(), (*user_id).into()],
+            ))
+            .into_model::<ProductsResponse>()
+            .one(db)
+            .await?;
+        product.ok_or_else(|| loco_rs::Error::NotFound)
+    }
+
+    pub async fn get_all_products_by_user_id(
+        db: &DatabaseConnection,
+        user_id: &i32
+    ) -> ModelResult<Vec<ProductsResponse>> {
+        let products: Vec<ProductsResponse> = JsonValue::find_by_statement(Statement::from_sql_and_values(
+            DbBackend::Postgres,
+            r#"
+            SELECT p.id, p.title, p.category_id, p.description, p.price, p.dimension_width,
+                p.dimension_height, p.dimension_length, p.dimension_weight, p.brand_id, p.material_id,
+                p.stock, p.sku, p.tags::jsonb, p.condition::text, p.created_at,
+                COALESCE((
+                   SELECT json_agg(json_build_object('id', pi2.id, 'image', 'media/' || pi2.image))
+                   FROM product_images pi2 where pi2.product_id = p.id
+                ), '[]'::json) as images,
+                COALESCE (
+                    json_build_object(
+                        'pid', u.pid,
+                        'first_name', u.first_name,
+                        'last_name', u.last_name,
+                        'joined_date', u.created_at,
+                        'location', u.location
+                    ), '{}'::json
+                ) as seller,
+                p.status::text,
+                false as is_wishlisted
+            FROM products p
+            INNER JOIN users u ON u.id = p.seller_id
+            WHERE u.id = $1
+            GROUP BY p.id, u.pid, u.first_name, u.last_name, u.created_at, u.location
+        "#,
+            [(*user_id).into()],
+        )).into_model::<ProductsResponse>()
+            .all(db)
+            .await?;
+        Ok(products)
+    }
+}
+
+impl ActiveModel {
+
+    pub async fn set_decrease_stock(
+        mut self,
+        db: &DatabaseConnection,
+        qty_decrease: i32
+    ) -> ModelResult<Model> {
+        self.stock = ActiveValue::set(self.stock.unwrap() - qty_decrease);
+        Ok(self.update(db).await?)
+    }
+
+    pub async fn set_increase_stock(
+        mut self,
+        db: &DatabaseConnection,
+        qty_increase: i32
+    ) -> ModelResult<Model> {
+        self.stock = ActiveValue::set(self.stock.unwrap() + qty_increase);
+        Ok(self.update(db).await?)
+    }
+}
+
+// implement your custom finders, selectors oriented logic here
+impl Entity {}

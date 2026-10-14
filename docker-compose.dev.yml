@@ -1,0 +1,59 @@
+version: "3.8"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: ./compose/local/Dockerfile
+    depends_on:
+      - db
+      - redis
+      - mailer
+    networks:
+      - db
+      - redis
+      - mailer
+    ports:
+      - "5150:5150"
+    volumes:
+      - .:/app
+      - cargo-target:/app/target
+    env_file:
+      - .env
+    tty: true
+
+  db:
+    image: postgres:17.4-bookworm
+    restart: unless-stopped
+    ports:
+      - "5433:5432"
+    networks:
+      - db
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    env_file:
+      - .env
+  redis:
+    image: redis:latest
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    networks:
+      - redis
+  mailer:
+    image: mailtutan/mailtutan:latest
+    restart: unless-stopped
+    ports:
+      - "1080:1080"
+      - "1025:1025"
+    networks:
+      - mailer
+
+volumes:
+  postgres-data: {}
+  cargo-target:
+
+networks:
+  db:
+  redis:
+  mailer:

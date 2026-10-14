@@ -1,0 +1,1271 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Dashboard • Secondhand</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>html{font-family:Inter,ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial}</style>
+    <script src="https://code.jquery.com/jquery-3.7.1.slim.min.js" integrity="sha256-kmHvs0B+OpCW5GVHUNjv9rOmY0IvSIRcf7zGUDTDQM8=" crossorigin="anonymous"></script>
+</head>
+<body class="min-h-screen bg-gray-50 text-slate-800">
+<div class="flex h-screen">
+    <!-- Sidebar -->
+    <aside class="w-64 bg-white border-r border-slate-200 p-4 hidden md:block">
+        <div class="flex items-center gap-3 px-2 py-3 mb-6">
+            <div class="w-10 h-10 rounded-lg bg-gradient-to-r from-violet-500 to-cyan-400 text-white font-bold flex items-center justify-center">SH</div>
+            <div>
+                <div class="font-semibold">Secondhand</div>
+                <div class="text-xs text-slate-500">Admin Dashboard</div>
+            </div>
+        </div>
+
+        <nav class="space-y-1">
+            <button data-section="overview" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50">Overview</button>
+            <button data-section="brands" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 bg-violet-50">Brands</button>
+            <button data-section="categories" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50">Categories</button>
+            <button data-section="materials" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50">Materials</button>
+            <button data-section="payment_methods" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50">Payment Methods</button>
+            <button data-section="delivery_methods" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50">Delivery Methods</button>
+            <button data-section="users" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50">Users</button>
+            <button data-section="settings" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50">Settings</button>
+        </nav>
+    </aside>
+
+    <!-- Main content -->
+    <div class="flex-1 flex flex-col">
+        <!-- Topbar -->
+        <header class="flex items-center justify-between px-4 py-3 border-b border-slate-200 bg-white">
+            <div class="flex items-center gap-4">
+                <button id="mobile-menu-btn" class="md:hidden px-2 py-1 rounded-md bg-slate-100">Menu</button>
+                <h1 class="text-lg font-semibold">Dashboard</h1>
+            </div>
+            <div class="flex items-center gap-3">
+                <input id="search" type="search" placeholder="Search brands or materials..." class="hidden sm:inline-block rounded-md border border-slate-200 px-3 py-1 text-sm outline-none" />
+                <div class="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-600">M</div>
+            </div>
+        </header>
+
+        <!-- Content area -->
+        <main class="p-6 overflow-auto">
+            <!-- Overview (hidden) -->
+            <section id="overview" class="hidden">
+                <div class="bg-white p-6 rounded-2xl shadow">
+                    <h2 class="text-xl font-semibold mb-4">Overview</h2>
+                    <p class="text-sm text-slate-600">Quick stats and charts would go here.</p>
+                </div>
+            </section>
+
+            <!-- Brands -->
+            <section id="brands" class="">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-semibold">Brands</h2>
+                    <div class="flex items-center gap-3">
+                        <button id="refresh-brands" class="rounded-md border px-3 py-1 text-sm">Refresh</button>
+                        <button id="add-brand" class="rounded-md bg-violet-600 text-white px-3 py-1 text-sm">Add Brand</button>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 rounded-2xl shadow">
+                    <table class="w-full text-sm" id="brands-table">
+                        <thead class="text-slate-600">
+                        <tr>
+                            <th class="text-left p-2">#</th>
+                            <th class="text-left p-2">Name</th>
+                            <th class="text-left p-2">Code</th>
+                            <th class="text-left p-2">Active</th>
+                            <th class="text-left p-2">Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody id="brands-tbody" class="divide-y"></tbody>
+                    </table>
+                    <p id="brands-empty" class="text-sm text-slate-500 mt-4 hidden">No brands yet. Click "Add Brand" to create one.</p>
+                </div>
+            </section>
+
+            <!-- Categories -->
+            <section id="categories" class="hidden">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-semibold">Categories</h2>
+                    <div class="flex items-center gap-3">
+                        <button id="refresh-categories" class="rounded-md border px-3 py-1 text-sm">Refresh</button>
+                        <button id="add-category" class="rounded-md bg-violet-600 text-white px-3 py-1 text-sm">Add Category</button>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 rounded-2xl shadow">
+                    <table class="w-full text-sm" id="categories-table">
+                        <thead class="text-slate-600">
+                        <tr>
+                            <th class="text-left p-2">#</th>
+                            <th class="text-left p-2">Name</th>
+                            <th class="text-left p-2">Parent ID</th>
+                            <th class="text-left p-2">Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody id="categories-tbody" class="divide-y"></tbody>
+                    </table>
+                    <p id="categories-empty" class="text-sm text-slate-500 mt-4 hidden">No categories yet. Click "Add Category" to create one.</p>
+                </div>
+            </section>
+
+            <!-- Materials -->
+            <section id="materials" class="hidden">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-semibold">Materials</h2>
+                    <div class="flex items-center gap-3">
+                        <button id="refresh-materials" class="rounded-md border px-3 py-1 text-sm">Refresh</button>
+                        <button id="add-material" class="rounded-md bg-violet-600 text-white px-3 py-1 text-sm">Add Material</button>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 rounded-2xl shadow">
+                    <table class="w-full text-sm" id="materials-table">
+                        <thead class="text-slate-600">
+                        <tr>
+                            <th class="text-left p-2">#</th>
+                            <th class="text-left p-2">Name</th>
+                            <th class="text-left p-2">Code</th>
+                            <th class="text-left p-2">Active</th>
+                            <th class="text-left p-2">Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody id="materials-tbody" class="divide-y"></tbody>
+                    </table>
+                    <p id="materials-empty" class="text-sm text-slate-500 mt-4 hidden">No materials yet. Click "Add Material" to create one.</p>
+                </div>
+            </section>
+
+            <!-- Payment methods -->
+            <section id="payment_methods" class="hidden">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-semibold">Payment Methods</h2>
+                    <div class="flex items-center gap-3">
+                        <button id="refresh-payment_methods" class="rounded-md border px-3 py-1 text-sm">Refresh</button>
+                        <button id="add-payment_method" class="rounded-md bg-violet-600 text-white px-3 py-1 text-sm">Add Payment Method</button>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 rounded-2xl shadow">
+                    <table class="w-full text-sm" id="payment_methods-table">
+                        <thead class="text-slate-600">
+                        <tr>
+                            <th class="text-left p-2">#</th>
+                            <th class="text-left p-2">Name</th>
+                            <th class="text-left p-2">Description</th>
+                            <th class="text-left p-2">Expiry Time</th>
+                            <th class="text-left p-2">Payment Gateway</th>
+                            <th class="text-left p-2">Active</th>
+                            <th class="text-left p-2">Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody id="payment_methods-tbody" class="divide-y"></tbody>
+                    </table>
+                    <p id="payment_methods-empty" class="text-sm text-slate-500 mt-4 hidden">No payment methods yet. Click "Add Payment Method" to create one.</p>
+                </div>
+            </section>
+
+            <!-- Delivery methods -->
+            <section id="delivery_methods" class="hidden">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-semibold">Delivery Methods</h2>
+                    <div class="flex items-center gap-3">
+                        <button id="refresh-delivery_methods" class="rounded-md border px-3 py-1 text-sm">Refresh</button>
+                        <button id="add-delivery_method" class="rounded-md bg-violet-600 text-white px-3 py-1 text-sm">Add Delivery Method</button>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 rounded-2xl shadow">
+                    <table class="w-full text-sm" id="delivery_methods-table">
+                        <thead class="text-slate-600">
+                        <tr>
+                            <th class="text-left p-2">#</th>
+                            <th class="text-left p-2">Name</th>
+                            <th class="text-left p-2">Total Services</th>
+                            <th class="text-left p-2">Active</th>
+                            <th class="text-left p-2">Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody id="delivery_methods-tbody" class="divide-y"></tbody>
+                    </table>
+                    <p id="delivery_methods-empty" class="text-sm text-slate-500 mt-4 hidden">No delivery methods yet. Click "Add Delivery Method" to create one.</p>
+                </div>
+            </section>
+
+            <!-- Users -->
+            <section id="users" class="hidden">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-semibold">Users</h2>
+                    <div class="flex items-center gap-3">
+                        <button id="refresh-users" class="rounded-md border px-3 py-1 text-sm">Refresh</button>
+                        <button id="add-user" class="rounded-md bg-violet-600 text-white px-3 py-1 text-sm">Add User</button>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 rounded-2xl shadow">
+                    <table class="w-full text-sm" id="users-table">
+                        <thead class="text-slate-600">
+                        <tr>
+                            <th class="text-left p-2">#</th>
+                            <th class="text-left p-2">Name</th>
+                            <th class="text-left p-2">Email</th>
+                            <th class="text-left p-2">Phone</th>
+                            <th class="text-left p-2">Active</th>
+                            <th class="text-left p-2">Superuser</th>
+                            <th class="text-left p-2">Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody id="users-tbody" class="divide-y"></tbody>
+                    </table>
+                    <p id="users-empty" class="text-sm text-slate-500 mt-4 hidden">No users yet. Click "Add User" to create one.</p>
+                </div>
+            </section>
+
+        </main>
+    </div>
+</div>
+
+<!-- Modal (reusable for Brand/Material) -->
+<div id="modal" class="fixed inset-0 hidden items-center justify-center bg-black/40 p-4">
+    <div class="bg-white rounded-2xl w-full max-w-md p-6">
+        <h3 id="modal-title" class="text-lg font-semibold mb-3">Add</h3>
+        <form id="modal-form" class="space-y-3">
+            <div id="modal-extra"></div>
+            <div class="flex items-center justify-end gap-3 mt-4">
+                <button type="button" id="modal-cancel" class="rounded-md border px-3 py-1">Cancel</button>
+                <button type="submit" id="modal-submit" class="rounded-md bg-violet-600 text-white px-3 py-1">Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Delivery Services List Modal -->
+<div id="deliveryServicesList" class="fixed inset-0 hidden items-center justify-center bg-black/40 p-4">
+    <div class="bg-white rounded-2xl w-full max-w-md p-6">
+        <h3 id="delivery-service-modal-title" class="text-lg font-semibold mb-3">Add</h3>
+        <div class="bg-white p-4 rounded-2xl shadow">
+            <table class="w-full text-sm" id="">
+                <thead class="text-slate-600">
+                <tr>
+                    <th class="text-left p-2">#</th>
+                    <th class="text-left p-2">Name</th>
+                    <th class="text-left p-2">Price</th>
+                    <th class="text-left p-2">Active</th>
+                    <th class="text-left p-2">Actions</th>
+                </tr>
+                </thead>
+                <tbody id="delivery-service-modal-body" class="divide-y"></tbody>
+            </table>
+            <p id="delivery-service-modal-empty" class="text-sm text-slate-500 mt-4 hidden">No delivery services yet. Click "Add Delivery Method" to create one.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Simple SPA-ish navigation
+    const sections = document.querySelectorAll('main section');
+    const navBtns = document.querySelectorAll('aside button[data-section]');
+    function showSection(id){
+        sections.forEach(s => s.id === id ? s.classList.remove('hidden') : s.classList.add('hidden'));
+        navBtns.forEach(b => b.dataset.section === id ? b.classList.add('bg-violet-50') : b.classList.remove('bg-violet-50'));
+
+        if (id === 'brands') loadBrands();
+        if (id === 'categories') loadCategories();
+        if (id === 'materials') loadMaterials();
+        if (id === 'payment_methods') loadPaymentMethods();
+        if (id === 'delivery_methods') loadDeliveryMethods();
+        if (id === 'users') loadUsers();
+    }
+    navBtns.forEach(b => b.addEventListener('click', () => showSection(b.dataset.section)));
+
+    // Modal helpers
+    const modal = document.getElementById('modal');
+    const modalTitle = document.getElementById('modal-title');
+    const modalForm = document.getElementById('modal-form');
+    const modalExtra = document.getElementById('modal-extra');
+    const modalCancel = document.getElementById('modal-cancel');
+    const deliveryServiceModal = document.getElementById('deliveryServicesList');
+    const deliveryServiceModalTitle = document.getElementById('delivery-service-modal-title');
+    const deliveryServiceModalBody = document.getElementById('delivery-service-modal-body');
+    const deliveryServiceModalEmpty = document.getElementById('delivery-service-modal-empty');
+
+    function openModal({title, extraHtml = '', onSubmit}){
+        modalTitle.textContent = title;
+        modalExtra.innerHTML = extraHtml;
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        modal.dataset.open = '1';
+        modalForm.onsubmit = async (e) => {
+            e.preventDefault();
+            const formData = Object.fromEntries(new FormData(modalForm).entries());
+            await onSubmit(formData);
+        };
+
+        document.getElementById('brand_is_active')?.addEventListener('change', (e)=>{
+            modalForm.is_active.value = e.target.checked;
+        })
+        document.getElementById('material_is_active')?.addEventListener('change', (e)=>{
+            modalForm.is_active.value = e.target.checked;
+        })
+        document.getElementById('payment_method_active')?.addEventListener('change', (e)=>{
+            modalForm.active.value = e.target.checked;
+        })
+        document.getElementById('delivery_method_active')?.addEventListener('change', (e)=>{
+            modalForm.active.value = e.target.checked;
+        })
+        document.getElementById('delivery_service_active')?.addEventListener('change', (e)=>{
+            modalForm.active.value = e.target.checked;
+        })
+        document.getElementById('user_is_active')?.addEventListener('change', (e)=>{
+            modalForm.is_active.value = e.target.checked;
+        })
+        document.getElementById('user_is_superuser')?.addEventListener('change', (e)=>{
+            modalForm.is_superuser.value = e.target.checked;
+        })
+    }
+
+    function closeModal(){
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        modal.dataset.open = '0';
+        modalForm.reset();
+        modalExtra.innerHTML = '';
+    }
+
+    modalCancel.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+
+    // Delivery Services List Modal
+    function openDeliveryServiceModal({title}){
+        deliveryServiceModalTitle.textContent = title;
+        deliveryServiceModal.classList.remove('hidden');
+        deliveryServiceModal.classList.add('flex');
+        deliveryServiceModal.dataset.open = '1';
+    }
+
+    function closeDeliveryServiceModal(){
+        deliveryServiceModal.classList.add('hidden');
+        deliveryServiceModal.classList.remove('flex');
+        deliveryServiceModal.dataset.open = '0';
+        deliveryServiceModalTitle.textContent = '';
+        deliveryServiceModalBody.innerHTML = '';
+    }
+
+    deliveryServiceModal.addEventListener('click', (e) => { if (e.target === deliveryServiceModal) closeDeliveryServiceModal(); });
+
+    // --- Brands CRUD (AJAX) ---
+    const brandsTbody = document.getElementById('brands-tbody');
+    const brandsEmpty = document.getElementById('brands-empty');
+    async function loadBrands(){
+        brandsTbody.innerHTML = '';
+        try{
+            const res = await fetch('/api/brands');
+            if(!res.ok) throw new Error('Failed to load');
+            const data = await res.json();
+            if(!data.length){ brandsEmpty.classList.remove('hidden'); return; } else brandsEmpty.classList.add('hidden');
+            data.forEach((b,i)=>{
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+            <td class="p-2">${i+1}</td>
+            <td class="p-2">${escapeHtml(b.name)}</td>
+            <td class="p-2">${escapeHtml(b.code||'—')}</td>
+            <td class="p-2">${b.is_active}</td>
+            <td class="p-2">
+              <div class="flex gap-2">
+                <button data-id="${b.id}" class="edit-brand rounded-md border px-2 py-1 text-sm">Edit</button>
+                <button data-id="${b.id}" class="delete-brand rounded-md border px-2 py-1 text-sm text-red-600">Delete</button>
+              </div>
+            </td>`;
+                brandsTbody.appendChild(tr);
+            });
+            // bind edit/delete
+            document.querySelectorAll('.edit-brand').forEach(btn=>btn.addEventListener('click', onEditBrand));
+            document.querySelectorAll('.delete-brand').forEach(btn=>btn.addEventListener('click', onDeleteBrand));
+        }catch(err){
+            console.error(err);
+            brandsEmpty.textContent = 'Unable to load brands.';
+            brandsEmpty.classList.remove('hidden');
+        }
+    }
+
+    document.getElementById('refresh-brands').addEventListener('click', loadBrands);
+    document.getElementById('add-brand').addEventListener('click', ()=>{
+        openModal({
+            title: 'Add Brand',
+            extraHtml: `<div>
+                <label class="block text-sm text-slate-700 mb-1">Name</label>
+                <input name="name" class="w-full rounded-md border border-slate-200 px-3 py-2" value="" />
+            </div><div>
+                <label class="block text-sm text-slate-700 mb-1">Code</label>
+                <input name="code" class="w-full rounded-md border border-slate-200 px-3 py-2" value="" />
+            </div>
+            <div><label>
+                <input type="checkbox" id="brand_is_active" name="is_active" value="false"> Active
+            </label></div>`,
+            onSubmit: async (formData) => {
+                formData['is_active'] = formData['is_active'] === 'true';
+                await saveBrand(formData);
+                closeModal();
+            }
+        });
+    });
+
+    async function saveBrand(payload){
+        try{
+            const res = await fetch('/api/brand/new', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+            if(!res.ok) throw new Error('Save failed');
+            await loadBrands();
+        }catch(err){ alert('Failed to save brand'); console.error(err); }
+    }
+
+    async function onEditBrand(e){
+        const id = e.currentTarget.dataset.id;
+        try{
+            const res = await fetch(`/api/brand/${id}`);
+            if(!res.ok) throw new Error('Not found');
+            const b = await res.json();
+            openModal({
+                title: 'Edit Brand',
+                extraHtml: `<div>
+                    <label class="block text-sm text-slate-700 mb-1">Name</label>
+                    <input name="name" class="w-full rounded-md border border-slate-200 px-3 py-2" value="${escapeHtml(b.name||'')}" />
+                </div><div>
+                    <label class="block text-sm text-slate-700 mb-1">Code</label>
+                    <input name="code" class="w-full rounded-md border border-slate-200 px-3 py-2" value="${escapeHtml(b.code||'')}" />
+                </div>
+                <div><label>
+                    <input type="checkbox" id="brand_is_active" name="is_active" value="${b.is_active}"${b.is_active? 'checked' : ''}> Active
+                </label></div>`,
+                onSubmit: async (formData) => {
+                    formData['is_active'] = formData['is_active'] === 'true';
+                    try{
+                        const r = await fetch(`/api/brand/${id}`, {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(formData)});
+                        if(!r.ok) throw new Error('Update failed');
+                        await loadBrands();
+                        closeModal();
+                    }catch(err){ alert('Failed to update'); console.error(err); }
+                }
+            });
+        }catch(err){ alert('Failed to fetch brand'); console.error(err); }
+    }
+
+    async function onDeleteBrand(e){
+        const id = e.currentTarget.dataset.id;
+        if(!confirm('Delete this brand?')) return;
+        try{
+            const res = await fetch(`/api/brand/${id}`, {method:'DELETE'});
+            if(!res.ok) throw new Error('Delete failed');
+            await loadBrands();
+        }catch(err){ alert('Failed to delete'); console.error(err); }
+    }
+
+    // --- Categories CRUD (AJAX) ---
+    const categoriesTbody = document.getElementById('categories-tbody');
+    const categoriesEmpty = document.getElementById('categories-empty');
+    async function loadCategories(){
+        categoriesTbody.innerHTML = '';
+        try{
+            const res = await fetch('/api/get_categories');
+            if(!res.ok) throw new Error('Failed to load');
+            const data = await res.json();
+            if(!data.length){ categoriesEmpty.classList.remove('hidden'); return; } else categoriesEmpty.classList.add('hidden');
+            data.forEach((c,i)=>{
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+            <td class="p-2">${i+1}</td>
+            <td class="p-2">${escapeHtml(c.name)}</td>
+            <td class="p-2">${escapeHtml(c.parent_id||'—')}</td>
+            <td class="p-2">
+              <div class="flex gap-2">
+                <button data-id="${c.id}" class="edit-category rounded-md border px-2 py-1 text-sm">Edit</button>
+                <button data-id="${c.id}" class="delete-category rounded-md border px-2 py-1 text-sm text-red-600">Delete</button>
+              </div>
+            </td>`;
+                categoriesTbody.appendChild(tr);
+            });
+            document.querySelectorAll('.edit-category').forEach(btn=>btn.addEventListener('click', onEditCategory));
+            document.querySelectorAll('.delete-category').forEach(btn=>btn.addEventListener('click', onDeleteCategory));
+        }catch(err){
+            console.error(err);
+            categoriesEmpty.textContent = 'Unable to load categories.';
+            categoriesEmpty.classList.remove('hidden');
+        }
+    }
+
+    document.getElementById('refresh-categories').addEventListener('click', loadCategories);
+    document.getElementById('add-category').addEventListener('click', addCategory);
+
+    async function addCategory() {
+        const parentSelect = await fetch(`/api/parent_categories`);
+        const parents = await parentSelect.json();
+
+        openModal({
+            title: 'Add Category',
+            extraHtml: `<div>
+                <label class="block text-sm text-slate-700 mb-1">Category</label>
+                <input name="name" class="w-full rounded-md border border-slate-200 px-3 py-2"/>
+            </div>
+            <div>
+                <label class="block text-sm text-slate-700 mb-1">Parent Category</label>
+                <select id="parent_id" name="parent_id" class="w-full rounded-md border border-slate-300 px-3 py-2 bg-white text-slate-900 shadow-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                  <option value="0">-- Pilih Parent --</option>
+                </select>
+            </div>`,
+            onSubmit: async (formData) => {
+                formData['parent_id'] = formData['parent_id'] ? parseInt(formData['parent_id'], 10) : null;
+                await saveCategory(formData);
+                closeModal();
+            }
+        });
+
+        const parentEl = document.getElementById('parent_id');
+
+        parents.forEach(p => {
+            const opt = document.createElement('option');
+            opt.value = p.id;
+            opt.textContent = p.name;
+            parentEl.appendChild(opt);
+        });
+    }
+
+    async function saveCategory(payload){
+        try{
+            const res = await fetch('/api/category/new', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+            if(!res.ok) throw new Error('Save failed');
+            await loadCategories();
+        }catch(err){ alert('Failed to save category'); console.error(err); }
+    }
+
+    async function onEditCategory(e){
+        const id = e.currentTarget.dataset.id;
+        try{
+            const res = await fetch(`/api/category/${id}`);
+            const parentSelect = await fetch(`/api/parent_categories?exclude_id=${id}`);
+            if(!res.ok) throw new Error('Not found');
+            const c = await res.json();
+            const parents = await parentSelect.json();
+            console.log(c, parents);
+            openModal({
+                title: 'Edit Category',
+                extraHtml: `<div>
+                    <label class="block text-sm text-slate-700 mb-1">Category</label>
+                    <input name="name" class="w-full rounded-md border border-slate-200 px-3 py-2" value="${escapeHtml(c.name||'')}"/>
+                </div>
+                <div>
+                    <label class="block text-sm text-slate-700 mb-1">Parent Category</label>
+                    <select id="parent_id" name="parent_id" class="w-full rounded-md border border-slate-300 px-3 py-2 bg-white text-slate-900 shadow-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                      <option value="0">-- Pilih Parent --</option>
+                    </select>
+                </div>`,
+                onSubmit: async (formData) => {
+                    formData['parent_id'] = formData['parent_id'] ? parseInt(formData['parent_id'], 10) : null;
+                    try{
+                        const r = await fetch(`/api/category/${id}`, {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(formData)});
+                        if(!r.ok) throw new Error('Update failed');
+                        await loadCategories();
+                        closeModal();
+                    }catch(err){ alert('Failed to update'); console.error(err); }
+                }
+            });
+
+            const parentEl = document.getElementById('parent_id');
+
+            parents.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p.id;
+                opt.textContent = p.name;
+                if (p.id === c.parent_id) opt.selected = true;
+                parentEl.appendChild(opt);
+            });
+        } catch(err) { alert('Failed to fetch category'); console.error(err); }
+    }
+
+    async function onDeleteCategory(e){
+        const id = e.currentTarget.dataset.id;
+        if(!confirm('Delete this category?')) return;
+        try{
+            const res = await fetch(`/api/category/${id}`, {method:'DELETE'});
+            if(!res.ok) throw new Error('Delete failed');
+            await loadCategories();
+        }catch(err){ alert('Failed to delete'); console.error(err); }
+    }
+
+    // --- Materials CRUD (AJAX) ---
+    const materialsTbody = document.getElementById('materials-tbody');
+    const materialsEmpty = document.getElementById('materials-empty');
+    async function loadMaterials(){
+        materialsTbody.innerHTML = '';
+        try{
+            const res = await fetch('/api/materials');
+            if(!res.ok) throw new Error('Failed to load');
+            const data = await res.json();
+            if(!data.length){ materialsEmpty.classList.remove('hidden'); return; } else materialsEmpty.classList.add('hidden');
+            data.forEach((m,i)=>{
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+            <td class="p-2">${i+1}</td>
+            <td class="p-2">${escapeHtml(m.name)}</td>
+            <td class="p-2">${escapeHtml(m.code||'—')}</td>
+            <td class="p-2">${m.is_active}</td>
+            <td class="p-2">
+              <div class="flex gap-2">
+                <button data-id="${m.id}" class="edit-material rounded-md border px-2 py-1 text-sm">Edit</button>
+                <button data-id="${m.id}" class="delete-material rounded-md border px-2 py-1 text-sm text-red-600">Delete</button>
+              </div>
+            </td>`;
+                materialsTbody.appendChild(tr);
+            });
+            document.querySelectorAll('.edit-material').forEach(btn=>btn.addEventListener('click', onEditMaterial));
+            document.querySelectorAll('.delete-material').forEach(btn=>btn.addEventListener('click', onDeleteMaterial));
+        }catch(err){
+            console.error(err);
+            materialsEmpty.textContent = 'Unable to load materials.';
+            materialsEmpty.classList.remove('hidden');
+        }
+    }
+
+    document.getElementById('refresh-materials').addEventListener('click', loadMaterials);
+    document.getElementById('add-material').addEventListener('click', ()=>{
+        openModal({
+            title: 'Add Material',
+            extraHtml: `<div>
+                <label class="block text-sm text-slate-700 mb-1">Name</label>
+                <input name="name" class="w-full rounded-md border border-slate-200 px-3 py-2" value="" />
+            </div><div>
+                <label class="block text-sm text-slate-700 mb-1">Code</label>
+                <input name="code" class="w-full rounded-md border border-slate-200 px-3 py-2" value="" />
+            </div>
+            <div><label>
+                <input type="checkbox" id="material_is_active" name="is_active" value="false"> Active
+            </label></div>`,
+            onSubmit: async (formData) => {
+                formData['is_active'] = formData['is_active'] === 'true';
+                await saveMaterial(formData);
+                closeModal();
+            }
+        });
+    });
+
+    async function saveMaterial(payload){
+        try{
+            const res = await fetch('/api/material/new', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+            if(!res.ok) throw new Error('Save failed');
+            await loadMaterials();
+        }catch(err){ alert('Failed to save material'); console.error(err); }
+    }
+
+    async function onEditMaterial(e){
+        const id = e.currentTarget.dataset.id;
+        try{
+            const res = await fetch(`/api/material/${id}`);
+            if(!res.ok) throw new Error('Not found');
+            const m = await res.json();
+            openModal({
+                title: 'Edit Material',
+                extraHtml: `<div>
+                    <label class="block text-sm text-slate-700 mb-1">Name</label>
+                    <input name="name" class="w-full rounded-md border border-slate-200 px-3 py-2" value="${escapeHtml(m.name||'')}" />
+                </div><div>
+                    <label class="block text-sm text-slate-700 mb-1">Code</label>
+                    <input name="code" class="w-full rounded-md border border-slate-200 px-3 py-2" value="${escapeHtml(m.code||'')}" />
+                </div>
+                <div><label>
+                    <input type="checkbox" id="material_is_active" name="is_active" value="${m.is_active}"${m.is_active? 'checked' : ''}> Active
+                </label></div>`,
+                onSubmit: async (formData) => {
+                    formData['is_active'] = formData['is_active'] === 'true';
+                    try{
+                        const r = await fetch(`/api/material/${id}`, {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(formData)});
+                        if(!r.ok) throw new Error('Update failed');
+                        await loadMaterials();
+                        closeModal();
+                    }catch(err){ alert('Failed to update'); console.error(err); }
+                }
+            });
+        }catch(err){ alert('Failed to fetch material'); console.error(err); }
+    }
+
+    async function onDeleteMaterial(e){
+        const id = e.currentTarget.dataset.id;
+        if(!confirm('Delete this material?')) return;
+        try{
+            const res = await fetch(`/api/material/${id}`, {method:'DELETE'});
+            if(!res.ok) throw new Error('Delete failed');
+            await loadMaterials();
+        }catch(err){ alert('Failed to delete'); console.error(err); }
+    }
+
+    // --- Payment Methods CRUD (AJAX) ---
+    const paymentMethodsTbody = document.getElementById('payment_methods-tbody');
+    const paymentMethodsEmpty = document.getElementById('payment_methods-empty');
+    async function loadPaymentMethods(){
+        paymentMethodsTbody.innerHTML = '';
+        try{
+            const res = await fetch('/api/payment_methods');
+            if(!res.ok) throw new Error('Failed to load');
+            const data = await res.json();
+            if(!data.length){ paymentMethodsEmpty.classList.remove('hidden'); return; } else paymentMethodsEmpty.classList.add('hidden');
+            data.forEach((m,i)=>{
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+            <td class="p-2">${i+1}</td>
+            <td class="p-2">${escapeHtml(m.name)}</td>
+            <td class="p-2">${escapeHtml(m.description||'—')}</td>
+            <td class="p-2">${m.expiry_time||'-'}</td>
+            <td class="p-2">${m.payment_gateway||'-'}</td>
+            <td class="p-2">${m.active||'false'}</td>
+            <td class="p-2">
+              <div class="flex gap-2">
+                <button data-id="${m.id}" class="edit-payment_method rounded-md border px-2 py-1 text-sm">Edit</button>
+                <button data-id="${m.id}" class="delete-payment_method rounded-md border px-2 py-1 text-sm text-red-600">Delete</button>
+              </div>
+            </td>`;
+                paymentMethodsTbody.appendChild(tr);
+            });
+            document.querySelectorAll('.edit-payment_method').forEach(btn=>btn.addEventListener('click', onEditPaymentMethod));
+            document.querySelectorAll('.delete-payment_method').forEach(btn=>btn.addEventListener('click', onDeletePaymentMethod));
+        }catch(err){
+            console.error(err);
+            paymentMethodsEmpty.textContent = 'Unable to load payment methods.';
+            paymentMethodsEmpty.classList.remove('hidden');
+        }
+    }
+
+    document.getElementById('refresh-payment_methods').addEventListener('click', loadPaymentMethods);
+    document.getElementById('add-payment_method').addEventListener('click', ()=>{
+        openModal({
+            title: 'Add Payment Method',
+            extraHtml: `<div>
+                <label class="block text-sm text-slate-700 mb-1">Name</label>
+                <input name="name" class="w-full rounded-md border border-slate-200 px-3 py-2" value="" />
+            </div><div>
+                <label class="block text-sm text-slate-700 mb-1">Description</label>
+                <textarea name="description" cols="3" class="w-full rounded-md border border-slate-200 px-3 py-2"></textarea>
+            </div><div>
+                <label class="block text-sm text-slate-700 mb-1">Expiry Time</label>
+                <input type="number" name="expiry_time" class="w-full rounded-md border border-slate-200 px-3 py-2" value="" />
+            </div><div>
+                <label class="block text-sm text-slate-700 mb-1">Payment Gateway</label>
+                <select id="id_payment_gateway" name="payment_gateway" class="w-full rounded-md border border-slate-300 px-3 py-2 bg-white text-slate-900 shadow-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                  <option value="">-- Pilih Payment Gateway --</option>
+                  <option value="Xendit">Xendit</option>
+                  <option value="Tripay">Tripay</option>
+                  <option value="Midtrans">Midtrans</option>
+                </select>
+            </div>
+            <div><label>
+                <input type="checkbox" id="payment_method_active" name="active" value="false"> Active
+            </label></div>`,
+            onSubmit: async (formData) => {
+                formData['active'] = formData['active'] === 'true';
+                formData['expiry_time'] = formData['expiry_time'] === ''? 0 : parseInt(formData['expiry_time'], 10);
+                formData['payment_gateway'] = formData['payment_gateway'] === ''? null : formData['payment_gateway'];
+                await savePaymentMethod(formData);
+                closeModal();
+            }
+        });
+    });
+
+    async function savePaymentMethod(payload){
+        try{
+            const res = await fetch('/api/payment_methods/new', {
+                method: 'POST',
+                headers: {
+                    'Content-Type':'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                body: JSON.stringify(payload)
+            });
+            if(!res.ok) throw new Error('Save failed');
+            await loadPaymentMethods();
+        }catch(err){ alert('Failed to save payment method'); console.error(err); }
+    }
+
+    async function onEditPaymentMethod(e){
+        const id = e.currentTarget.dataset.id;
+        try{
+            const res = await fetch(`/api/payment_methods/${id}`);
+            if(!res.ok) throw new Error('Not found');
+            const m = await res.json();
+            openModal({
+                title: 'Edit Payment Method',
+                extraHtml: `<div>
+                    <label class="block text-sm text-slate-700 mb-1">Name</label>
+                    <input name="name" class="w-full rounded-md border border-slate-200 px-3 py-2" value="${escapeHtml(m.name||'')}" />
+                </div><div>
+                    <label class="block text-sm text-slate-700 mb-1">Description</label>
+                    <textarea name="description" cols="3" class="w-full rounded-md border border-slate-200 px-3 py-2">${escapeHtml(m.description||'')}</textarea>
+                </div><div>
+                    <label class="block text-sm text-slate-700 mb-1">Expiry Time</label>
+                    <input type="number" name="expiry_time" class="w-full rounded-md border border-slate-200 px-3 py-2" value="${m.expiry_time}" />
+                </div><div>
+                    <label class="block text-sm text-slate-700 mb-1">Payment Gateway</label>
+                    <select id="id_payment_gateway" name="payment_gateway" class="w-full rounded-md border border-slate-300 px-3 py-2 bg-white text-slate-900 shadow-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                      <option value="">-- Pilih Payment Gateway --</option>
+                      <option value="Xendit"${m.payment_gateway == 'Xendit'? ' selected': ''}>Xendit</option>
+                      <option value="Tripay"${m.payment_gateway == 'Tripay'? ' selected': ''}>Tripay</option>
+                      <option value="Midtrans"${m.payment_gateway == 'Midtrans'? ' selected': ''}>Midtrans</option>
+                    </select>
+                </div>
+                <div><label>
+                    <input type="checkbox" id="payment_method_active" name="active" value="${m.active}"${m.active? 'checked' : ''}> Active
+                </label></div>`,
+                onSubmit: async (formData) => {
+                    formData['active'] = formData['active'] === 'true';
+                    formData['expiry_time'] = formData['expiry_time'] === ''? 0 : parseInt(formData['expiry_time'], 10);
+                    formData['payment_gateway'] = formData['payment_gateway'] === ''? null : formData['payment_gateway'];
+                    try{
+                        const r = await fetch(`/api/payment_methods/${id}`, {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type':'application/json',
+                                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                            },
+                            body: JSON.stringify(formData)
+                        });
+                        if(!r.ok) throw new Error('Update failed');
+                        await loadPaymentMethods();
+                        closeModal();
+                    }catch(err){ alert('Failed to update'); console.error(err); }
+                }
+            });
+        }catch(err){ alert('Failed to fetch payment method'); console.error(err); }
+    }
+
+    async function onDeletePaymentMethod(e){
+        const id = e.currentTarget.dataset.id;
+        if(!confirm('Delete this payment method?')) return;
+        try{
+            const res = await fetch(`/api/payment_methods/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type':'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+            });
+            if(!res.ok) throw new Error('Delete failed');
+            await loadMaterials();
+        }catch(err){ alert('Failed to delete'); console.error(err); }
+    }
+
+    // --- Delivery Services CRUD (AJAX) ---
+    const deliveryMethodsTbody = document.getElementById('delivery_methods-tbody');
+    const deliveryMethodsEmpty = document.getElementById('delivery_methods-empty');
+    async function loadDeliveryMethods(){
+        deliveryMethodsTbody.innerHTML = '';
+        try{
+            const res = await fetch('/api/delivery_methods');
+            if(!res.ok) throw new Error('Failed to load');
+            const data = await res.json();
+            if(!data.length){ deliveryMethodsEmpty.classList.remove('hidden'); return; } else deliveryMethodsEmpty.classList.add('hidden');
+            data.forEach((m,i)=>{
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+            <td class="p-2">${i+1}</td>
+            <td class="p-2">${escapeHtml(m.name)}</td>
+            <td class="p-2">${m.total_services}</td>
+            <td class="p-2">${m.active||'false'}</td>
+            <td class="p-2">
+              <div class="flex gap-2">
+                <button data-id="${m.id}" class="edit-delivery_method rounded-md border px-2 py-1 text-sm">Edit</button>
+                <button data-id="${m.id}" data-delivery_method="${m.name}" class="show-delivery_service rounded-md border px-2 py-1 text-sm">Show Services</button>
+                <button data-id="${m.id}" data-delivery_method="${m.name}" class="add-delivery_service rounded-md border px-2 py-1 text-sm">Add Service</button>
+                <button data-id="${m.id}" class="delete-delivery_method rounded-md border px-2 py-1 text-sm text-red-600">Delete</button>
+              </div>
+            </td>`;
+                deliveryMethodsTbody.appendChild(tr);
+            });
+            document.querySelectorAll('.edit-delivery_method').forEach(btn=>btn.addEventListener('click', onEditDeliveryMethod));
+            document.querySelectorAll('.show-delivery_service').forEach(btn=>btn.addEventListener('click', onDeliveryServicesList));
+            document.querySelectorAll('.add-delivery_service').forEach(btn=>btn.addEventListener('click', onAddDeliveryService));
+            document.querySelectorAll('.delete-delivery_method').forEach(btn=>btn.addEventListener('click', onDeleteDeliveryMethod));
+        }catch(err){
+            console.error(err);
+            deliveryMethodsEmpty.textContent = 'Unable to load delivery methods.';
+            deliveryMethodsEmpty.classList.remove('hidden');
+        }
+    }
+
+    document.getElementById('refresh-delivery_methods').addEventListener('click', loadDeliveryMethods);
+    document.getElementById('add-delivery_method').addEventListener('click', ()=>{
+        openModal({
+            title: 'Add Delivery Method',
+            extraHtml: `<div>
+                <label class="block text-sm text-slate-700 mb-1">Name</label>
+                <input name="name" class="w-full rounded-md border border-slate-200 px-3 py-2" value="" />
+            </div>
+            <div><label>
+                <input type="checkbox" id="delivery_method_active" name="active" value="false"> Active
+            </label></div>`,
+            onSubmit: async (formData) => {
+                formData['active'] = formData['active'] === 'true';
+                await saveDeliveryMethod(formData);
+                closeModal();
+            }
+        });
+    });
+
+    async function saveDeliveryMethod(payload){
+        try{
+            const res = await fetch('/api/delivery_methods/new', {
+                method: 'POST',
+                headers: {
+                    'Content-Type':'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                body: JSON.stringify(payload)
+            });
+            if(!res.ok) throw new Error('Save failed');
+            await loadDeliveryMethods();
+        }catch(err){ alert('Failed to save delivery method'); console.error(err); }
+    }
+
+    async function onEditDeliveryMethod(e){
+        const id = e.currentTarget.dataset.id;
+        try{
+            const res = await fetch(`/api/delivery_methods/${id}`);
+            if(!res.ok) throw new Error('Not found');
+            const m = await res.json();
+            openModal({
+                title: 'Edit Delivery Method',
+                extraHtml: `<div>
+                    <label class="block text-sm text-slate-700 mb-1">Name</label>
+                    <input name="name" class="w-full rounded-md border border-slate-200 px-3 py-2" value="${escapeHtml(m.name||'')}" />
+                </div>
+                <div><label>
+                    <input type="checkbox" id="delivery_method_active" name="active" value="${m.active}"${m.active? 'checked' : ''}> Active
+                </label></div>`,
+                onSubmit: async (formData) => {
+                    formData['active'] = formData['active'] === 'true';
+                    try{
+                        const r = await fetch(`/api/delivery_methods/${id}`, {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type':'application/json',
+                                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                            },
+                            body: JSON.stringify(formData)
+                        });
+                        if(!r.ok) throw new Error('Update failed');
+                        await loadDeliveryMethods();
+                        closeModal();
+                    }catch(err){ alert('Failed to update'); console.error(err); }
+                }
+            });
+        }catch(err){ alert('Failed to fetch delivery method'); console.error(err); }
+    }
+
+    async function onDeleteDeliveryMethod(e){
+        const id = e.currentTarget.dataset.id;
+        if(!confirm('Delete this delivery method?')) return;
+        try{
+            const res = await fetch(`/api/delivery_methods/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type':'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+            });
+            if(!res.ok) throw new Error('Delete failed');
+            await loadDeliveryMethods();
+        }catch(err){ alert('Failed to delete'); console.error(err); }
+    }
+
+    async function onAddDeliveryService(e){
+        const delivery_method_id = e.currentTarget.dataset.id;
+        const delivery_method_name = e.currentTarget.dataset.delivery_method;
+        openModal({
+            title: `${delivery_method_name} - Add Delivery Service`,
+            extraHtml: `<input type="hidden" name="delivery_method_id" value="${delivery_method_id}"><div>
+                <label class="block text-sm text-slate-700 mb-1">Name</label>
+                <input name="name" class="w-full rounded-md border border-slate-200 px-3 py-2" value="" />
+            </div><div>
+                <label class="block text-sm text-slate-700 mb-1">Price</label>
+                <input type="number" name="price" class="w-full rounded-md border border-slate-200 px-3 py-2" value="" />
+            </div>
+            <div><label>
+                <input type="checkbox" id="delivery_service_active" name="active" value="false"> Active
+            </label></div>`,
+            onSubmit: async (formData) => {
+                formData['active'] = formData['active'] === 'true';
+                formData['delivery_method_id'] = parseInt(formData['delivery_method_id'], 10);
+                try{
+                    const r = await fetch(`/api/delivery_method_services/new`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type':'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        },
+                        body: JSON.stringify(formData)
+                    });
+                    if(!r.ok) throw new Error('Add delivery service failed');
+                    await loadDeliveryMethods();
+                    closeModal();
+                }catch(err){ alert('Failed to add delivery service'); console.error(err); }
+            }
+        });
+        // }catch(err){ alert('Failed to fetch delivery method'); console.error(err); }
+    }
+
+    async function onDeliveryServicesList(e) {
+        const delivery_method_id = e.currentTarget.dataset.id;
+        const delivery_method_name = e.currentTarget.dataset.delivery_method;
+        let title = `${delivery_method_name} - Delivery Service List`;
+        deliveryServiceModalBody.innerHTML = '';
+        try{
+            const res = await fetch('/api/delivery_methods');
+            if(!res.ok) throw new Error('Failed to load');
+            const data = await res.json();
+            data.forEach((m,i)=>{
+                if (m.id === parseInt(delivery_method_id, 10)) {
+                    m['services'].forEach((s,j)=>{
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                        <td class="p-2">${j+1}</td>
+                        <td class="p-2">${escapeHtml(s.name)}</td>
+                        <td class="p-2">${s.price}</td>
+                        <td class="p-2">${s.active||'false'}</td>
+                        <td class="p-2">
+                          <div class="flex gap-2">
+                            <button data-id="${s.id}" data-delivery_method="${m.name}" data-delivery_method_id="${delivery_method_id}" class="edit-delivery_service rounded-md border px-2 py-1 text-sm">Edit</button>
+                            <button data-id="${s.id}" data-delivery_method="${m.name}" class="delete-delivery_service rounded-md border px-2 py-1 text-sm text-red-600">Delete</button>
+                          </div>
+                        </td>`;
+                        deliveryServiceModalBody.appendChild(tr);
+                    })
+                    openDeliveryServiceModal({title: title});
+                }
+            })
+            document.querySelectorAll('.edit-delivery_service').forEach(btn=>btn.addEventListener('click', onEditDeliveryService));
+            document.querySelectorAll('.delete-delivery_service').forEach(btn=>btn.addEventListener('click', onDeleteDeliveryService));
+        }catch(err){
+            console.error(err);
+            deliveryServiceModalEmpty.textContent = 'Unable to load delivery services.';
+            deliveryServiceModalEmpty.classList.remove('hidden');
+        }
+    }
+
+    async function onEditDeliveryService(e){
+        const id = e.currentTarget.dataset.id;
+        const delivery_method_name = e.currentTarget.dataset.delivery_method_name;
+        const delivery_method_id = e.currentTarget.dataset.delivery_method_id;
+        try{
+            const res = await fetch(`/api/delivery_method_services/${id}`);
+            if(!res.ok) throw new Error('Not found');
+            closeDeliveryServiceModal();
+            const m = await res.json();
+            openModal({
+                title: `${delivery_method_name} - Edit Delivery Service`,
+                extraHtml: `<input type="hidden" name="delivery_method_id" value="${delivery_method_id}"><div>
+                    <label class="block text-sm text-slate-700 mb-1">Name</label>
+                    <input name="name" class="w-full rounded-md border border-slate-200 px-3 py-2" value="${escapeHtml(m.name||'')}" />
+                </div><div>
+                    <label class="block text-sm text-slate-700 mb-1">Price</label>
+                    <input type="number" name="price" class="w-full rounded-md border border-slate-200 px-3 py-2" value="${m.price}" />
+                </div>
+                <div><label>
+                    <input type="checkbox" id="delivery_method_active" name="active" value="${m.active}"${m.active? 'checked' : ''}> Active
+                </label></div>`,
+                onSubmit: async (formData) => {
+                    formData['active'] = formData['active'] === 'true';
+                    formData['delivery_method_id'] = parseInt(formData['delivery_method_id'], 10);
+                    try{
+                        const r = await fetch(`/api/delivery_method_services/${id}`, {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type':'application/json',
+                                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                            },
+                            body: JSON.stringify(formData)
+                        });
+                        if(!r.ok) throw new Error('Update failed');
+                        await loadDeliveryMethods();
+                        closeModal();
+                    }catch(err){ alert('Failed to update'); console.error(err); }
+                }
+            });
+        }catch(err){ alert('Failed to fetch delivery method'); console.error(err); }
+    }
+
+    async function onDeleteDeliveryService(e){
+        const id = e.currentTarget.dataset.id;
+        if(!confirm('Delete this delivery service?')) return;
+        try{
+            const res = await fetch(`/api/delivery_method_services/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type':'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+            });
+            if(!res.ok) throw new Error('Delete failed');
+            document.querySelectorAll('.show-delivery_service').forEach(btn=>btn.click());
+        }catch(err){ alert('Failed to delete'); console.error(err); }
+    }
+
+    // --- Users CRUD (AJAX, superuser only) ---
+    const usersTbody = document.getElementById('users-tbody');
+    const usersEmpty = document.getElementById('users-empty');
+    const userAuthHeaders = () => ({
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+    });
+
+    async function loadUsers(){
+        usersTbody.innerHTML = '';
+        try{
+            const res = await fetch('/api/users', { headers: userAuthHeaders() });
+            if(!res.ok) throw new Error('Failed to load');
+            const data = await res.json();
+            if(!data.length){ usersEmpty.classList.remove('hidden'); return; } else usersEmpty.classList.add('hidden');
+            data.forEach((u,i)=>{
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+            <td class="p-2">${i+1}</td>
+            <td class="p-2">${escapeHtml(((u.first_name||'')+' '+(u.last_name||'')).trim())}</td>
+            <td class="p-2">${escapeHtml(u.email)}</td>
+            <td class="p-2">${escapeHtml(u.phone||'—')}</td>
+            <td class="p-2">${u.is_active ? '✓' : '—'}</td>
+            <td class="p-2">${u.is_superuser ? '✓' : '—'}</td>
+            <td class="p-2">
+              <div class="flex gap-2">
+                <button data-pid="${u.pid}" class="edit-user rounded-md border px-2 py-1 text-sm">Edit</button>
+                <button data-pid="${u.pid}" class="delete-user rounded-md border px-2 py-1 text-sm text-red-600">Delete</button>
+              </div>
+            </td>`;
+                usersTbody.appendChild(tr);
+            });
+            document.querySelectorAll('.edit-user').forEach(btn=>btn.addEventListener('click', onEditUser));
+            document.querySelectorAll('.delete-user').forEach(btn=>btn.addEventListener('click', onDeleteUser));
+        }catch(err){
+            console.error(err);
+            usersEmpty.textContent = 'Unable to load users.';
+            usersEmpty.classList.remove('hidden');
+        }
+    }
+
+    document.getElementById('refresh-users').addEventListener('click', loadUsers);
+    document.getElementById('add-user').addEventListener('click', ()=>{
+        openModal({
+            title: 'Add User',
+            extraHtml: `<div>
+                <label class="block text-sm text-slate-700 mb-1">First Name</label>
+                <input name="first_name" class="w-full rounded-md border border-slate-200 px-3 py-2" value="" />
+            </div><div>
+                <label class="block text-sm text-slate-700 mb-1">Last Name</label>
+                <input name="last_name" class="w-full rounded-md border border-slate-200 px-3 py-2" value="" />
+            </div><div>
+                <label class="block text-sm text-slate-700 mb-1">Email</label>
+                <input name="email" type="email" class="w-full rounded-md border border-slate-200 px-3 py-2" value="" />
+            </div><div>
+                <label class="block text-sm text-slate-700 mb-1">Password</label>
+                <input name="password" type="password" class="w-full rounded-md border border-slate-200 px-3 py-2" value="" />
+            </div><div>
+                <label class="block text-sm text-slate-700 mb-1">Phone</label>
+                <input name="phone" class="w-full rounded-md border border-slate-200 px-3 py-2" value="" />
+            </div>
+            <div><label>
+                <input type="checkbox" id="user_is_active" name="is_active" value="false"> Active
+            </label></div>
+            <div><label>
+                <input type="checkbox" id="user_is_superuser" name="is_superuser" value="false"> Superuser
+            </label></div>`,
+            onSubmit: async (formData) => {
+                formData['is_active'] = formData['is_active'] === 'true';
+                formData['is_superuser'] = formData['is_superuser'] === 'true';
+                await saveUser(formData);
+                closeModal();
+            }
+        });
+    });
+
+    async function saveUser(payload){
+        try{
+            const res = await fetch('/api/user/new', {method:'POST',headers:userAuthHeaders(),body:JSON.stringify(payload)});
+            if(!res.ok) throw new Error('Save failed');
+            await loadUsers();
+        }catch(err){ alert('Failed to save user'); console.error(err); }
+    }
+
+    async function onEditUser(e){
+        const pid = e.currentTarget.dataset.pid;
+        try{
+            const res = await fetch(`/api/user/${pid}`, { headers: userAuthHeaders() });
+            if(!res.ok) throw new Error('Not found');
+            const u = await res.json();
+            openModal({
+                title: 'Edit User',
+                extraHtml: `<div>
+                    <label class="block text-sm text-slate-700 mb-1">First Name</label>
+                    <input name="first_name" class="w-full rounded-md border border-slate-200 px-3 py-2" value="${escapeHtml(u.first_name||'')}" />
+                </div><div>
+                    <label class="block text-sm text-slate-700 mb-1">Last Name</label>
+                    <input name="last_name" class="w-full rounded-md border border-slate-200 px-3 py-2" value="${escapeHtml(u.last_name||'')}" />
+                </div><div>
+                    <label class="block text-sm text-slate-700 mb-1">Email</label>
+                    <input name="email" type="email" class="w-full rounded-md border border-slate-200 px-3 py-2" value="${escapeHtml(u.email||'')}" />
+                </div><div>
+                    <label class="block text-sm text-slate-700 mb-1">Phone</label>
+                    <input name="phone" class="w-full rounded-md border border-slate-200 px-3 py-2" value="${escapeHtml(u.phone||'')}" />
+                </div>
+                <div><label>
+                    <input type="checkbox" id="user_is_active" name="is_active" value="${u.is_active}"${u.is_active? ' checked' : ''}> Active
+                </label></div>
+                <div><label>
+                    <input type="checkbox" id="user_is_superuser" name="is_superuser" value="${u.is_superuser}"${u.is_superuser? ' checked' : ''}> Superuser
+                </label></div>`,
+                onSubmit: async (formData) => {
+                    formData['is_active'] = formData['is_active'] === 'true';
+                    formData['is_superuser'] = formData['is_superuser'] === 'true';
+                    if (!formData['email']) delete formData['email'];
+                    try{
+                        const r = await fetch(`/api/user/${pid}`, {method:'PUT',headers:userAuthHeaders(),body:JSON.stringify(formData)});
+                        if(!r.ok) throw new Error('Update failed');
+                        await loadUsers();
+                        closeModal();
+                    }catch(err){ alert('Failed to update'); console.error(err); }
+                }
+            });
+        }catch(err){ alert('Failed to fetch user'); console.error(err); }
+    }
+
+    async function onDeleteUser(e){
+        const pid = e.currentTarget.dataset.pid;
+        if(!confirm('Delete this user?')) return;
+        try{
+            const res = await fetch(`/api/user/${pid}`, {method:'DELETE',headers:userAuthHeaders()});
+            if(!res.ok) throw new Error('Delete failed');
+            await loadUsers();
+        }catch(err){ alert('Failed to delete'); console.error(err); }
+    }
+
+    // Utilities
+    function escapeHtml(str){
+        if(!str) return '';
+        return String(str).replace(/[&<>"']/g, (s) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+    }
+
+    // initial load
+    showSection('brands');
+
+    // mobile toggles
+    document.getElementById('mobile-menu-btn').addEventListener('click', ()=>{
+        document.querySelector('aside').classList.toggle('hidden');
+    });
+
+    // simple search filter
+    document.getElementById('search').addEventListener('input', (e)=>{
+        const q = e.target.value.toLowerCase().trim();
+        if(!q) { document.querySelectorAll('#brands-tbody tr,#materials-tbody tr').forEach(r=>r.classList.remove('hidden')); return; }
+        document.querySelectorAll('#brands-tbody tr').forEach(tr=>{
+            const txt = tr.textContent.toLowerCase(); tr.classList.toggle('hidden', !txt.includes(q));
+        });
+        document.querySelectorAll('#materials-tbody tr').forEach(tr=>{
+            const txt = tr.textContent.toLowerCase(); tr.classList.toggle('hidden', !txt.includes(q));
+        });
+    });
+
+</script>
+</body>
+</html>

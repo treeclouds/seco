@@ -1,0 +1,105 @@
+#![allow(elided_lifetimes_in_paths)]
+#![allow(clippy::wildcard_imports)]
+pub use sea_orm_migration::prelude::*;
+
+mod m20220101_000001_users;
+mod m20231103_114510_notes;
+
+mod m20240327_124407_add_users_first_name_last_name;
+mod m20240327_130532_delete_users_name;
+mod m20240327_131345_index_users_more_fields;
+mod m20240328_042743_products;
+mod m20240328_095301_delete_notes;
+mod m20240329_041116_product_images;
+mod m20240329_164332_add_users_is_active_is_superuser;
+mod m20240828_113705_categories;
+mod m20240830_142527_alter_parent_id_categories;
+mod m20240903_112445_alter_products_category;
+mod m20240909_030131_add_users_location_and_image;
+mod m20240909_031109_index_users_location;
+mod m20240909_031322_index_products_brand;
+mod m20240909_112205_wishlists;
+mod m20240912_033907_offerings;
+mod m20240916_093433_add_users_lat_and_long;
+mod m20240916_093824_add_offerings_firebase_id;
+mod m20240918_124826_alter_offerings_product_condition;
+mod m20240926_135258_alter_offerings_action_type_enum;
+mod m20251030_070909_add_magic_link_token_and_magic_link_expiration_to_users;
+mod m20251118_031042_refresh_sessions;
+mod m20251119_061748_brands;
+mod m20251121_021954_materials;
+mod m20251121_024938_add_brand_ref_to_products;
+mod m20251121_025049_add_material_ref_to_products;
+mod m20251121_025648_remove_brand_and_material_from_products;
+mod m20251130_065119_delivery_addresses;
+mod m20251204_025418_add_latitude_and_longitude_to_delivery_addresses;
+mod m20251204_051553_add_status_to_products;
+mod m20251207_045908_payment_methods;
+mod m20251207_061842_fix_payment_methods_table;
+mod m20251207_073250_delivery_methods;
+mod m20251207_074551_delivery_method_services;
+mod m20251208_121450_orders;
+mod m20251208_134504_order_items;
+mod m20251211_131047_add_price_to_delivery_method_services;
+mod m20251212_034754_add_delivery_method_service_detail_to_order_items;
+mod m20260105_120053_add_phone_to_users;
+mod m20260106_025241_add_is_blocked_and_blocked_at_to_users;
+mod m20260119_120801_alter_delivery_address_orders_table;
+mod m20260202_042737_meetup_addresses;
+mod m20260202_220640_add_meetup_addresses_ref_to_orders;
+mod m20260226_114206_carts;
+pub struct Migrator;
+
+#[async_trait::async_trait]
+impl MigratorTrait for Migrator {
+    fn migrations() -> Vec<Box<dyn MigrationTrait>> {
+        vec![
+            Box::new(m20220101_000001_users::Migration),
+            Box::new(m20231103_114510_notes::Migration),
+            Box::new(m20240327_124407_add_users_first_name_last_name::Migration),
+            Box::new(m20240327_130532_delete_users_name::Migration),
+            Box::new(m20240327_131345_index_users_more_fields::Migration),
+            Box::new(m20240328_042743_products::Migration),
+            Box::new(m20240328_095301_delete_notes::Migration),
+            Box::new(m20240329_041116_product_images::Migration),
+            Box::new(m20240329_164332_add_users_is_active_is_superuser::Migration),
+            Box::new(m20240828_113705_categories::Migration),
+            Box::new(m20240830_142527_alter_parent_id_categories::Migration),
+            Box::new(m20240903_112445_alter_products_category::Migration),
+            Box::new(m20240909_030131_add_users_location_and_image::Migration),
+            Box::new(m20240909_031109_index_users_location::Migration),
+            Box::new(m20240909_031322_index_products_brand::Migration),
+            Box::new(m20240909_112205_wishlists::Migration),
+            Box::new(m20240912_033907_offerings::Migration),
+            Box::new(m20240916_093433_add_users_lat_and_long::Migration),
+            Box::new(m20240916_093824_add_offerings_firebase_id::Migration),
+            Box::new(m20240918_124826_alter_offerings_product_condition::Migration),
+            Box::new(m20240926_135258_alter_offerings_action_type_enum::Migration),
+            Box::new(m20251030_070909_add_magic_link_token_and_magic_link_expiration_to_users::Migration),
+            Box::new(m20251118_031042_refresh_sessions::Migration),
+            Box::new(m20251119_061748_brands::Migration),
+            Box::new(m20251121_021954_materials::Migration),
+            Box::new(m20251121_024938_add_brand_ref_to_products::Migration),
+            Box::new(m20251121_025049_add_material_ref_to_products::Migration),
+            Box::new(m20251121_025648_remove_brand_and_material_from_products::Migration),
+            Box::new(m20251130_065119_delivery_addresses::Migration),
+            Box::new(m20251204_025418_add_latitude_and_longitude_to_delivery_addresses::Migration),
+            Box::new(m20251204_051553_add_status_to_products::Migration),
+            Box::new(m20251207_045908_payment_methods::Migration),
+            Box::new(m20251207_061842_fix_payment_methods_table::Migration),
+            Box::new(m20251207_073250_delivery_methods::Migration),
+            Box::new(m20251207_074551_delivery_method_services::Migration),
+            Box::new(m20251208_121450_orders::Migration),
+            Box::new(m20251208_134504_order_items::Migration),
+            Box::new(m20251211_131047_add_price_to_delivery_method_services::Migration),
+            Box::new(m20251212_034754_add_delivery_method_service_detail_to_order_items::Migration),
+            Box::new(m20260105_120053_add_phone_to_users::Migration),
+            Box::new(m20260106_025241_add_is_blocked_and_blocked_at_to_users::Migration),
+            Box::new(m20260119_120801_alter_delivery_address_orders_table::Migration),
+            Box::new(m20260202_042737_meetup_addresses::Migration),
+            Box::new(m20260202_220640_add_meetup_addresses_ref_to_orders::Migration),
+            Box::new(m20260226_114206_carts::Migration),
+            // inject-above (do not remove this comment)
+        ]
+    }
+}

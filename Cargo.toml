@@ -1,0 +1,76 @@
+[workspace]
+
+[package]
+name = "seco"
+version = "0.1.0"
+edition = "2021"
+publish = false
+default-run = "seco-cli"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[workspace.dependencies]
+loco-rs = { version = "0.16", features = ["embedded_assets"] }
+
+[dependencies]
+shuttle-axum = "0.57.0"
+shuttle-runtime = { version = "0.57.0", default-features = false }
+shuttle-metadata = "0.42.0"
+shuttle-shared-db = { version = "0.57.0", features = ["postgres"] }
+
+
+loco-rs = { workspace = true  }
+migration = { path = "migration" }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1" }
+eyre = "0.6"
+tokio = { version = "1.45", default-features = false, features = [
+  "rt-multi-thread",
+] }
+async-trait = { version = "0.1" }
+tracing = { version = "0.1" }
+chrono = { version = "0.4" }
+validator = { version = "0.20" }
+sea-orm = { version = "1.1", features = [
+  "sqlx-sqlite",
+  "sqlx-postgres",
+  "runtime-tokio-rustls",
+  "macros",
+] }
+
+axum = { version = "0.8", features = ["multipart"] }
+axum_session = { version = "0.17", default-features = false }
+
+include_dir = "0.7"
+uuid = { version = "1", features = ["serde", "v4"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+regex = { version = "1.11" }
+utoipa-swagger-ui = { version = "9", features = ["axum", "vendored"] }
+utoipa = { version = "5", features = ["axum_extras", "time", "uuid", "decimal_float", "config"] }
+
+# view engine i18n
+fluent-templates = { version = "0.8.0", features = ["tera"] }
+unic-langid = "0.9.4"
+derivative = "2.2.0"
+jsonwebtoken = "9.3.1"
+sha2 = "0.10.9"
+bytes = "1.10.1"
+rand = "0.9.2"
+tower-http = "0.6.6"
+# /view engine
+
+[[bin]]
+name = "seco-cli"
+path = "src/bin/main.rs"
+required-features = []
+
+[[bin]]
+name = "seco"
+path = "src/bin/shuttle.rs"
+
+[dev-dependencies]
+serial_test = "3.1.1"
+rstest = "0.21.0"
+loco-rs = { workspace = true, features = ["testing"] }
+insta = { version = "1.39.0", features = ["redactions", "yaml", "filters"] }
+axum-test = { version = "14.3.0" }
