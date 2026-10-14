@@ -51,7 +51,8 @@ pub async fn brand_list(State(ctx): State<AppContext>) -> Result<Response> {
     )
 )]
 #[debug_handler]
-pub async fn brand_add(State(ctx): State<AppContext>, Json(params): Json<BrandParams>) -> Result<Response> {
+pub async fn brand_add(auth: auth::JWT, State(ctx): State<AppContext>, Json(params): Json<BrandParams>) -> Result<Response> {
+    crate::controllers::base::require_superuser(&ctx, &auth).await?;
     let mut item = ActiveModel {
         ..Default::default()
     };
@@ -61,11 +62,12 @@ pub async fn brand_add(State(ctx): State<AppContext>, Json(params): Json<BrandPa
 }
 
 #[debug_handler]
-pub async fn brand_update(
+pub async fn brand_update(auth: auth::JWT, 
     Path(id): Path<i32>,
     State(ctx): State<AppContext>,
     Json(params): Json<BrandParams>,
 ) -> Result<Response> {
+    crate::controllers::base::require_superuser(&ctx, &auth).await?;
     let item = load_item(&ctx, id).await?;
     let mut item = item.into_active_model();
     params.update(&mut item);
@@ -74,7 +76,8 @@ pub async fn brand_update(
 }
 
 #[debug_handler]
-pub async fn brand_remove(Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
+pub async fn brand_remove(auth: auth::JWT, Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
+    crate::controllers::base::require_superuser(&ctx, &auth).await?;
     load_item(&ctx, id).await?.delete(&ctx.db).await?;
     format::empty()
 }

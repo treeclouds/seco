@@ -45,7 +45,7 @@ impl Model {
                     ), '{}'::json
                 ) as seller,
                 c.qty
-            FROM cart c
+            FROM carts c
             INNER JOIN products p ON p.id = c.product_id
             INNER JOIN users u ON u.id = c.user_id
             INNER JOIN users s ON s.id = p.seller_id

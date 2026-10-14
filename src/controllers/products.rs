@@ -44,6 +44,24 @@ pub struct ProductPostParams {
 }
 
 impl ProductPostParams {
+    pub(crate) fn validate(&self) -> loco_rs::Result<()> {
+        if self.price <= Decimal::ZERO {
+            return Err(loco_rs::Error::BadRequest("price must be > 0".into()));
+        }
+        if self.stock < 0 {
+            return Err(loco_rs::Error::BadRequest("stock must be >= 0".into()));
+        }
+        for d in [self.dimension_width, self.dimension_height, self.dimension_length, self.dimension_weight] {
+            if !d.is_finite() || d < 0.0 {
+                return Err(loco_rs::Error::BadRequest("dimensions must be >= 0".into()));
+            }
+        }
+        if self.title.trim().is_empty() {
+            return Err(loco_rs::Error::BadRequest("title is required".into()));
+        }
+        Ok(())
+    }
+
     pub(crate) fn update(&self, item: &mut ActiveModel) {
         item.title = Set(self.title.clone());
         item.category_id = Set(Option::from(self.category_id));
