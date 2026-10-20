@@ -27,3 +27,7 @@ Secrets*.toml
 *.snap.new
 *.pending-snap
 .env
+
+# Firebase service-account keys
+*firebase-adminsdk*.json
+firebase-service-account*.json

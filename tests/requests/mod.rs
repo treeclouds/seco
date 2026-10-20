@@ -12,3 +12,4 @@ pub mod carts;
 pub mod order;
 pub mod brands;
 pub mod upload;
+mod firebase_token;
