@@ -16,3 +16,5 @@ pub mod order;
 pub mod meetup_address;
 pub mod seller;
 pub mod carts;
+pub mod firebase_token;
+
