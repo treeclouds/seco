@@ -204,6 +204,7 @@ impl Hooks for App {
             .add_route(controllers::products::routes())
             .add_route(controllers::offering::routes())
             .add_route(controllers::auth::routes())
+            .add_route(controllers::firebase_token::routes())
             .add_route(controllers::user::routes())
             .add_route(controllers::user::admin_routes())
             .add_route(controllers::wishlists::routes())
