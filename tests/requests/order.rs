@@ -1,15 +1,23 @@
-use seco::app::App;
-use loco_rs::testing::prelude::*;
-use serial_test::serial;
-use serde_json::json;
 use super::prepare_data::*;
+use loco_rs::testing::prelude::*;
+use seco::app::App;
+use serde_json::json;
+use serial_test::serial;
 
 use sea_orm::{ActiveModelTrait, EntityTrait, Set};
 use seco::models::_entities::{orders, sea_orm_active_enums::OrderStatusEnum};
 
-async fn place_order(request: &loco_rs::TestServer, ctx: &loco_rs::app::AppContext, tag: &str)
-    -> (seco::models::users::Model, seco::models::users::Model, i32, orders::Model, i32)
-{
+async fn place_order(
+    request: &loco_rs::TestServer,
+    ctx: &loco_rs::app::AppContext,
+    tag: &str,
+) -> (
+    seco::models::users::Model,
+    seco::models::users::Model,
+    i32,
+    orders::Model,
+    i32,
+) {
     let seller = create_user(&ctx.db, &format!("o-seller-{tag}@t.io"), "seller", false).await;
     let buyer = create_user(&ctx.db, &format!("o-buyer-{tag}@t.io"), "buyer", false).await;
     let p = create_product(&ctx.db, seller.id, &format!("OrdProd{tag}"), 100).await;
@@ -21,7 +29,11 @@ async fn place_order(request: &loco_rs::TestServer, ctx: &loco_rs::app::AppConte
         .await;
     assert_eq!(res.status_code(), 200, "{}", res.text());
     let id = res.json::<serde_json::Value>()["id"].as_i64().unwrap() as i32;
-    let order = orders::Entity::find_by_id(id).one(&ctx.db).await.unwrap().unwrap();
+    let order = orders::Entity::find_by_id(id)
+        .one(&ctx.db)
+        .await
+        .unwrap()
+        .unwrap();
     (seller, buyer, p.id, order, pm.id)
 }
 
@@ -35,8 +47,22 @@ async fn cancel_restores_stock_once_and_confirm_rejects_cancelled() {
         let cancel = format!("/api/user/order/{}/cancel", order.order_number);
         let confirm = format!("/api/orders/{}/confirm", order.id);
 
-        assert_eq!(request.get(&cancel).add_header(k.clone(), v.clone()).await.status_code(), 405);
-        assert_eq!(request.get(&confirm).add_header(k.clone(), v.clone()).await.status_code(), 405);
+        assert_eq!(
+            request
+                .get(&cancel)
+                .add_header(k.clone(), v.clone())
+                .await
+                .status_code(),
+            405
+        );
+        assert_eq!(
+            request
+                .get(&confirm)
+                .add_header(k.clone(), v.clone())
+                .await
+                .status_code(),
+            405
+        );
 
         let res = request.post(&cancel).add_header(k.clone(), v.clone()).await;
         assert_eq!(res.status_code(), 200, "{}", res.text());
@@ -46,9 +72,16 @@ async fn cancel_restores_stock_once_and_confirm_rejects_cancelled() {
         assert_eq!(res.status_code(), 400, "second cancel rejected");
         assert_eq!(product_stock(&ctx.db, pid).await, 10, "no double restore");
 
-        let res = request.post(&confirm).add_header(k.clone(), v.clone()).await;
+        let res = request
+            .post(&confirm)
+            .add_header(k.clone(), v.clone())
+            .await;
         assert_eq!(res.status_code(), 400, "confirm cancelled order");
-        let o = orders::Entity::find_by_id(order.id).one(&ctx.db).await.unwrap().unwrap();
+        let o = orders::Entity::find_by_id(order.id)
+            .one(&ctx.db)
+            .await
+            .unwrap()
+            .unwrap();
         assert_eq!(o.status, OrderStatusEnum::Cancelled);
     })
     .await;
@@ -61,7 +94,14 @@ async fn seller_cancel_is_post_and_restores_stock() {
         let (seller, _b, pid, order, _) = place_order(&request, &ctx, "s").await;
         let (k, v) = auth_header_for(&ctx, &seller);
         let url = format!("/api/seller/order/{}/cancel", order.order_number);
-        assert_eq!(request.get(&url).add_header(k.clone(), v.clone()).await.status_code(), 405);
+        assert_eq!(
+            request
+                .get(&url)
+                .add_header(k.clone(), v.clone())
+                .await
+                .status_code(),
+            405
+        );
         assert_eq!(request.post(&url).add_header(k, v).await.status_code(), 200);
         assert_eq!(product_stock(&ctx.db, pid).await, 10);
     })
@@ -78,8 +118,19 @@ async fn confirm_shipped_order_ok() {
         am.update(&ctx.db).await.unwrap();
         let (k, v) = auth_header_for(&ctx, &buyer);
         let url = format!("/api/orders/{}/confirm", order.id);
-        assert_eq!(request.post(&url).add_header(k.clone(), v.clone()).await.status_code(), 200);
-        assert_eq!(request.post(&url).add_header(k, v).await.status_code(), 400, "already completed");
+        assert_eq!(
+            request
+                .post(&url)
+                .add_header(k.clone(), v.clone())
+                .await
+                .status_code(),
+            200
+        );
+        assert_eq!(
+            request.post(&url).add_header(k, v).await.status_code(),
+            400,
+            "already completed"
+        );
     })
     .await;
 }

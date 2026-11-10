@@ -1,11 +1,11 @@
+pub use super::_entities::refresh_sessions::{self, ActiveModel, Entity, Model};
 use chrono::Local;
 use loco_rs::model::ModelResult;
 use sea_orm::entity::prelude::*;
 use sea_orm::{ActiveValue, TransactionTrait};
-pub use super::_entities::refresh_sessions::{self, ActiveModel, Model, Entity};
 pub type RefreshSessions = Entity;
 
-use sha2::{Sha256, Digest};
+use sha2::{Digest, Sha256};
 
 fn hash_token(token: &str) -> String {
     let mut hasher = Sha256::new();
@@ -48,7 +48,9 @@ impl Model {
             expires_at: ActiveValue::set(exp_dt.into()),
             revoked_at: ActiveValue::set(None),
             ..Default::default()
-        }.insert(&txn).await?;
+        }
+        .insert(&txn)
+        .await?;
 
         txn.commit().await?;
         Ok(refresh_session)

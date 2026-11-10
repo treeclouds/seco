@@ -1,23 +1,21 @@
 #![allow(clippy::unused_async)]
-use loco_rs::prelude::*;
-use sea_orm::QueryOrder;
-use loco_rs::controller::ErrorDetail;
-use axum::debug_handler;
-use chrono::Local;
-use serde::{Deserialize, Serialize};
-use utoipa::ToSchema;
+use crate::controllers::products::UnauthorizedResponse;
 use crate::models::_entities::{
+    sea_orm_active_enums::{ActionType, OfferingStatus},
     users,
-    sea_orm_active_enums::{ActionType, OfferingStatus}
 };
 use crate::models::{
     _entities::offerings::{self, ActiveModel, Model},
-    products::{self, Model as ProductModel}
+    products::{self, Model as ProductModel},
 };
-use crate::views::{
-    offering::AddNegotiationProductResponse,
-};
-use crate::controllers::products::UnauthorizedResponse;
+use crate::views::offering::AddNegotiationProductResponse;
+use axum::debug_handler;
+use chrono::Local;
+use loco_rs::controller::ErrorDetail;
+use loco_rs::prelude::*;
+use sea_orm::QueryOrder;
+use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
 pub struct AddNegotiationProductParams {
@@ -31,7 +29,7 @@ pub struct AddNegotiationProductParams {
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
 pub struct DoParams {
-    pub status: Option<OfferingStatus>
+    pub status: Option<OfferingStatus>,
 }
 
 impl DoParams {
@@ -56,14 +54,21 @@ async fn load_offering(ctx: &AppContext, id: i32) -> Result<Model> {
 ///   same negotiation (`firebase_id`) may accept/decline.
 ///
 /// The creator can never accept their own offer.
-async fn can_respond(ctx: &AppContext, actor: &users::Model, offering: &Model, product: &ProductModel) -> Result<bool> {
+async fn can_respond(
+    ctx: &AppContext,
+    actor: &users::Model,
+    offering: &Model,
+    product: &ProductModel,
+) -> Result<bool> {
     if actor.id == offering.user_id {
         return Ok(false);
     }
     if offering.user_id != product.seller_id {
         return Ok(actor.id == product.seller_id);
     }
-    let Some(fid) = offering.firebase_id.clone() else { return Ok(false) };
+    let Some(fid) = offering.firebase_id.clone() else {
+        return Ok(false);
+    };
     let buyer_offer = offerings::Entity::find()
         .filter(offerings::Column::FirebaseId.eq(fid))
         .filter(offerings::Column::ProductId.eq(product.id))
@@ -105,7 +110,11 @@ async fn load_offering_by_firebase_id(ctx: &AppContext, firebase_id: String) -> 
     )
 )]
 #[debug_handler]
-pub async fn add_negotiation_product(auth: auth::JWT, State(ctx): State<AppContext>, Json(params): Json<AddNegotiationProductParams>) -> Result<Response> {
+pub async fn add_negotiation_product(
+    auth: auth::JWT,
+    State(ctx): State<AppContext>,
+    Json(params): Json<AddNegotiationProductParams>,
+) -> Result<Response> {
     // Start checking user validation
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
     // End checking user validation
@@ -138,16 +147,26 @@ pub async fn add_negotiation_product(auth: auth::JWT, State(ctx): State<AppConte
             ErrorDetail::new("conflict", "firebase_id already used for another product"),
         ));
     }
-    if existing.iter().any(|o| o.status == Some(OfferingStatus::InProgress)) {
+    if existing
+        .iter()
+        .any(|o| o.status == Some(OfferingStatus::InProgress))
+    {
         return Err(Error::CustomError(
             axum::http::StatusCode::CONFLICT,
-            ErrorDetail::new("conflict", "there is already an open offer in this negotiation"),
+            ErrorDetail::new(
+                "conflict",
+                "there is already an open offer in this negotiation",
+            ),
         ));
     }
     if is_seller && !existing.iter().any(|o| o.user_id != user.id) {
         return bad_request("Counter-offer requires an existing buyer offer in this negotiation");
     }
-    if !is_seller && existing.iter().any(|o| o.user_id != user.id && o.user_id != product.seller_id) {
+    if !is_seller
+        && existing
+            .iter()
+            .any(|o| o.user_id != user.id && o.user_id != product.seller_id)
+    {
         return Err(Error::CustomError(
             axum::http::StatusCode::CONFLICT,
             ErrorDetail::new("conflict", "firebase_id belongs to another negotiation"),
@@ -189,7 +208,12 @@ pub async fn add_negotiation_product(auth: auth::JWT, State(ctx): State<AppConte
     )
 )]
 #[debug_handler]
-pub async fn do_negotiation_product(auth: auth::JWT, Path(id): Path<i32>, State(ctx): State<AppContext>, Json(params): Json<DoParams>) -> Result<Response> {
+pub async fn do_negotiation_product(
+    auth: auth::JWT,
+    Path(id): Path<i32>,
+    State(ctx): State<AppContext>,
+    Json(params): Json<DoParams>,
+) -> Result<Response> {
     // Start checking user validation
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
     // End checking user validation
@@ -197,12 +221,17 @@ pub async fn do_negotiation_product(auth: auth::JWT, Path(id): Path<i32>, State(
     let offering = load_offering(&ctx, id).await?;
     let product = load_item(&ctx, offering.product_id).await?;
     if !can_respond(&ctx, &user, &offering, &product).await? {
-        return Err(crate::controllers::base::forbidden("You are not allowed to respond to this offer"));
+        return Err(crate::controllers::base::forbidden(
+            "You are not allowed to respond to this offer",
+        ));
     }
     if offering.status != Some(OfferingStatus::InProgress) {
         return bad_request("Offer is no longer open");
     }
-    if !matches!(params.status, Some(OfferingStatus::Accepted | OfferingStatus::Declined)) {
+    if !matches!(
+        params.status,
+        Some(OfferingStatus::Accepted | OfferingStatus::Declined)
+    ) {
         return bad_request("status must be Accepted or Declined");
     }
 
@@ -231,7 +260,11 @@ pub async fn do_negotiation_product(auth: auth::JWT, Path(id): Path<i32>, State(
     )
 )]
 #[debug_handler]
-pub async fn get_negotiation(auth: auth::JWT, Path(firebase_id): Path<String>, State(ctx): State<AppContext>) -> Result<Response> {
+pub async fn get_negotiation(
+    auth: auth::JWT,
+    Path(firebase_id): Path<String>,
+    State(ctx): State<AppContext>,
+) -> Result<Response> {
     // Start checking user validation
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
     // End checking user validation
@@ -241,8 +274,10 @@ pub async fn get_negotiation(auth: auth::JWT, Path(firebase_id): Path<String>, S
         return Err(Error::NotFound);
     }
     match offering.status {
-        Some(OfferingStatus::InProgress) => format::json(AddNegotiationProductResponse::new(&offering)),
-        _ => format::json(())
+        Some(OfferingStatus::InProgress) => {
+            format::json(AddNegotiationProductResponse::new(&offering))
+        }
+        _ => format::json(()),
     }
 }
 
@@ -251,5 +286,8 @@ pub fn routes() -> Routes {
         .prefix("/api")
         .add("/offering/negotiations/new", post(add_negotiation_product))
         .add("/offering/negotiations/{firebase_id}", get(get_negotiation))
-        .add("/offering/negotiations/{id}/do", post(do_negotiation_product))
+        .add(
+            "/offering/negotiations/{id}/do",
+            post(do_negotiation_product),
+        )
 }

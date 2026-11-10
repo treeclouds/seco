@@ -1,7 +1,9 @@
+use crate::models::_entities::payment_methods;
+use crate::models::_entities::sea_orm_active_enums::{
+    PaymentMethodGatewayEnum, PaymentMethodNameEnum,
+};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-use crate::models::_entities::payment_methods;
-use crate::models::_entities::sea_orm_active_enums::{PaymentMethodGatewayEnum, PaymentMethodNameEnum};
 
 #[derive(Debug, Deserialize, Serialize, ToSchema)]
 pub struct PaymentMethodResponse {

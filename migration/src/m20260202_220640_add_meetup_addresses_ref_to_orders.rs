@@ -15,44 +15,40 @@ impl MigrationTrait for Migration {
             .on_delete(ForeignKeyAction::SetNull)
             .on_update(ForeignKeyAction::Cascade)
             .to_owned();
-        m
-            .alter_table(
-                Table::alter()
-                    .table(Orders::Table)
-                    .add_column_if_not_exists(ColumnDef::new("meetup_address_id").integer().null())
-                    .add_column_if_not_exists(ColumnDef::new("meetup_address_detail").json().null())
-                    .add_foreign_key(&foreign_key_meetup_address)
-                    .to_owned(),
-            )
-            .await?;
+        m.alter_table(
+            Table::alter()
+                .table(Orders::Table)
+                .add_column_if_not_exists(ColumnDef::new("meetup_address_id").integer().null())
+                .add_column_if_not_exists(ColumnDef::new("meetup_address_detail").json().null())
+                .add_foreign_key(&foreign_key_meetup_address)
+                .to_owned(),
+        )
+        .await?;
         Ok(())
     }
 
     async fn down(&self, m: &SchemaManager) -> Result<(), DbErr> {
-        m
-            .alter_table(
-                Table::alter()
-                    .table(Orders::Table)
-                    .drop_foreign_key("fk-meetup_addresses-meetup_address_id-to-orders")
-                    .to_owned(),
-            )
-            .await?;
-        m
-            .alter_table(
-                Table::alter()
-                    .table(Orders::Table)
-                    .drop_column("meetup_address_id")
-                    .to_owned(),
-            )
-            .await?;
-        m
-            .alter_table(
-                Table::alter()
-                    .table(Orders::Table)
-                    .drop_column("meetup_address_detail")
-                    .to_owned(),
-            )
-            .await?;
+        m.alter_table(
+            Table::alter()
+                .table(Orders::Table)
+                .drop_foreign_key("fk-meetup_addresses-meetup_address_id-to-orders")
+                .to_owned(),
+        )
+        .await?;
+        m.alter_table(
+            Table::alter()
+                .table(Orders::Table)
+                .drop_column("meetup_address_id")
+                .to_owned(),
+        )
+        .await?;
+        m.alter_table(
+            Table::alter()
+                .table(Orders::Table)
+                .drop_column("meetup_address_detail")
+                .to_owned(),
+        )
+        .await?;
         Ok(())
     }
 }
@@ -60,11 +56,11 @@ impl MigrationTrait for Migration {
 #[derive(DeriveIden)]
 enum Orders {
     Table,
-    MeetupAddressId
+    MeetupAddressId,
 }
 
 #[derive(DeriveIden)]
 enum MeetupAddresses {
     Table,
-    Id
+    Id,
 }

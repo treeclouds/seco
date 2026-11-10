@@ -1,10 +1,10 @@
-use loco_rs::model::ModelResult;
-use std::fmt::Write as _;
-use sea_orm::entity::prelude::*;
-use sea_orm::{FromQueryResult, JsonValue, Statement, DbBackend, ActiveValue};
-use crate::models::_entities::sea_orm_active_enums::{Condition as ProductConditionEnum};
-use crate::views::product::ProductsResponse;
 pub use super::_entities::products::{self, ActiveModel, Entity, Model};
+use crate::models::_entities::sea_orm_active_enums::Condition as ProductConditionEnum;
+use crate::views::product::ProductsResponse;
+use loco_rs::model::ModelResult;
+use sea_orm::entity::prelude::*;
+use sea_orm::{ActiveValue, DbBackend, FromQueryResult, JsonValue, Statement};
+use std::fmt::Write as _;
 
 #[async_trait::async_trait]
 impl ActiveModelBehavior for ActiveModel {
@@ -12,16 +12,17 @@ impl ActiveModelBehavior for ActiveModel {
 }
 
 impl Model {
-
     // The raw-SQL branches are huge; rewriting them as `map_or_else` closures
     // would be a large, error-prone refactor with no runtime benefit.
     #[allow(clippy::option_if_let_else)]
     pub async fn get_product_by_id(
         db: &DatabaseConnection,
         user_id: Option<&i32>,
-        product_id: &i32
+        product_id: &i32,
     ) -> ModelResult<Option<ProductsResponse>> {
-        let (query, _group_by, values): (String, String, Vec<Value>) = if let Some(user_id) = user_id {
+        let (query, _group_by, values): (String, String, Vec<Value>) = if let Some(user_id) =
+            user_id
+        {
             let q = r"
                 SELECT p.id, p.title, p.category_id, p.description, p.price, p.dimension_width,
                     p.dimension_height, p.dimension_length, p.dimension_weight, p.brand_id, p.material_id,
@@ -53,7 +54,9 @@ impl Model {
                 WHERE p.id = $2 AND (p.status <> 'Draft' OR p.seller_id = $1)
             ".to_string();
 
-            let gb = "GROUP BY p.id, u.pid, u.first_name, u.last_name, u.created_at, u.location, w.id".to_owned();
+            let gb =
+                "GROUP BY p.id, u.pid, u.first_name, u.last_name, u.created_at, u.location, w.id"
+                    .to_owned();
             (q, gb, vec![(*user_id).into(), (*product_id).into()])
         } else {
             let q = r"
@@ -83,18 +86,17 @@ impl Model {
                 WHERE p.id = $1 AND p.status <> 'Draft'
             ".to_string();
 
-            let gb = "GROUP BY p.id, u.pid, u.first_name, u.last_name, u.created_at, u.location".to_owned();
+            let gb = "GROUP BY p.id, u.pid, u.first_name, u.last_name, u.created_at, u.location"
+                .to_owned();
             (q, gb, vec![(*product_id).into()])
         };
 
-        let product: Option<ProductsResponse> = JsonValue::find_by_statement(Statement::from_sql_and_values(
-            DbBackend::Postgres,
-            query,
-            values,
-        ))
-            .into_model::<ProductsResponse>()
-            .one(db)
-            .await?;
+        let product: Option<ProductsResponse> = JsonValue::find_by_statement(
+            Statement::from_sql_and_values(DbBackend::Postgres, query, values),
+        )
+        .into_model::<ProductsResponse>()
+        .one(db)
+        .await?;
 
         Ok(product)
     }
@@ -111,7 +113,10 @@ impl Model {
         brand: Option<&String>,
         category: Option<&String>,
     ) -> ModelResult<Vec<ProductsResponse>> {
-        let (query, group_by, values): (String, String, Vec<sea_orm::Value>) = if let Some(user_id) = user_id {
+        let (query, group_by, values): (String, String, Vec<sea_orm::Value>) = if let Some(
+            user_id,
+        ) = user_id
+        {
             let q = r"
                 SELECT p.id, p.title, p.category_id, p.description, p.price, p.dimension_width,
                     p.dimension_height, p.dimension_length, p.dimension_weight, p.brand_id, p.material_id,
@@ -142,7 +147,9 @@ impl Model {
                    AND w.is_deleted = false
             ".to_string();
 
-            let gb = "GROUP BY p.id, u.pid, u.first_name, u.last_name, u.created_at, u.location, w.id".to_owned();
+            let gb =
+                "GROUP BY p.id, u.pid, u.first_name, u.last_name, u.created_at, u.location, w.id"
+                    .to_owned();
             (q, gb, vec![(*user_id).into()])
         } else {
             let q = r"
@@ -171,7 +178,8 @@ impl Model {
                 LEFT JOIN materials m ON m.id = p.material_id
             ".to_string();
 
-            let gb = "GROUP BY p.id, u.pid, u.first_name, u.last_name, u.created_at, u.location".to_owned();
+            let gb = "GROUP BY p.id, u.pid, u.first_name, u.last_name, u.created_at, u.location"
+                .to_owned();
             (q, gb, vec![])
         };
 
@@ -179,7 +187,8 @@ impl Model {
         // Placeholder counter starts past any already-bound params (e.g. user_id = $1).
         let mut next_param: usize = values.len() + 1;
 
-        let mut extra_where_clause: String = "WHERE p.seller_id IS NOT NULL AND p.status <> 'Draft'".to_owned();
+        let mut extra_where_clause: String =
+            "WHERE p.seller_id IS NOT NULL AND p.status <> 'Draft'".to_owned();
 
         if let Some(title) = title {
             let _ = write!(extra_where_clause, " AND p.title ILIKE ${next_param}");
@@ -194,19 +203,28 @@ impl Model {
         }
 
         if let Some(location) = location {
-            let _ = write!(extra_where_clause, " AND LOWER(u.location) = LOWER(${next_param})");
+            let _ = write!(
+                extra_where_clause,
+                " AND LOWER(u.location) = LOWER(${next_param})"
+            );
             values.push((*location).clone().into());
             next_param += 1;
         }
 
         if let Some(brand) = brand {
-            let _ = write!(extra_where_clause, " AND LOWER(b.name) = LOWER(${next_param})");
+            let _ = write!(
+                extra_where_clause,
+                " AND LOWER(b.name) = LOWER(${next_param})"
+            );
             values.push((*brand).clone().into());
             next_param += 1;
         }
 
         if let Some(category) = category {
-            let _ = write!(extra_where_clause, " AND LOWER(c.name) = LOWER(${next_param})");
+            let _ = write!(
+                extra_where_clause,
+                " AND LOWER(c.name) = LOWER(${next_param})"
+            );
             values.push((*category).clone().into());
         }
 
@@ -214,14 +232,12 @@ impl Model {
 
         tracing::debug!(query = %combine_query, "get_all_products combined query");
 
-        let products: Vec<ProductsResponse> = JsonValue::find_by_statement(Statement::from_sql_and_values(
-            DbBackend::Postgres,
-            combine_query,
-            values,
-        ))
-            .into_model::<ProductsResponse>()
-            .all(db)
-            .await?;
+        let products: Vec<ProductsResponse> = JsonValue::find_by_statement(
+            Statement::from_sql_and_values(DbBackend::Postgres, combine_query, values),
+        )
+        .into_model::<ProductsResponse>()
+        .all(db)
+        .await?;
 
         Ok(products)
     }
@@ -229,7 +245,7 @@ impl Model {
     pub async fn get_product_by_id_and_user_id(
         db: &DatabaseConnection,
         product_id: &i32,
-        user_id: &i32
+        user_id: &i32,
     ) -> Result<ProductsResponse, loco_rs::Error> {
         let product: Option<ProductsResponse> = products::Entity::find()
             .from_raw_sql(Statement::from_sql_and_values(
@@ -268,7 +284,7 @@ impl Model {
 
     pub async fn get_all_products_by_user_id(
         db: &DatabaseConnection,
-        user_id: &i32
+        user_id: &i32,
     ) -> ModelResult<Vec<ProductsResponse>> {
         let products: Vec<ProductsResponse> = JsonValue::find_by_statement(Statement::from_sql_and_values(
             DbBackend::Postgres,
@@ -305,11 +321,10 @@ impl Model {
 }
 
 impl ActiveModel {
-
     pub async fn set_decrease_stock(
         mut self,
         db: &DatabaseConnection,
-        qty_decrease: i32
+        qty_decrease: i32,
     ) -> ModelResult<Model> {
         self.stock = ActiveValue::set(self.stock.unwrap() - qty_decrease);
         Ok(self.update(db).await?)
@@ -318,7 +333,7 @@ impl ActiveModel {
     pub async fn set_increase_stock(
         mut self,
         db: &DatabaseConnection,
-        qty_increase: i32
+        qty_increase: i32,
     ) -> ModelResult<Model> {
         self.stock = ActiveValue::set(self.stock.unwrap() + qty_increase);
         Ok(self.update(db).await?)

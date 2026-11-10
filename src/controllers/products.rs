@@ -2,17 +2,21 @@
 #![allow(clippy::unnecessary_struct_initialization)]
 #![allow(clippy::unused_async)]
 
-use derivative::Derivative;
+use crate::extractors::OptionalJwt;
+use crate::models::_entities::{
+    offerings,
+    products::{ActiveModel, Model},
+    sea_orm_active_enums::{Condition as ProductConditionEnum, ProductStatus},
+    users,
+};
+use crate::views::product::{ProductDealResponse, ProductsResponse};
 use axum::extract::Query;
+use derivative::Derivative;
 use loco_rs::prelude::*;
 use sea_orm::prelude::Decimal;
-use serde::{Deserialize, Serialize};
 use sea_orm::{query::Condition, ActiveEnum, Iterable, JsonValue};
-use utoipa::{ToSchema, IntoParams};
-use crate::models::_entities::{products::{ActiveModel, Model}, offerings, sea_orm_active_enums::{Condition as ProductConditionEnum, ProductStatus}, users};
-use crate::views::product::{ProductsResponse, ProductDealResponse};
-use crate::extractors::OptionalJwt;
-
+use serde::{Deserialize, Serialize};
+use utoipa::{IntoParams, ToSchema};
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
 pub struct ProductPostParams {
@@ -51,7 +55,12 @@ impl ProductPostParams {
         if self.stock < 0 {
             return Err(loco_rs::Error::BadRequest("stock must be >= 0".into()));
         }
-        for d in [self.dimension_width, self.dimension_height, self.dimension_length, self.dimension_weight] {
+        for d in [
+            self.dimension_width,
+            self.dimension_height,
+            self.dimension_length,
+            self.dimension_weight,
+        ] {
             if !d.is_finite() || d < 0.0 {
                 return Err(loco_rs::Error::BadRequest("dimensions must be >= 0".into()));
             }
@@ -110,7 +119,11 @@ pub struct ProductFilterParams {
     category: Option<String>,
 }
 
-async fn load_item(ctx: &AppContext, id: i32, user_id: Option<i32>) -> std::result::Result<ProductsResponse, Error> {
+async fn load_item(
+    ctx: &AppContext,
+    id: i32,
+    user_id: Option<i32>,
+) -> std::result::Result<ProductsResponse, Error> {
     let item = Model::get_product_by_id(&ctx.db, Option::from(&user_id), &id).await?;
     item.ok_or_else(|| Error::NotFound)
 }
@@ -131,7 +144,7 @@ async fn load_item(ctx: &AppContext, id: i32, user_id: Option<i32>) -> std::resu
 pub async fn get_all_products(
     OptionalJwt(auth): OptionalJwt,
     State(ctx): State<AppContext>,
-    query: Query<ProductFilterParams>
+    query: Query<ProductFilterParams>,
 ) -> Result<Response> {
     tracing::info!("===== get_all_products query {:?}", query);
     tracing::info!("===== get_all_products auth {:?}", auth);
@@ -150,8 +163,9 @@ pub async fn get_all_products(
         query.condition.as_ref(),
         query.location.as_ref(),
         query.brand.as_ref(),
-        query.category.as_ref()
-    ).await?;
+        query.category.as_ref(),
+    )
+    .await?;
     format::json(products)
 }
 
@@ -176,7 +190,7 @@ pub async fn get_one(
     OptionalJwt(auth): OptionalJwt,
     Path(id): Path<i32>,
     State(ctx): State<AppContext>,
-    query: Query<ProductOfferParams>
+    query: Query<ProductOfferParams>,
 ) -> Result<Response> {
     tracing::info!("===== get_one query {:?}", query);
     tracing::info!("===== get_one auth {:?}", auth);
@@ -195,10 +209,15 @@ pub async fn get_one(
                 Condition::all()
                     .add(offerings::Column::UserId.eq(user.id))
                     .add(offerings::Column::Status.eq("Accepted"))
-                    .add(offerings::Column::ProductId.eq(id))
-            ).one(&ctx.db).await?;
+                    .add(offerings::Column::ProductId.eq(id)),
+            )
+            .one(&ctx.db)
+            .await?;
         if let Some(offering_deal) = offering_deal {
-            return format::json(ProductDealResponse::new(product, Some(offering_deal.offer_price)))
+            return format::json(ProductDealResponse::new(
+                product,
+                Some(offering_deal.offer_price),
+            ));
         }
     }
     format::json(product)
@@ -213,7 +232,9 @@ pub async fn get_one(
     ),
 )]
 pub async fn get_all_product_condition(State(_ctx): State<AppContext>) -> Result<Response> {
-    let conditions = ProductConditionEnum::iter().map(|c| c.to_value()).collect::<Vec<String>>();
+    let conditions = ProductConditionEnum::iter()
+        .map(|c| c.to_value())
+        .collect::<Vec<String>>();
     format::json(conditions)
 }
 

@@ -14,43 +14,55 @@ enum Orders {
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, m: &SchemaManager) -> Result<(), DbErr> {
-        create_table(m, "orders",
+        create_table(
+            m,
+            "orders",
             &[
-            
-            ("id", ColType::PkAuto),
-            
-            ("order_number", ColType::StringUniq),
-            ("final_price", ColType::DecimalLenWithDefault(10, 2, 0.0)),
-            ("delivery_address_detail", ColType::TextNull),
-            ("payment_method_detail", ColType::JsonNull),
-            ("status", ColType::EnumWithDefault(
-                "order_status_enum".to_string(),
-                vec!["AwaitingPayment".to_string(), "AwaitingFulfillment".to_string(),
-                     "AwaitingShipment".to_string(), "Shipped".to_string(),
-                     "Completed".to_string(), "Returned".to_string(), "Cancelled".to_string()],
-                "AwaitingPayment".to_string()
-            )),
+                ("id", ColType::PkAuto),
+                ("order_number", ColType::StringUniq),
+                ("final_price", ColType::DecimalLenWithDefault(10, 2, 0.0)),
+                ("delivery_address_detail", ColType::TextNull),
+                ("payment_method_detail", ColType::JsonNull),
+                (
+                    "status",
+                    ColType::EnumWithDefault(
+                        "order_status_enum".to_string(),
+                        vec![
+                            "AwaitingPayment".to_string(),
+                            "AwaitingFulfillment".to_string(),
+                            "AwaitingShipment".to_string(),
+                            "Shipped".to_string(),
+                            "Completed".to_string(),
+                            "Returned".to_string(),
+                            "Cancelled".to_string(),
+                        ],
+                        "AwaitingPayment".to_string(),
+                    ),
+                ),
             ],
             &[
-            ("user", "buyer_id"),
-            ("delivery_address", ""),
-            ("payment_method", ""),
-            ]
-        ).await?;
+                ("user", "buyer_id"),
+                ("delivery_address", ""),
+                ("payment_method", ""),
+            ],
+        )
+        .await?;
         m.create_index(
             Index::create()
                 .name("idx-orders-order_number")
                 .table(Orders::Table)
                 .col(Orders::OrderNumber)
                 .to_owned(),
-        ).await?;
+        )
+        .await?;
         m.create_index(
             Index::create()
                 .name("idx-orders-status")
                 .table(Orders::Table)
                 .col(Orders::Status)
                 .to_owned(),
-        ).await?;
+        )
+        .await?;
         Ok(())
     }
 

@@ -1,8 +1,8 @@
+pub use super::_entities::carts::{ActiveModel, Entity, Model};
+use crate::views::cart::CartListResponse;
 use loco_rs::model::ModelResult;
 use sea_orm::entity::prelude::*;
-use sea_orm::{FromQueryResult, DbBackend, JsonValue, Statement};
-use crate::views::cart::CartListResponse;
-pub use super::_entities::carts::{ActiveModel, Model, Entity};
+use sea_orm::{DbBackend, FromQueryResult, JsonValue, Statement};
 pub type Carts = Entity;
 
 #[async_trait::async_trait]
@@ -23,7 +23,10 @@ impl ActiveModelBehavior for ActiveModel {
 
 // implement your read-oriented logic here
 impl Model {
-    pub async fn get_cart_by_user_id(db: &DatabaseConnection, user_id: &i32)  -> ModelResult<Vec<CartListResponse>> {
+    pub async fn get_cart_by_user_id(
+        db: &DatabaseConnection,
+        user_id: &i32,
+    ) -> ModelResult<Vec<CartListResponse>> {
         let products: Vec<CartListResponse> = JsonValue::find_by_statement(Statement::from_sql_and_values(
             DbBackend::Postgres,
             r"

@@ -1,6 +1,6 @@
+use crate::models::_entities::delivery_addresses;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-use crate::models::_entities::delivery_addresses;
 
 #[derive(Debug, Deserialize, Serialize, ToSchema)]
 pub struct DeliveryAddressResponse {

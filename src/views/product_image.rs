@@ -1,7 +1,7 @@
+use crate::models::_entities::product_images::Model;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use utoipa::ToSchema;
-use crate::models::_entities::product_images::Model;
 
 #[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
 pub struct ProductImageResponse {

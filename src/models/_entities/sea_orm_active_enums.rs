@@ -4,7 +4,9 @@ use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-#[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Copy, Serialize, Deserialize, ToSchema)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Copy, Serialize, Deserialize, ToSchema,
+)]
 #[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "action_type")]
 pub enum ActionType {
     #[sea_orm(string_value = "CounterOffer")]
@@ -16,7 +18,9 @@ pub enum ActionType {
     #[sea_orm(string_value = "Offer")]
     Offer,
 }
-#[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Copy, Serialize, Deserialize, ToSchema)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Copy, Serialize, Deserialize, ToSchema,
+)]
 #[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "condition")]
 pub enum Condition {
     #[sea_orm(string_value = "BrandNew")]
@@ -32,7 +36,9 @@ pub enum Condition {
     #[sea_orm(string_value = "Fair")]
     Fair,
 }
-#[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Copy, Serialize, Deserialize, ToSchema)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Copy, Serialize, Deserialize, ToSchema,
+)]
 #[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "offering_status")]
 pub enum OfferingStatus {
     #[sea_orm(string_value = "InProgress")]
@@ -42,7 +48,9 @@ pub enum OfferingStatus {
     #[sea_orm(string_value = "Declined")]
     Declined,
 }
-#[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Copy, Serialize, Deserialize, ToSchema)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Copy, Serialize, Deserialize, ToSchema,
+)]
 #[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "order_status_enum")]
 pub enum OrderStatusEnum {
     #[sea_orm(string_value = "AwaitingPayment")]
@@ -60,7 +68,9 @@ pub enum OrderStatusEnum {
     #[sea_orm(string_value = "Cancelled")]
     Cancelled,
 }
-#[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Copy, Serialize, Deserialize, ToSchema)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Copy, Serialize, Deserialize, ToSchema,
+)]
 #[sea_orm(
     rs_type = "String",
     db_type = "Enum",
@@ -74,7 +84,9 @@ pub enum PaymentMethodGatewayEnum {
     #[sea_orm(string_value = "Midtrans")]
     Midtrans,
 }
-#[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Copy, Serialize, Deserialize, ToSchema)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Copy, Serialize, Deserialize, ToSchema,
+)]
 #[sea_orm(
     rs_type = "String",
     db_type = "Enum",
@@ -90,7 +102,9 @@ pub enum PaymentMethodNameEnum {
     #[sea_orm(string_value = "BankTransfer")]
     BankTransfer,
 }
-#[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Copy, Serialize, Deserialize, ToSchema)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Copy, Serialize, Deserialize, ToSchema,
+)]
 #[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "product_status")]
 pub enum ProductStatus {
     #[sea_orm(string_value = "Draft")]

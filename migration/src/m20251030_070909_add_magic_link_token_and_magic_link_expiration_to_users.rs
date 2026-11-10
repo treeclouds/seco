@@ -8,7 +8,13 @@ pub struct Migration;
 impl MigrationTrait for Migration {
     async fn up(&self, m: &SchemaManager) -> Result<(), DbErr> {
         add_column(m, "users", "magic_link_token", ColType::StringNull).await?;
-        add_column(m, "users", "magic_link_expiration", ColType::TimestampWithTimeZoneNull).await?;
+        add_column(
+            m,
+            "users",
+            "magic_link_expiration",
+            ColType::TimestampWithTimeZoneNull,
+        )
+        .await?;
         Ok(())
     }
 

@@ -4,23 +4,23 @@
 
 use std::path::PathBuf;
 
+use axum::extract::Multipart;
 use loco_rs::prelude::*;
 use sea_orm::{ColumnTrait, QueryFilter};
-use axum::extract::Multipart;
-use utoipa::ToSchema;
 use serde::Deserialize;
+use utoipa::ToSchema;
 
-use crate::views::product_image::ProductImageResponse;
 use crate::controllers::products::UnauthorizedResponse;
+use crate::views::product_image::ProductImageResponse;
 
 use crate::models::_entities::{
-    users, 
-    products::{self, Entity, Model},
     product_images,
+    products::{self, Entity, Model},
+    users,
 };
 
 #[allow(dead_code)]
-#[derive(ToSchema, Deserialize)]// Optional: gives a custom name to the schema
+#[derive(ToSchema, Deserialize)] // Optional: gives a custom name to the schema
 struct UploadedFileForm {
     /// Description for the file field in Swagger UI
     #[schema(content_media_type = "application/octet-stream", format = "binary")]
@@ -28,7 +28,11 @@ struct UploadedFileForm {
 }
 
 async fn load_product(ctx: &AppContext, user: users::Model, id: i32) -> Result<Model> {
-    let item = user.find_related(Entity).filter(products::Column::Id.eq(id)).one(&ctx.db).await?;
+    let item = user
+        .find_related(Entity)
+        .filter(products::Column::Id.eq(id))
+        .one(&ctx.db)
+        .await?;
     item.ok_or_else(|| Error::NotFound)
 }
 
@@ -56,7 +60,13 @@ pub fn sanitize_image_filename(raw: &str) -> std::result::Result<(String, String
     }
     let stem: String = stem
         .chars()
-        .map(|c| if c.is_ascii_alphanumeric() || c == '-' || c == '_' { c } else { '_' })
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || c == '-' || c == '_' {
+                c
+            } else {
+                '_'
+            }
+        })
         .take(100)
         .collect();
     Ok((stem, ext))
@@ -74,7 +84,11 @@ fn looks_like_image(ext: &str, b: &[u8]) -> bool {
     }
 }
 
-pub async fn generate_unique_filename(stem: &str, ext: &str, product_id: i32) -> std::io::Result<PathBuf> {
+pub async fn generate_unique_filename(
+    stem: &str,
+    ext: &str,
+    product_id: i32,
+) -> std::io::Result<PathBuf> {
     let mut filename = format!("{stem}.{ext}");
     let mut counter = 0u32;
 
@@ -123,21 +137,17 @@ async fn upload_product_image_file(
 
     let mut images: Vec<ProductImageResponse> = Vec::new();
 
-    while let Some(field) = multipart
-        .next_field()
-        .await
-        .map_err(|err| {
-            tracing::error!(error = ?err,"could not read multipart");
-            Error::BadRequest("could not read multipart".into())
-        })?
-    {
+    while let Some(field) = multipart.next_field().await.map_err(|err| {
+        tracing::error!(error = ?err,"could not read multipart");
+        Error::BadRequest("could not read multipart".into())
+    })? {
         let file_name = match field.file_name() {
             Some(file_name) => file_name.to_string(),
             _ => return Err(Error::BadRequest("file name not found".into())),
         };
 
-        let (stem, ext) = sanitize_image_filename(&file_name)
-            .map_err(|e| Error::BadRequest(e.into()))?;
+        let (stem, ext) =
+            sanitize_image_filename(&file_name).map_err(|e| Error::BadRequest(e.into()))?;
 
         let content = field.bytes().await.map_err(|err| {
             tracing::error!(error = ?err,"could not read bytes");
@@ -148,7 +158,9 @@ async fn upload_product_image_file(
             return Err(Error::BadRequest("file too large".into()));
         }
         if !looks_like_image(&ext, &content) {
-            return Err(Error::BadRequest("file content is not a valid image".into()));
+            return Err(Error::BadRequest(
+                "file content is not a valid image".into(),
+            ));
         }
 
         // generate nama file unik per product
@@ -159,7 +171,9 @@ async fn upload_product_image_file(
         let path = PathBuf::from("product_images").join(&new_filename);
         // defense in depth: final path must be exactly product_images/<id>/<basename>
         if path.components().count() != 3
-            || path.components().any(|c| !matches!(c, std::path::Component::Normal(_)))
+            || path
+                .components()
+                .any(|c| !matches!(c, std::path::Component::Normal(_)))
         {
             return Err(Error::BadRequest("invalid file name".into()));
         }
@@ -182,16 +196,16 @@ async fn upload_product_image_file(
     }
 
     if images.is_empty() {
-        return bad_request("no files uploaded")
+        return bad_request("no files uploaded");
     }
 
     // sekarang return list image
     format::json(images)
 }
 
-
 pub fn routes() -> Routes {
-    Routes::new()
-        .prefix("/api/upload")
-        .add("/{product_id}/product_image_file", post(upload_product_image_file))
+    Routes::new().prefix("/api/upload").add(
+        "/{product_id}/product_image_file",
+        post(upload_product_image_file),
+    )
 }

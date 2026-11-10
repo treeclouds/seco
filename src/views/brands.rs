@@ -1,6 +1,6 @@
+use crate::models::_entities::brands;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-use crate::models::_entities::brands;
 
 #[derive(Debug, Deserialize, Serialize, ToSchema)]
 pub struct BrandResponse {

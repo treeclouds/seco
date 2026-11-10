@@ -58,9 +58,7 @@ impl MigrationTrait for Migration {
             .alter_table(
                 Table::alter()
                     .table(Categories::Table)
-                    .modify_column(
-                        ColumnDef::new(Categories::ParentId).integer().null()
-                    )
+                    .modify_column(ColumnDef::new(Categories::ParentId).integer().null())
                     .to_owned(),
             )
             .await
@@ -70,4 +68,3 @@ impl MigrationTrait for Migration {
         Ok(())
     }
 }
-

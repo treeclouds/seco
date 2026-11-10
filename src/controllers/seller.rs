@@ -1,17 +1,13 @@
 #![allow(clippy::missing_errors_doc)]
 #![allow(clippy::unnecessary_struct_initialization)]
 #![allow(clippy::unused_async)]
-use loco_rs::prelude::*;
-use migration::Condition;
 use crate::{
     controllers::products::UnauthorizedResponse,
-    models::_entities::{
-        users,
-        orders,
-        order_items,
-    },
+    models::_entities::{order_items, orders, users},
     views::order::OrderDetailResponse,
 };
+use loco_rs::prelude::*;
+use migration::Condition;
 
 #[utoipa::path(
     get,
@@ -47,9 +43,15 @@ pub async fn seller_order_list(auth: auth::JWT, State(ctx): State<AppContext>) -
         ("jwt_token" = [])
     )
 )]
-pub async fn seller_order_detail(auth: auth::JWT, Path(order_number): Path<String>, State(ctx): State<AppContext>) -> Result<Response> {
+pub async fn seller_order_detail(
+    auth: auth::JWT,
+    Path(order_number): Path<String>,
+    State(ctx): State<AppContext>,
+) -> Result<Response> {
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
-    let order = orders::Model::get_order_by_seller_id_and_order_number(&ctx.db, &user.id, &order_number).await?;
+    let order =
+        orders::Model::get_order_by_seller_id_and_order_number(&ctx.db, &user.id, &order_number)
+            .await?;
     format::json(order)
 }
 
@@ -69,19 +71,26 @@ pub async fn seller_order_detail(auth: auth::JWT, Path(order_number): Path<Strin
         ("jwt_token" = [])
     )
 )]
-pub async fn seller_order_cancel(auth: auth::JWT, Path(order_number): Path<String>, State(ctx): State<AppContext>) -> Result<Response> {
+pub async fn seller_order_cancel(
+    auth: auth::JWT,
+    Path(order_number): Path<String>,
+    State(ctx): State<AppContext>,
+) -> Result<Response> {
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
     let order = orders::Entity::find()
         .filter(orders::Column::OrderNumber.eq(order_number))
-        .one(&ctx.db).await?
+        .one(&ctx.db)
+        .await?
         .ok_or_else(|| Error::BadRequest("Order not found".into()))?;
 
     let is_seller = order_items::Entity::find()
         .filter(
             Condition::all()
                 .add(order_items::Column::OrderId.eq(order.id))
-                .add(order_items::Column::SellerId.eq(user.id))
-        ).one(&ctx.db).await?
+                .add(order_items::Column::SellerId.eq(user.id)),
+        )
+        .one(&ctx.db)
+        .await?
         .is_some();
 
     if !is_seller {

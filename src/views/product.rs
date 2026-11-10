@@ -1,8 +1,8 @@
 use chrono::NaiveDateTime;
-use serde::{Deserialize, Serialize};
+use sea_orm::entity::prelude::*;
 use sea_orm::prelude::Decimal;
 use sea_orm::{FromQueryResult, JsonValue};
-use sea_orm::entity::prelude::*;
+use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 use crate::models::_entities::sea_orm_active_enums::{Condition, ProductStatus};

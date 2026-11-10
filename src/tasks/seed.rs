@@ -1,4 +1,3 @@
-
 //! This task implements data seeding functionality for initializing new
 //! development/demo environments.
 //!

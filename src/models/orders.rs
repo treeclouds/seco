@@ -1,9 +1,9 @@
-use loco_rs::model::ModelResult;
-use sea_orm::{FromQueryResult, JsonValue, Statement, DbBackend, ActiveValue};
-use sea_orm::entity::prelude::*;
+pub use super::_entities::orders::{ActiveModel, Entity, Model};
 use crate::models::_entities::sea_orm_active_enums::OrderStatusEnum;
 use crate::views::order::OrderDetailResponse;
-pub use super::_entities::orders::{ActiveModel, Model, Entity};
+use loco_rs::model::ModelResult;
+use sea_orm::entity::prelude::*;
+use sea_orm::{ActiveValue, DbBackend, FromQueryResult, JsonValue, Statement};
 pub type Orders = Entity;
 
 #[async_trait::async_trait]
@@ -27,7 +27,7 @@ impl Model {
     pub async fn get_order_by_buyer_id_and_order_number(
         db: &DatabaseConnection,
         buyer_id: &i32,
-        order_numer: &str
+        order_numer: &str,
     ) -> Result<OrderDetailResponse, loco_rs::Error> {
         let query = r"
             SELECT o.order_number,
@@ -74,21 +74,19 @@ impl Model {
             GROUP BY o.order_number, o.final_price, o.delivery_address_detail, COALESCE(o.payment_method_detail, '{}'::json)::jsonb, COALESCE(o.meetup_address_detail, '{}'::json)::jsonb, o.status
         ".to_string();
         let values = vec![(*buyer_id).into(), order_numer.into()];
-        let order: Option<OrderDetailResponse> = JsonValue::find_by_statement(Statement::from_sql_and_values(
-            DbBackend::Postgres,
-            query,
-            values,
-        ))
-            .into_model::<OrderDetailResponse>()
-            .one(db)
-            .await?;
+        let order: Option<OrderDetailResponse> = JsonValue::find_by_statement(
+            Statement::from_sql_and_values(DbBackend::Postgres, query, values),
+        )
+        .into_model::<OrderDetailResponse>()
+        .one(db)
+        .await?;
 
         order.ok_or_else(|| loco_rs::Error::NotFound)
     }
 
     pub async fn get_all_orders_by_buyer_id(
         db: &DatabaseConnection,
-        buyer_id: &i32
+        buyer_id: &i32,
     ) -> ModelResult<Vec<OrderDetailResponse>> {
         let query = r"
             SELECT o.order_number,
@@ -135,20 +133,18 @@ impl Model {
             GROUP BY o.order_number, o.final_price, o.delivery_address_detail, COALESCE(o.payment_method_detail, '{}'::json)::jsonb, COALESCE(o.meetup_address_detail, '{}'::json)::jsonb, o.status
         ".to_string();
         let values = vec![(*buyer_id).into()];
-        let orders: Vec<OrderDetailResponse> = JsonValue::find_by_statement(Statement::from_sql_and_values(
-            DbBackend::Postgres,
-            query,
-            values,
-        ))
-            .into_model::<OrderDetailResponse>()
-            .all(db)
-            .await?;
+        let orders: Vec<OrderDetailResponse> = JsonValue::find_by_statement(
+            Statement::from_sql_and_values(DbBackend::Postgres, query, values),
+        )
+        .into_model::<OrderDetailResponse>()
+        .all(db)
+        .await?;
         Ok(orders)
     }
 
     pub async fn get_all_orders_by_seller_id(
         db: &DatabaseConnection,
-        seller_id: &i32
+        seller_id: &i32,
     ) -> ModelResult<Vec<OrderDetailResponse>> {
         let query = r"
             SELECT o.order_number,
@@ -195,20 +191,18 @@ impl Model {
             GROUP BY o.order_number, o.final_price, o.delivery_address_detail, COALESCE(o.payment_method_detail, '{}'::json)::jsonb, COALESCE(o.meetup_address_detail, '{}'::json)::jsonb, o.status
         ".to_string();
         let values = vec![(*seller_id).into()];
-        let orders: Vec<OrderDetailResponse> = JsonValue::find_by_statement(Statement::from_sql_and_values(
-            DbBackend::Postgres,
-            query,
-            values,
-        ))
-            .into_model::<OrderDetailResponse>()
-            .all(db)
-            .await?;
+        let orders: Vec<OrderDetailResponse> = JsonValue::find_by_statement(
+            Statement::from_sql_and_values(DbBackend::Postgres, query, values),
+        )
+        .into_model::<OrderDetailResponse>()
+        .all(db)
+        .await?;
         Ok(orders)
     }
     pub async fn get_order_by_seller_id_and_order_number(
         db: &DatabaseConnection,
         seller_id: &i32,
-        order_numer: &str
+        order_numer: &str,
     ) -> Result<OrderDetailResponse, loco_rs::Error> {
         let query = r"
             SELECT o.order_number,
@@ -255,14 +249,12 @@ impl Model {
             GROUP BY o.order_number, o.final_price, o.delivery_address_detail, COALESCE(o.payment_method_detail, '{}'::json)::jsonb, COALESCE(o.meetup_address_detail, '{}'::json)::jsonb, o.status
         ".to_string();
         let values = vec![(*seller_id).into(), order_numer.into()];
-        let order: Option<OrderDetailResponse> = JsonValue::find_by_statement(Statement::from_sql_and_values(
-            DbBackend::Postgres,
-            query,
-            values,
-        ))
-            .into_model::<OrderDetailResponse>()
-            .one(db)
-            .await?;
+        let order: Option<OrderDetailResponse> = JsonValue::find_by_statement(
+            Statement::from_sql_and_values(DbBackend::Postgres, query, values),
+        )
+        .into_model::<OrderDetailResponse>()
+        .one(db)
+        .await?;
 
         order.ok_or_else(|| loco_rs::Error::NotFound)
     }
@@ -270,27 +262,17 @@ impl Model {
 
 // implement your write-oriented logic here
 impl ActiveModel {
-
-    pub async fn set_status_completed(
-        mut self,
-        db: &DatabaseConnection,
-    ) -> ModelResult<Model> {
+    pub async fn set_status_completed(mut self, db: &DatabaseConnection) -> ModelResult<Model> {
         self.status = ActiveValue::set(OrderStatusEnum::Completed);
         Ok(self.update(db).await?)
     }
 
-    pub async fn set_status_cancelled(
-        mut self,
-        db: &DatabaseConnection,
-    ) -> ModelResult<Model> {
+    pub async fn set_status_cancelled(mut self, db: &DatabaseConnection) -> ModelResult<Model> {
         self.status = ActiveValue::set(OrderStatusEnum::Cancelled);
         Ok(self.update(db).await?)
     }
 
-    pub async fn set_status_returned(
-        mut self,
-        db: &DatabaseConnection,
-    ) -> ModelResult<Model> {
+    pub async fn set_status_returned(mut self, db: &DatabaseConnection) -> ModelResult<Model> {
         self.status = ActiveValue::set(OrderStatusEnum::Returned);
         Ok(self.update(db).await?)
     }
@@ -307,8 +289,8 @@ pub async fn cancel_and_restore_stock(
     db: &DatabaseConnection,
     order_id: i32,
 ) -> std::result::Result<Model, loco_rs::Error> {
-    use sea_orm::{QueryFilter, QuerySelect, TransactionTrait, sea_query::Expr};
     use super::_entities::{order_items, products};
+    use sea_orm::{sea_query::Expr, QueryFilter, QuerySelect, TransactionTrait};
 
     let txn = db.begin().await?;
     let order = Entity::find_by_id(order_id)

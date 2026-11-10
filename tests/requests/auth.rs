@@ -1,8 +1,8 @@
 use insta::{assert_debug_snapshot, with_settings};
 use loco_rs::testing::prelude::*;
 use rstest::rstest;
-use serial_test::serial;
 use seco::{app::App, models::users};
+use serial_test::serial;
 
 use super::prepare_data;
 
@@ -54,7 +54,7 @@ async fn can_register() {
         //     assert_debug_snapshot!(ctx.mailer.unwrap().deliveries());
         // });
     })
-        .await;
+    .await;
 }
 
 #[rstest]
@@ -122,7 +122,7 @@ async fn can_login_with_verify(#[case] test_name: &str, #[case] password: &str) 
             assert_debug_snapshot!(test_name, (response.status_code(), response.text()));
         });
     })
-        .await;
+    .await;
 }
 
 #[tokio::test]
@@ -173,7 +173,7 @@ async fn can_login_without_verify() {
             assert_debug_snapshot!(login_response.text());
         });
     })
-        .await;
+    .await;
 }
 
 #[tokio::test]
@@ -251,7 +251,7 @@ async fn can_reset_password() {
         //     assert_debug_snapshot!(deliveries.messages);
         // });
     })
-        .await;
+    .await;
 }
 
 #[tokio::test]
@@ -280,7 +280,7 @@ async fn can_get_current_user() {
             assert_debug_snapshot!((response.status_code(), response.text()));
         });
     })
-        .await;
+    .await;
 }
 
 #[tokio::test]
@@ -336,7 +336,7 @@ async fn can_auth_with_magic_link() {
             assert_debug_snapshot!(magic_link_response.text());
         });
     })
-        .await;
+    .await;
 }
 
 #[tokio::test]
@@ -372,5 +372,5 @@ async fn can_reject_invalid_magic_link_token() {
             "Magic link authentication should be rejected"
         );
     })
-        .await;
+    .await;
 }

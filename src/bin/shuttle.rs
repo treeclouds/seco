@@ -1,14 +1,14 @@
 use loco_rs::boot::{create_app, StartMode};
 use loco_rs::environment::Environment;
-use seco::app::App;
 use migration::Migrator;
+use seco::app::App;
 use shuttle_runtime::DeploymentMetadata;
 use tracing::info;
 
 #[shuttle_runtime::main]
 async fn main(
-  #[shuttle_shared_db::Postgres] conn_str: String,
-  #[shuttle_runtime::Metadata] meta: DeploymentMetadata,
+    #[shuttle_shared_db::Postgres] conn_str: String,
+    #[shuttle_runtime::Metadata] meta: DeploymentMetadata,
 ) -> shuttle_axum::ShuttleAxum {
     std::env::set_var("DATABASE_URL", conn_str);
     let environment = match meta.env {

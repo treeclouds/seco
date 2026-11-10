@@ -53,7 +53,9 @@ async fn can_list_users_as_superuser() {
         assert_eq!(response.status_code(), 200);
         let body: serde_json::Value = serde_json::from_str(&response.text()).unwrap();
         let arr = body.as_array().expect("list should be an array");
-        assert!(arr.iter().any(|u| u["email"].as_str() == Some("admin@test.com")));
+        assert!(arr
+            .iter()
+            .any(|u| u["email"].as_str() == Some("admin@test.com")));
     })
     .await;
 }

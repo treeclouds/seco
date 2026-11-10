@@ -1,7 +1,7 @@
-use serde::{Deserialize, Serialize};
-use sea_orm::{FromQueryResult, JsonValue};
-use utoipa::ToSchema;
 use crate::models::_entities::categories;
+use sea_orm::{FromQueryResult, JsonValue};
+use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 
 #[derive(Debug, Deserialize, Serialize, ToSchema)]
 pub struct CategoryResponse {

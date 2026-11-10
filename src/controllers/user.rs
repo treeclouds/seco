@@ -1,30 +1,32 @@
-use chrono::Local;
-use std::path::PathBuf;
-use axum::extract::Multipart;
-use loco_rs::prelude::*;
-use loco_rs::controller::ErrorDetail;
-use serde::{Deserialize, Serialize};
-use utoipa::ToSchema;
-use bytes::Bytes;
-use sea_orm::Condition;
 use crate::{
     controllers::{
+        products::{ProductPostParams, UnauthorizedResponse},
         upload::{generate_unique_filename, sanitize_image_filename},
-        products::{ProductPostParams, UnauthorizedResponse}
     },
     models::_entities::{
-        users::{self, ActiveModel},
-        products::{self, ActiveModel as ProductActiveModel, Entity as ProductEntity, Model as ProductModel},
-        product_images::{ActiveModel as ProductImageActiveModel, Model as ProductImageModel},
         orders::{self, Entity as OrderEntity, Model as OrderModel},
+        product_images::{ActiveModel as ProductImageActiveModel, Model as ProductImageModel},
+        products::{
+            self, ActiveModel as ProductActiveModel, Entity as ProductEntity, Model as ProductModel,
+        },
+        users::{self, ActiveModel},
     },
     views::{
         order::OrderDetailResponse,
         product::ProductResponse,
         product_image::ProductImageResponse,
-        user::{CurrentResponse, AdminUserResponse},
+        user::{AdminUserResponse, CurrentResponse},
     },
 };
+use axum::extract::Multipart;
+use bytes::Bytes;
+use chrono::Local;
+use loco_rs::controller::ErrorDetail;
+use loco_rs::prelude::*;
+use sea_orm::Condition;
+use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
+use utoipa::ToSchema;
 
 use crate::models::users::AdminUserCreateParams;
 
@@ -130,7 +132,11 @@ async fn current(auth: auth::JWT, State(ctx): State<AppContext>) -> Result<Respo
 }
 
 async fn load_item(ctx: &AppContext, user: users::Model, id: i32) -> Result<ProductModel> {
-    let item = user.find_related(ProductEntity).filter(products::Column::Id.eq(id)).one(&ctx.db).await?;
+    let item = user
+        .find_related(ProductEntity)
+        .filter(products::Column::Id.eq(id))
+        .one(&ctx.db)
+        .await?;
     item.ok_or_else(|| Error::NotFound)
 }
 
@@ -164,20 +170,20 @@ pub async fn product_list(auth: auth::JWT, State(ctx): State<AppContext>) -> Res
         ("jwt_token" = [])
     )
 )]
-pub async fn product_add(auth: auth::JWT, State(ctx): State<AppContext>, mut multipart: Multipart) -> Result<Response> {
+pub async fn product_add(
+    auth: auth::JWT,
+    State(ctx): State<AppContext>,
+    mut multipart: Multipart,
+) -> Result<Response> {
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
     let mut product_params: Option<ProductPostParams> = None;
     let mut pending_files: Vec<PendingFile> = Vec::new();
 
     // 1. Read all fields from the multipart request
-    while let Some(field) = multipart
-        .next_field()
-        .await
-        .map_err(|err| {
-            tracing::error!(error = ?err, "could not read multipart");
-            Error::BadRequest("could not read multipart".into())
-        })?
-    {
+    while let Some(field) = multipart.next_field().await.map_err(|err| {
+        tracing::error!(error = ?err, "could not read multipart");
+        Error::BadRequest("could not read multipart".into())
+    })? {
         let field_name = field.name().map(std::string::ToString::to_string);
 
         match field_name.as_deref() {
@@ -200,9 +206,7 @@ pub async fn product_add(auth: auth::JWT, State(ctx): State<AppContext>, mut mul
             Some("files") => {
                 let file_name = match field.file_name() {
                     Some(file_name) => file_name.to_string(),
-                    None => {
-                        return bad_request("file name not found")
-                    }
+                    None => return bad_request("file name not found"),
                 };
 
                 let content = field.bytes().await.map_err(|err| {
@@ -221,9 +225,8 @@ pub async fn product_add(auth: auth::JWT, State(ctx): State<AppContext>, mut mul
     }
 
     // 2. Ensure the product payload exists
-    let product_params = product_params.ok_or_else(|| {
-        Error::BadRequest("product data not found in multipart".into())
-    })?;
+    let product_params = product_params
+        .ok_or_else(|| Error::BadRequest("product data not found in multipart".into()))?;
     product_params.validate()?;
 
     // 3. Insert the product first
@@ -240,7 +243,8 @@ pub async fn product_add(auth: auth::JWT, State(ctx): State<AppContext>, mut mul
     let mut images: Vec<ProductImageResponse> = Vec::new();
 
     for f in pending_files {
-        let (stem, ext) = sanitize_image_filename(&f.file_name).map_err(|e| Error::BadRequest(e.into()))?;
+        let (stem, ext) =
+            sanitize_image_filename(&f.file_name).map_err(|e| Error::BadRequest(e.into()))?;
         let unique_file_name = generate_unique_filename(&stem, &ext, product_id).await?;
         let unique_file_name_str = unique_file_name.to_string_lossy().to_string();
         let new_filename = format!("{product_id}/{unique_file_name_str}");
@@ -285,7 +289,11 @@ pub async fn product_add(auth: auth::JWT, State(ctx): State<AppContext>, mut mul
         ("jwt_token" = [])
     )
 )]
-pub async fn product_get_one(auth: auth::JWT, Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
+pub async fn product_get_one(
+    auth: auth::JWT,
+    Path(id): Path<i32>,
+    State(ctx): State<AppContext>,
+) -> Result<Response> {
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
     let product = products::Model::get_product_by_id_and_user_id(&ctx.db, &id, &user.id).await?;
     format::json(product)
@@ -339,7 +347,11 @@ pub async fn product_update(
         ("jwt_token" = [])
     )
 )]
-pub async fn product_remove(auth: auth::JWT, Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
+pub async fn product_remove(
+    auth: auth::JWT,
+    Path(id): Path<i32>,
+    State(ctx): State<AppContext>,
+) -> Result<Response> {
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
     load_item(&ctx, user, id).await?.delete(&ctx.db).await?;
     format::empty()
@@ -460,10 +472,16 @@ pub async fn update_profile(
         ("jwt_token" = [])
     )
 )]
-pub async fn user_block(auth: auth::JWT, Path(pid): Path<String>, State(ctx): State<AppContext>) -> Result<Response> {
+pub async fn user_block(
+    auth: auth::JWT,
+    Path(pid): Path<String>,
+    State(ctx): State<AppContext>,
+) -> Result<Response> {
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
 
-    let target_pid = pid.parse::<Uuid>().map_err(|_| Error::BadRequest("invalid user id".to_string()))?;
+    let target_pid = pid
+        .parse::<Uuid>()
+        .map_err(|_| Error::BadRequest("invalid user id".to_string()))?;
     if user.pid == target_pid {
         return bad_request("cannot block yourself");
     }
@@ -492,10 +510,16 @@ pub async fn user_block(auth: auth::JWT, Path(pid): Path<String>, State(ctx): St
         ("jwt_token" = [])
     )
 )]
-pub async fn user_unblock(auth: auth::JWT, Path(pid): Path<String>, State(ctx): State<AppContext>) -> Result<Response> {
+pub async fn user_unblock(
+    auth: auth::JWT,
+    Path(pid): Path<String>,
+    State(ctx): State<AppContext>,
+) -> Result<Response> {
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
 
-    let target_pid = pid.parse::<Uuid>().map_err(|_| Error::BadRequest("invalid user id".to_string()))?;
+    let target_pid = pid
+        .parse::<Uuid>()
+        .map_err(|_| Error::BadRequest("invalid user id".to_string()))?;
     if user.pid == target_pid {
         return bad_request("cannot block yourself");
     }
@@ -524,10 +548,16 @@ pub async fn user_unblock(auth: auth::JWT, Path(pid): Path<String>, State(ctx): 
         ("jwt_token" = [])
     )
 )]
-pub async fn user_delete(auth: auth::JWT, Path(pid): Path<String>, State(ctx): State<AppContext>) -> Result<Response> {
+pub async fn user_delete(
+    auth: auth::JWT,
+    Path(pid): Path<String>,
+    State(ctx): State<AppContext>,
+) -> Result<Response> {
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
 
-    let target_pid = pid.parse::<Uuid>().map_err(|_| Error::BadRequest("invalid user id".to_string()))?;
+    let target_pid = pid
+        .parse::<Uuid>()
+        .map_err(|_| Error::BadRequest("invalid user id".to_string()))?;
     if user.pid == target_pid {
         return bad_request("cannot delete yourself");
     }
@@ -557,9 +587,15 @@ pub async fn user_delete(auth: auth::JWT, Path(pid): Path<String>, State(ctx): S
         ("jwt_token" = [])
     )
 )]
-pub async fn user_order_detail(auth: auth::JWT, Path(order_number): Path<String>, State(ctx): State<AppContext>) -> Result<Response> {
+pub async fn user_order_detail(
+    auth: auth::JWT,
+    Path(order_number): Path<String>,
+    State(ctx): State<AppContext>,
+) -> Result<Response> {
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
-    let order = OrderModel::get_order_by_buyer_id_and_order_number(&ctx.db, &user.id, &order_number).await?;
+    let order =
+        OrderModel::get_order_by_buyer_id_and_order_number(&ctx.db, &user.id, &order_number)
+            .await?;
     format::json(order)
 }
 
@@ -579,14 +615,20 @@ pub async fn user_order_detail(auth: auth::JWT, Path(order_number): Path<String>
         ("jwt_token" = [])
     )
 )]
-pub async fn user_order_cancel(auth: auth::JWT, Path(order_number): Path<String>, State(ctx): State<AppContext>) -> Result<Response> {
+pub async fn user_order_cancel(
+    auth: auth::JWT,
+    Path(order_number): Path<String>,
+    State(ctx): State<AppContext>,
+) -> Result<Response> {
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
     let order = OrderEntity::find()
         .filter(
             Condition::all()
                 .add(orders::Column::BuyerId.eq(user.id))
-                .add(orders::Column::OrderNumber.eq(order_number))
-        ).one(&ctx.db).await?
+                .add(orders::Column::OrderNumber.eq(order_number)),
+        )
+        .one(&ctx.db)
+        .await?
         .ok_or_else(|| Error::BadRequest("Order not found".into()))?;
 
     crate::models::orders::cancel_and_restore_stock(&ctx.db, order.id).await?;

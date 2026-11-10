@@ -134,7 +134,9 @@ pub fn auth_header_for(
         .expect("jwt config")
         .secret
         .clone();
-    let token = user.generate_jwt(&secret, 3600).expect("failed to mint jwt");
+    let token = user
+        .generate_jwt(&secret, 3600)
+        .expect("failed to mint jwt");
     let value = HeaderValue::from_str(&format!("Bearer {token}")).unwrap();
     (HeaderName::from_static("authorization"), value)
 }
@@ -148,7 +150,9 @@ pub async fn create_payment_method(
     // name is UNIQUE and the DB is only truncated once per run, so reuse it
     if let Some(pm) = payment_methods::Entity::find()
         .filter(payment_methods::Column::Name.eq(PaymentMethodNameEnum::COD))
-        .one(db).await.unwrap()
+        .one(db)
+        .await
+        .unwrap()
     {
         return pm;
     }
@@ -188,5 +192,10 @@ pub async fn create_address(
 /// Reload a product's current stock.
 pub async fn product_stock(db: &sea_orm::DatabaseConnection, id: i32) -> i32 {
     use sea_orm::EntityTrait;
-    products::Entity::find_by_id(id).one(db).await.unwrap().unwrap().stock
+    products::Entity::find_by_id(id)
+        .one(db)
+        .await
+        .unwrap()
+        .unwrap()
+        .stock
 }

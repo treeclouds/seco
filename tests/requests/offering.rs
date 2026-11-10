@@ -1,5 +1,5 @@
-use seco::app::App;
 use loco_rs::testing::prelude::*;
+use seco::app::App;
 use serial_test::serial;
 
 /// The offering endpoints are JWT-gated; a missing token must yield 401.

@@ -1,8 +1,8 @@
 #![allow(dead_code)]
 
-use sea_orm_migration::{prelude::*, schema::*};
+use sea_orm::{DeriveActiveEnum, EnumIter};
 use sea_orm_migration::prelude::sea_query::extension::postgres::Type;
-use sea_orm::{EnumIter, DeriveActiveEnum};
+use sea_orm_migration::{prelude::*, schema::*};
 
 #[derive(DeriveMigrationName)]
 pub struct Migration;
@@ -14,7 +14,14 @@ impl MigrationTrait for Migration {
             .create_type(
                 Type::create()
                     .as_enum(Alias::new("condition"))
-                    .values([Alias::new("BrandNew"), Alias::new("MintCondition"), Alias::new("LikeNew"), Alias::new("Excellent"), Alias::new("Good"), Alias::new("Fair")])
+                    .values([
+                        Alias::new("BrandNew"),
+                        Alias::new("MintCondition"),
+                        Alias::new("LikeNew"),
+                        Alias::new("Excellent"),
+                        Alias::new("Good"),
+                        Alias::new("Fair"),
+                    ])
                     .to_owned(),
             )
             .await?;
@@ -24,11 +31,11 @@ impl MigrationTrait for Migration {
             .col(integer(Products::UsersId))
             .foreign_key(
                 ForeignKey::create()
-                .name("fk-products-users")
-                .from(Products::Table, Products::UsersId)
-                .to(Users::Table, Users::Id)
-                .on_delete(ForeignKeyAction::Cascade)
-                .on_update(ForeignKeyAction::Cascade),
+                    .name("fk-products-users")
+                    .from(Products::Table, Products::UsersId)
+                    .to(Users::Table, Users::Id)
+                    .on_delete(ForeignKeyAction::Cascade)
+                    .on_update(ForeignKeyAction::Cascade),
             )
             .col(string(Products::Category))
             .col(string(Products::Title))
@@ -130,7 +137,6 @@ enum Products {
     Tags,
     #[sea_orm(iden = "seller_id")]
     UsersId,
-
 }
 
 #[derive(EnumIter, DeriveActiveEnum)]
@@ -154,7 +160,4 @@ pub enum Condition {
 enum Users {
     Table,
     Id,
-    
 }
-
-

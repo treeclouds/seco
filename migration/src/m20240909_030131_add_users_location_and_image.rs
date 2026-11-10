@@ -59,16 +59,8 @@ impl MigrationTrait for Migration {
             .alter_table(
                 Table::alter()
                     .table(Users::Table)
-                    .add_column_if_not_exists(
-                        ColumnDef::new(Users::Location)
-                            .string()
-                            .null()
-                    )
-                    .add_column_if_not_exists(
-                        ColumnDef::new(Users::Image)
-                            .string()
-                            .null()
-                    )
+                    .add_column_if_not_exists(ColumnDef::new(Users::Location).string().null())
+                    .add_column_if_not_exists(ColumnDef::new(Users::Image).string().null())
                     .to_owned(),
             )
             .await
@@ -78,4 +70,3 @@ impl MigrationTrait for Migration {
         Ok(())
     }
 }
-

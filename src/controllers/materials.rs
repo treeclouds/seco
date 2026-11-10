@@ -51,7 +51,11 @@ pub async fn material_list(State(ctx): State<AppContext>) -> Result<Response> {
     )
 )]
 #[debug_handler]
-pub async fn material_add(auth: auth::JWT, State(ctx): State<AppContext>, Json(params): Json<MaterialParams>) -> Result<Response> {
+pub async fn material_add(
+    auth: auth::JWT,
+    State(ctx): State<AppContext>,
+    Json(params): Json<MaterialParams>,
+) -> Result<Response> {
     crate::controllers::base::require_superuser(&ctx, &auth).await?;
     let mut item = ActiveModel {
         ..Default::default()
@@ -62,7 +66,8 @@ pub async fn material_add(auth: auth::JWT, State(ctx): State<AppContext>, Json(p
 }
 
 #[debug_handler]
-pub async fn material_update(auth: auth::JWT, 
+pub async fn material_update(
+    auth: auth::JWT,
     Path(id): Path<i32>,
     State(ctx): State<AppContext>,
     Json(params): Json<MaterialParams>,
@@ -76,7 +81,11 @@ pub async fn material_update(auth: auth::JWT,
 }
 
 #[debug_handler]
-pub async fn material_remove(auth: auth::JWT, Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
+pub async fn material_remove(
+    auth: auth::JWT,
+    Path(id): Path<i32>,
+    State(ctx): State<AppContext>,
+) -> Result<Response> {
     crate::controllers::base::require_superuser(&ctx, &auth).await?;
     load_item(&ctx, id).await?.delete(&ctx.db).await?;
     format::empty()
@@ -94,7 +103,10 @@ pub async fn material_remove(auth: auth::JWT, Path(id): Path<i32>, State(ctx): S
     )
 )]
 #[debug_handler]
-pub async fn get_material_one(Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
+pub async fn get_material_one(
+    Path(id): Path<i32>,
+    State(ctx): State<AppContext>,
+) -> Result<Response> {
     let item = load_item(&ctx, id).await?;
     format::json(MaterialResponse::new(&item))
 }

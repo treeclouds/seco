@@ -1,7 +1,7 @@
-use loco_rs::schema::table_auto_tz;
-use sea_orm_migration::{prelude::*, schema::*};
-use sea_orm::{Schema, DbBackend};
 use crate::sea_orm::{DeriveActiveEnum, EnumIter};
+use loco_rs::schema::table_auto_tz;
+use sea_orm::{DbBackend, Schema};
+use sea_orm_migration::{prelude::*, schema::*};
 
 #[derive(DeriveMigrationName)]
 pub struct Migration;
@@ -9,19 +9,14 @@ pub struct Migration;
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-
         let schema = Schema::new(DbBackend::Postgres);
 
         manager
-            .create_type(
-                schema.create_enum_from_active_enum::<OfferingStatus>(),
-            )
+            .create_type(schema.create_enum_from_active_enum::<OfferingStatus>())
             .await?;
 
         manager
-            .create_type(
-                schema.create_enum_from_active_enum::<ActionType>(),
-            )
+            .create_type(schema.create_enum_from_active_enum::<ActionType>())
             .await?;
 
         manager
@@ -89,9 +84,7 @@ enum Offerings {
     OfferPrice,
     Status,
     ActionType,
-    
 }
-
 
 #[derive(DeriveIden)]
 enum Products {

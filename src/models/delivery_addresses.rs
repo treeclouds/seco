@@ -1,7 +1,7 @@
+pub use super::_entities::delivery_addresses::{self, ActiveModel, Entity, Model};
 use loco_rs::model::{ModelError, ModelResult};
 use sea_orm::entity::prelude::*;
 use sea_orm::query::Condition;
-pub use super::_entities::delivery_addresses::{self, ActiveModel, Model, Entity};
 
 #[async_trait::async_trait]
 impl ActiveModelBehavior for ActiveModel {
@@ -21,16 +21,21 @@ impl ActiveModelBehavior for ActiveModel {
 
 // implement your read-oriented logic here
 impl Model {
-    pub async fn find_by_id_and_user_id(db: &DatabaseConnection, id: i32, user_id: i32) -> ModelResult<Self> {
+    pub async fn find_by_id_and_user_id(
+        db: &DatabaseConnection,
+        id: i32,
+        user_id: i32,
+    ) -> ModelResult<Self> {
         tracing::info!("===== find_by_id_and_user_id id {:?}", id);
         tracing::info!("===== find_by_id_and_user_id user_id {:?}", user_id);
         let delivery_address = Entity::find()
             .filter(
                 Condition::all()
                     .add(delivery_addresses::Column::Id.eq(id))
-                    .add(delivery_addresses::Column::UserId.eq(user_id))
+                    .add(delivery_addresses::Column::UserId.eq(user_id)),
             )
-            .one(db).await?;
+            .one(db)
+            .await?;
         delivery_address.ok_or_else(|| ModelError::EntityNotFound)
     }
 }

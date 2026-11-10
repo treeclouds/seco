@@ -1,11 +1,13 @@
 #![allow(clippy::unused_async)]
+use crate::controllers::products::UnauthorizedResponse;
+use crate::models::_entities::categories::{self, ActiveModel, Entity, Model};
+use crate::views::category::{
+    CategoryListResponse, CategoryResponse, CategoryTree, ParentCategoryResponse,
+};
+use axum::extract::Query;
 use loco_rs::prelude::*;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-use axum::extract::Query;
-use crate::models::_entities::categories::{self, ActiveModel, Model, Entity};
-use crate::views::category::{CategoryResponse, CategoryListResponse, ParentCategoryResponse, CategoryTree};
-use crate::controllers::products::UnauthorizedResponse;
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
 pub struct CategoryPostParams {
@@ -34,9 +36,15 @@ async fn load_item(ctx: &AppContext, id: i32) -> Result<Model> {
     item.ok_or_else(|| Error::NotFound)
 }
 
-pub async fn load_parents(State(ctx): State<AppContext>, Query(params): Query<ListParams>) -> Result<Response> {
+pub async fn load_parents(
+    State(ctx): State<AppContext>,
+    Query(params): Query<ListParams>,
+) -> Result<Response> {
     let parent_categories = if params.exclude_id.is_some() {
-        Entity::find().filter(categories::Column::Id.ne(params.exclude_id)).all(&ctx.db).await?
+        Entity::find()
+            .filter(categories::Column::Id.ne(params.exclude_id))
+            .all(&ctx.db)
+            .await?
     } else {
         Entity::find().all(&ctx.db).await?
     };
@@ -86,7 +94,11 @@ pub async fn get_categories(State(ctx): State<AppContext>) -> Result<Response> {
     ),
 )]
 #[debug_handler]
-pub async fn category_add(auth: auth::JWT, State(ctx): State<AppContext>, Json(params): Json<CategoryPostParams>) -> Result<Response> {
+pub async fn category_add(
+    auth: auth::JWT,
+    State(ctx): State<AppContext>,
+    Json(params): Json<CategoryPostParams>,
+) -> Result<Response> {
     crate::controllers::base::require_superuser(&ctx, &auth).await?;
     let mut item = <ActiveModel as std::default::Default>::default();
     params.update(&mut item);
@@ -95,13 +107,17 @@ pub async fn category_add(auth: auth::JWT, State(ctx): State<AppContext>, Json(p
 }
 
 #[debug_handler]
-pub async fn get_category_one(Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
+pub async fn get_category_one(
+    Path(id): Path<i32>,
+    State(ctx): State<AppContext>,
+) -> Result<Response> {
     let item = load_item(&ctx, id).await?;
     format::json(CategoryResponse::new(&item))
 }
 
 #[debug_handler]
-pub async fn category_update(auth: auth::JWT, 
+pub async fn category_update(
+    auth: auth::JWT,
     Path(id): Path<i32>,
     State(ctx): State<AppContext>,
     Json(params): Json<CategoryPostParams>,
@@ -114,7 +130,11 @@ pub async fn category_update(auth: auth::JWT,
     format::json(CategoryResponse::new(&item))
 }
 
-pub async fn category_remove(auth: auth::JWT, Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
+pub async fn category_remove(
+    auth: auth::JWT,
+    Path(id): Path<i32>,
+    State(ctx): State<AppContext>,
+) -> Result<Response> {
     crate::controllers::base::require_superuser(&ctx, &auth).await?;
     load_item(&ctx, id).await?.delete(&ctx.db).await?;
     format::empty()

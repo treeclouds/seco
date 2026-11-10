@@ -1,9 +1,8 @@
+use crate::models::_entities::order_items::Model as OrderItemsModel;
 use loco_rs::prelude::Decimal;
-use serde::{Deserialize, Serialize};
 use sea_orm::{FromQueryResult, JsonValue};
+use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-use crate::models::_entities::order_items::{Model as OrderItemsModel};
-
 
 #[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
 pub struct OrderItemResponse {

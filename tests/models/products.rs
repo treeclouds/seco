@@ -1,14 +1,14 @@
 use insta::assert_debug_snapshot;
+use loco_rs::testing::prelude::*;
+use sea_orm::prelude::Decimal;
+use sea_orm::{ActiveModelTrait, ActiveValue};
+use seco::models::users;
 use seco::{
     app::App,
     models::_entities::{brands, categories, materials},
     models::products::{self, Model},
 };
-use loco_rs::testing::prelude::*;
-use sea_orm::{ActiveModelTrait, ActiveValue};
 use serial_test::serial;
-use sea_orm::prelude::Decimal;
-use seco::models::users;
 
 macro_rules! configure_insta {
     ($($expr:expr),*) => {

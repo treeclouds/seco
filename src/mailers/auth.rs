@@ -88,7 +88,7 @@ impl AuthMailer {
                 ..Default::default()
             },
         )
-            .await?;
+        .await?;
 
         Ok(())
     }

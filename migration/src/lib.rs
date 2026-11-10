@@ -78,7 +78,9 @@ impl MigratorTrait for Migrator {
             Box::new(m20240916_093824_add_offerings_firebase_id::Migration),
             Box::new(m20240918_124826_alter_offerings_product_condition::Migration),
             Box::new(m20240926_135258_alter_offerings_action_type_enum::Migration),
-            Box::new(m20251030_070909_add_magic_link_token_and_magic_link_expiration_to_users::Migration),
+            Box::new(
+                m20251030_070909_add_magic_link_token_and_magic_link_expiration_to_users::Migration,
+            ),
             Box::new(m20251118_031042_refresh_sessions::Migration),
             Box::new(m20251119_061748_brands::Migration),
             Box::new(m20251121_021954_materials::Migration),
