@@ -9,5 +9,5 @@ pub struct DeliveryMethodsAndServicesResponse {
     active: bool,
     #[schema(value_type = String, format = Binary)]
     services: Option<JsonValue>,
-    total_services: i64
+    total_services: i64,
 }

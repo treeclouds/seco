@@ -1,7 +1,9 @@
+use crate::models::_entities::payment_methods;
+use crate::models::_entities::sea_orm_active_enums::{
+    PaymentMethodGatewayEnum, PaymentMethodNameEnum,
+};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-use crate::models::_entities::payment_methods;
-use crate::models::_entities::sea_orm_active_enums::{PaymentMethodGatewayEnum, PaymentMethodNameEnum};
 
 #[derive(Debug, Deserialize, Serialize, ToSchema)]
 pub struct PaymentMethodResponse {
@@ -18,10 +20,10 @@ impl PaymentMethodResponse {
     pub fn new(payment_method: &payment_methods::Model) -> Self {
         Self {
             id: payment_method.id,
-            name: payment_method.name.to_owned(),
-            description: Option::from(payment_method.description.clone()),
+            name: payment_method.name,
+            description: payment_method.description.clone(),
             expiry_time: payment_method.expiry_time,
-            payment_gateway: Option::from(payment_method.payment_gateway),
+            payment_gateway: payment_method.payment_gateway,
             active: payment_method.active,
         }
     }

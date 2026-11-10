@@ -1,0 +1,38 @@
+---
+source: tests/requests/auth.rs
+assertion_line: 45
+expression: saved_user
+---
+Ok(
+    Model {
+        created_at: DATE,
+        updated_at: DATE,
+        id: ID
+        pid: PID,
+        email: "test@loco.com",
+        password: "PASSWORD",
+        api_key: "lo-PID",
+        reset_token: None,
+        reset_sent_at: None,
+        email_verification_token: Some(
+            "PID",
+        ),
+        email_verification_sent_at: Some(
+            DATE,
+        ),
+        email_verified_at: None,
+        first_name: "loco",
+        last_name: "loco",
+        is_active: false,
+        is_superuser: false,
+        location: None,
+        image: None,
+        latitude: None,
+        longitude: None,
+        magic_link_token: None,
+        magic_link_expiration: None,
+        phone: None,
+        is_blocked: false,
+        blocked_at: None,
+    },
+)

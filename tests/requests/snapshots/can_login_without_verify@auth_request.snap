@@ -1,0 +1,6 @@
+---
+source: tests/requests/auth.rs
+assertion_line: 173
+expression: login_response.text()
+---
+"{\"token\":\"TOKEN\",\"refresh_token\":\"TOKEN\",\"pid\":\"PID\",\"first_name\":\"loco\",\"last_name\":\"loco\",\"email\":\"test@loco.com\",\"is_verified\":false}"

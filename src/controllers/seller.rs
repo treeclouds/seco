@@ -1,18 +1,13 @@
 #![allow(clippy::missing_errors_doc)]
 #![allow(clippy::unnecessary_struct_initialization)]
 #![allow(clippy::unused_async)]
-use loco_rs::prelude::*;
-use migration::Condition;
 use crate::{
     controllers::products::UnauthorizedResponse,
-    models::_entities::{
-        users,
-        orders,
-        order_items,
-        sea_orm_active_enums::OrderStatusEnum,
-    },
+    models::_entities::{order_items, orders, users},
     views::order::OrderDetailResponse,
 };
+use loco_rs::prelude::*;
+use migration::Condition;
 
 #[utoipa::path(
     get,
@@ -48,14 +43,20 @@ pub async fn seller_order_list(auth: auth::JWT, State(ctx): State<AppContext>) -
         ("jwt_token" = [])
     )
 )]
-pub async fn seller_order_detail(auth: auth::JWT, Path(order_number): Path<String>, State(ctx): State<AppContext>) -> Result<Response> {
+pub async fn seller_order_detail(
+    auth: auth::JWT,
+    Path(order_number): Path<String>,
+    State(ctx): State<AppContext>,
+) -> Result<Response> {
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
-    let order = orders::Model::get_order_by_seller_id_and_order_number(&ctx.db, &user.id, &order_number).await?;
+    let order =
+        orders::Model::get_order_by_seller_id_and_order_number(&ctx.db, &user.id, &order_number)
+            .await?;
     format::json(order)
 }
 
 #[utoipa::path(
-    get,
+    post,
     path = "/api/seller/order/{order_number}/cancel",
     tag = "sellers",
     responses(
@@ -70,30 +71,34 @@ pub async fn seller_order_detail(auth: auth::JWT, Path(order_number): Path<Strin
         ("jwt_token" = [])
     )
 )]
-pub async fn seller_order_cancel(auth: auth::JWT, Path(order_number): Path<String>, State(ctx): State<AppContext>) -> Result<Response> {
+pub async fn seller_order_cancel(
+    auth: auth::JWT,
+    Path(order_number): Path<String>,
+    State(ctx): State<AppContext>,
+) -> Result<Response> {
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
     let order = orders::Entity::find()
         .filter(orders::Column::OrderNumber.eq(order_number))
-        .one(&ctx.db).await?
+        .one(&ctx.db)
+        .await?
         .ok_or_else(|| Error::BadRequest("Order not found".into()))?;
 
     let is_seller = order_items::Entity::find()
         .filter(
             Condition::all()
                 .add(order_items::Column::OrderId.eq(order.id))
-                .add(order_items::Column::SellerId.eq(user.id))
-        ).one(&ctx.db).await?
+                .add(order_items::Column::SellerId.eq(user.id)),
+        )
+        .one(&ctx.db)
+        .await?
         .is_some();
 
     if !is_seller {
         return Err(Error::BadRequest("Order not found".into()));
     }
 
-    if order.status == OrderStatusEnum::AwaitingPayment {
-        order.into_active_model().set_status_cancelled(&ctx.db).await?;
-        return format::empty();
-    }
-    Err(Error::BadRequest("Only orders awaiting payment can be cancelled".to_string()))
+    crate::models::orders::cancel_and_restore_stock(&ctx.db, order.id).await?;
+    format::empty()
 }
 
 pub fn routes() -> Routes {
@@ -101,5 +106,5 @@ pub fn routes() -> Routes {
         .prefix("api/seller/")
         .add("/orders", get(seller_order_list))
         .add("/order/{order_number}", get(seller_order_detail))
-        .add("/order/{order_number}/cancel", get(seller_order_cancel))
+        .add("/order/{order_number}/cancel", post(seller_order_cancel))
 }

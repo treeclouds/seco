@@ -1,19 +1,19 @@
-use loco_rs::prelude::*;
-use serde::{Deserialize, Serialize};
-use utoipa::ToSchema;
-use std::sync::OnceLock;
 use chrono::{Duration, Local};
+use loco_rs::prelude::*;
 use regex::Regex;
+use serde::{Deserialize, Serialize};
+use std::sync::OnceLock;
+use utoipa::ToSchema;
 
+use crate::models::_entities::refresh_sessions;
 use crate::{
     mailers::auth::AuthMailer,
     models::{
         _entities::users,
-        users::{LoginParams, RegisterParams, verify_refresh, revoke_refresh_session},
+        users::{revoke_refresh_session, verify_refresh, LoginParams, RegisterParams},
     },
-    views::auth::{LoginResponse, CurrentResponse},
+    views::auth::{CurrentResponse, LoginResponse},
 };
-use crate::models::_entities::refresh_sessions;
 
 pub static EMAIL_DOMAIN_RE: OnceLock<Regex> = OnceLock::new();
 
@@ -190,10 +190,7 @@ async fn reset(State(ctx): State<AppContext>, Json(params): Json<ResetParams>) -
         (status = 200, description = "Login successfully", body = LoginResponse)
     )
 )]
-async fn login(
-    State(ctx): State<AppContext>,
-    Json(params): Json<LoginParams>,
-) -> Result<Response> {
+async fn login(State(ctx): State<AppContext>, Json(params): Json<LoginParams>) -> Result<Response> {
     let exp_dt = Local::now() + Duration::days(3);
     let jti = Uuid::new_v4().to_string();
     let Ok(user) = users::Model::find_by_email(&ctx.db, &params.email).await else {
@@ -217,18 +214,21 @@ async fn login(
     }
 
     let jwt_secret = ctx.config.get_jwt_config()?;
-    let mut exp = jwt_secret.expiration;
-
-    if user.is_superuser {
-        exp = 604800;
-    }
+    let exp = if user.is_superuser {
+        604_800
+    } else {
+        jwt_secret.expiration
+    };
 
     let token = user
         .generate_jwt(&jwt_secret.secret, exp)
         .or_else(|_| unauthorized("unauthorized!"))?;
 
-    let refresh_token = user.generate_refresh_token_jwt(exp_dt, jti.clone()).or_else(|_| unauthorized("unauthorized!"))?;
-    refresh_sessions::Model::create_refresh_token(&ctx.db, user.id, &refresh_token, exp_dt, jti).await?;
+    let refresh_token = user
+        .generate_refresh_token_jwt(exp_dt, jti.clone())
+        .or_else(|_| unauthorized("unauthorized!"))?;
+    refresh_sessions::Model::create_refresh_token(&ctx.db, user.id, &refresh_token, exp_dt, jti)
+        .await?;
     format::json(LoginResponse::new(&user, &token, &refresh_token))
 }
 
@@ -316,8 +316,11 @@ async fn magic_link_verify(
         .generate_jwt(&jwt_secret.secret, jwt_secret.expiration)
         .or_else(|_| unauthorized("unauthorized!"))?;
 
-    let refresh_token = user.generate_refresh_token_jwt(exp_dt, jti.clone()).or_else(|_| unauthorized("unauthorized!"))?;
-    refresh_sessions::Model::create_refresh_token(&ctx.db, user.id, &refresh_token, exp_dt, jti).await?;
+    let refresh_token = user
+        .generate_refresh_token_jwt(exp_dt, jti.clone())
+        .or_else(|_| unauthorized("unauthorized!"))?;
+    refresh_sessions::Model::create_refresh_token(&ctx.db, user.id, &refresh_token, exp_dt, jti)
+        .await?;
     format::json(LoginResponse::new(&user, &token, &refresh_token))
 }
 

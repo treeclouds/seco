@@ -6,7 +6,7 @@ pub struct Migration;
 #[derive(DeriveIden)]
 enum Products {
     Table,
-    Brand
+    Brand,
 }
 
 #[async_trait::async_trait]
@@ -70,4 +70,3 @@ impl MigrationTrait for Migration {
         Ok(())
     }
 }
-

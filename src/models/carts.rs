@@ -1,8 +1,8 @@
+pub use super::_entities::carts::{ActiveModel, Entity, Model};
+use crate::views::cart::CartListResponse;
 use loco_rs::model::ModelResult;
 use sea_orm::entity::prelude::*;
-use sea_orm::{FromQueryResult, DbBackend, JsonValue, Statement, ActiveValue};
-use crate::views::cart::CartListResponse;
-pub use super::_entities::carts::{ActiveModel, Model, Entity};
+use sea_orm::{DbBackend, FromQueryResult, JsonValue, Statement};
 pub type Carts = Entity;
 
 #[async_trait::async_trait]
@@ -23,10 +23,13 @@ impl ActiveModelBehavior for ActiveModel {
 
 // implement your read-oriented logic here
 impl Model {
-    pub async fn get_cart_by_user_id(db: &DatabaseConnection, user_id: &i32)  -> ModelResult<Vec<CartListResponse>> {
+    pub async fn get_cart_by_user_id(
+        db: &DatabaseConnection,
+        user_id: &i32,
+    ) -> ModelResult<Vec<CartListResponse>> {
         let products: Vec<CartListResponse> = JsonValue::find_by_statement(Statement::from_sql_and_values(
             DbBackend::Postgres,
-            r#"
+            r"
             SELECT
                 c.id, p.id as product_id, p.title, p.category_id, p.description, p.price,
                 p.dimension_width, p.dimension_height, p.dimension_length, p.dimension_weight,
@@ -45,7 +48,7 @@ impl Model {
                     ), '{}'::json
                 ) as seller,
                 c.qty
-            FROM cart c
+            FROM carts c
             INNER JOIN products p ON p.id = c.product_id
             INNER JOIN users u ON u.id = c.user_id
             INNER JOIN users s ON s.id = p.seller_id
@@ -53,7 +56,7 @@ impl Model {
             LEFT JOIN materials m ON m.id = p.material_id
             WHERE c.user_id = $1
             GROUP BY c.id, p.id, s.pid, s.first_name, s.last_name, s.created_at, s.location
-        "#,
+        ",
             [(*user_id).into()],
         )).into_model::<CartListResponse>()
             .all(db)

@@ -1,8 +1,8 @@
+pub use super::_entities::delivery_methods::{ActiveModel, Entity, Model};
+use crate::views::delivery_method::DeliveryMethodsAndServicesResponse;
 use loco_rs::model::ModelResult;
 use sea_orm::entity::prelude::*;
-use sea_orm::{FromQueryResult, JsonValue, Statement, DbBackend};
-use crate::views::delivery_method::DeliveryMethodsAndServicesResponse;
-pub use super::_entities::delivery_methods::{ActiveModel, Model, Entity};
+use sea_orm::{DbBackend, FromQueryResult, JsonValue, Statement};
 pub type DeliveryMethods = Entity;
 
 #[async_trait::async_trait]
@@ -26,7 +26,7 @@ impl Model {
     pub async fn get_all_delivery_methods_and_services(
         db: &DatabaseConnection,
     ) -> ModelResult<Vec<DeliveryMethodsAndServicesResponse>> {
-        let query = r#"
+        let query = r"
             SELECT
                 dm.id,
                 dm.name,
@@ -47,13 +47,14 @@ impl Model {
             LEFT JOIN delivery_method_services dms ON dms.delivery_method_id = dm.id
             GROUP BY dm.id, dm.name
             ORDER BY dm.name
-        "#;
+        ";
 
-        let products: Vec<DeliveryMethodsAndServicesResponse> = JsonValue::find_by_statement(Statement::from_sql_and_values(
-            DbBackend::Postgres, query, [],
-        )).into_model::<DeliveryMethodsAndServicesResponse>()
-            .all(db)
-            .await?;
+        let products: Vec<DeliveryMethodsAndServicesResponse> = JsonValue::find_by_statement(
+            Statement::from_sql_and_values(DbBackend::Postgres, query, []),
+        )
+        .into_model::<DeliveryMethodsAndServicesResponse>()
+        .all(db)
+        .await?;
         Ok(products)
     }
 }

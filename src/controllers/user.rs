@@ -1,30 +1,32 @@
-use chrono::Local;
-use std::path::PathBuf;
-use axum::extract::Multipart;
-use loco_rs::prelude::*;
-use serde::{Deserialize, Serialize};
-use utoipa::ToSchema;
-use bytes::Bytes;
-use sea_orm::Condition;
 use crate::{
     controllers::{
-        upload::generate_unique_filename,
-        products::{ProductPostParams, UnauthorizedResponse}
+        products::{ProductPostParams, UnauthorizedResponse},
+        upload::{generate_unique_filename, sanitize_image_filename},
     },
     models::_entities::{
-        users::{self, ActiveModel},
-        products::{self, ActiveModel as ProductActiveModel, Entity as ProductEntity, Model as ProductModel},
-        product_images::{ActiveModel as ProductImageActiveModel, Model as ProductImageModel},
         orders::{self, Entity as OrderEntity, Model as OrderModel},
-        sea_orm_active_enums::OrderStatusEnum,
+        product_images::{ActiveModel as ProductImageActiveModel, Model as ProductImageModel},
+        products::{
+            self, ActiveModel as ProductActiveModel, Entity as ProductEntity, Model as ProductModel,
+        },
+        users::{self, ActiveModel},
     },
     views::{
         order::OrderDetailResponse,
         product::ProductResponse,
         product_image::ProductImageResponse,
-        user::{CurrentResponse, AdminUserResponse},
+        user::{AdminUserResponse, CurrentResponse},
     },
 };
+use axum::extract::Multipart;
+use bytes::Bytes;
+use chrono::Local;
+use loco_rs::controller::ErrorDetail;
+use loco_rs::prelude::*;
+use sea_orm::Condition;
+use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
+use utoipa::ToSchema;
 
 use crate::models::users::AdminUserCreateParams;
 
@@ -38,8 +40,8 @@ pub struct LocationParams {
 impl LocationParams {
     pub(crate) fn update(&self, item: &mut ActiveModel) {
         item.location = Set(Option::from(self.location.clone()));
-        item.latitude = Set(Option::from(self.latitude.clone()));
-        item.longitude = Set(Option::from(self.longitude.clone()));
+        item.latitude = Set(self.latitude.clone());
+        item.longitude = Set(self.longitude.clone());
     }
 }
 
@@ -55,14 +57,22 @@ pub struct ProfileParams {
 }
 
 impl ProfileParams {
+    pub(crate) fn validate(&self) -> loco_rs::Result<()> {
+        let email = self.email.trim();
+        if email.is_empty() || !email.contains('@') {
+            return Err(loco_rs::Error::BadRequest("invalid email".into()));
+        }
+        Ok(())
+    }
+
     pub(crate) fn update(&self, item: &mut ActiveModel) {
         item.first_name = Set(self.first_name.clone());
         item.last_name = Set(self.last_name.clone());
-        item.phone = Set(Option::from(self.phone.clone()));
+        item.phone = Set(self.phone.clone());
         item.email = Set(self.email.clone());
         item.location = Set(Option::from(self.location.clone()));
-        item.latitude = Set(Option::from(self.latitude.clone()));
-        item.longitude = Set(Option::from(self.longitude.clone()));
+        item.latitude = Set(self.latitude.clone());
+        item.longitude = Set(self.longitude.clone());
     }
 }
 
@@ -88,7 +98,7 @@ pub struct CreateProductMultipart {
 
     /// File gambar produk (boleh lebih dari satu).
     ///
-    /// Secara OpenAPI ini adalah array of binary files.
+    /// Secara `OpenAPI` ini adalah array of binary files.
     #[schema(value_type = [String], format = Binary)]
     pub files: Option<Vec<String>>,
 }
@@ -122,7 +132,11 @@ async fn current(auth: auth::JWT, State(ctx): State<AppContext>) -> Result<Respo
 }
 
 async fn load_item(ctx: &AppContext, user: users::Model, id: i32) -> Result<ProductModel> {
-    let item = user.find_related(ProductEntity).filter(products::Column::Id.eq(id)).one(&ctx.db).await?;
+    let item = user
+        .find_related(ProductEntity)
+        .filter(products::Column::Id.eq(id))
+        .one(&ctx.db)
+        .await?;
     item.ok_or_else(|| Error::NotFound)
 }
 
@@ -156,21 +170,21 @@ pub async fn product_list(auth: auth::JWT, State(ctx): State<AppContext>) -> Res
         ("jwt_token" = [])
     )
 )]
-pub async fn product_add(auth: auth::JWT, State(ctx): State<AppContext>, mut multipart: Multipart) -> Result<Response> {
+pub async fn product_add(
+    auth: auth::JWT,
+    State(ctx): State<AppContext>,
+    mut multipart: Multipart,
+) -> Result<Response> {
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
     let mut product_params: Option<ProductPostParams> = None;
     let mut pending_files: Vec<PendingFile> = Vec::new();
 
     // 1. Read all fields from the multipart request
-    while let Some(field) = multipart
-        .next_field()
-        .await
-        .map_err(|err| {
-            tracing::error!(error = ?err, "could not read multipart");
-            Error::BadRequest("could not read multipart".into())
-        })?
-    {
-        let field_name = field.name().map(|s| s.to_string());
+    while let Some(field) = multipart.next_field().await.map_err(|err| {
+        tracing::error!(error = ?err, "could not read multipart");
+        Error::BadRequest("could not read multipart".into())
+    })? {
+        let field_name = field.name().map(std::string::ToString::to_string);
 
         match field_name.as_deref() {
             // The text field contains the product JSON
@@ -192,9 +206,7 @@ pub async fn product_add(auth: auth::JWT, State(ctx): State<AppContext>, mut mul
             Some("files") => {
                 let file_name = match field.file_name() {
                     Some(file_name) => file_name.to_string(),
-                    None => {
-                        return bad_request("file name not found")
-                    }
+                    None => return bad_request("file name not found"),
                 };
 
                 let content = field.bytes().await.map_err(|err| {
@@ -202,6 +214,7 @@ pub async fn product_add(auth: auth::JWT, State(ctx): State<AppContext>, mut mul
                     Error::BadRequest("could not read file bytes".into())
                 })?;
 
+                sanitize_image_filename(&file_name).map_err(|e| Error::BadRequest(e.into()))?;
                 pending_files.push(PendingFile { file_name, content });
             }
 
@@ -212,9 +225,9 @@ pub async fn product_add(auth: auth::JWT, State(ctx): State<AppContext>, mut mul
     }
 
     // 2. Ensure the product payload exists
-    let product_params = product_params.ok_or_else(|| {
-        Error::BadRequest("product data not found in multipart".into())
-    })?;
+    let product_params = product_params
+        .ok_or_else(|| Error::BadRequest("product data not found in multipart".into()))?;
+    product_params.validate()?;
 
     // 3. Insert the product first
     let mut item = ProductActiveModel {
@@ -230,7 +243,9 @@ pub async fn product_add(auth: auth::JWT, State(ctx): State<AppContext>, mut mul
     let mut images: Vec<ProductImageResponse> = Vec::new();
 
     for f in pending_files {
-        let unique_file_name = generate_unique_filename(&f.file_name, product_id).await?;
+        let (stem, ext) =
+            sanitize_image_filename(&f.file_name).map_err(|e| Error::BadRequest(e.into()))?;
+        let unique_file_name = generate_unique_filename(&stem, &ext, product_id).await?;
         let unique_file_name_str = unique_file_name.to_string_lossy().to_string();
         let new_filename = format!("{product_id}/{unique_file_name_str}");
         let path = PathBuf::from("product_images").join(&new_filename);
@@ -274,7 +289,11 @@ pub async fn product_add(auth: auth::JWT, State(ctx): State<AppContext>, mut mul
         ("jwt_token" = [])
     )
 )]
-pub async fn product_get_one(auth: auth::JWT, Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
+pub async fn product_get_one(
+    auth: auth::JWT,
+    Path(id): Path<i32>,
+    State(ctx): State<AppContext>,
+) -> Result<Response> {
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
     let product = products::Model::get_product_by_id_and_user_id(&ctx.db, &id, &user.id).await?;
     format::json(product)
@@ -302,6 +321,7 @@ pub async fn product_update(
     State(ctx): State<AppContext>,
     Json(params): Json<ProductPostParams>,
 ) -> Result<Response> {
+    params.validate()?;
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
     let item = load_item(&ctx, user, id).await?;
     let mut item = item.into_active_model();
@@ -327,7 +347,11 @@ pub async fn product_update(
         ("jwt_token" = [])
     )
 )]
-pub async fn product_remove(auth: auth::JWT, Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
+pub async fn product_remove(
+    auth: auth::JWT,
+    Path(id): Path<i32>,
+    State(ctx): State<AppContext>,
+) -> Result<Response> {
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
     load_item(&ctx, user, id).await?.delete(&ctx.db).await?;
     format::empty()
@@ -397,9 +421,37 @@ pub async fn update_profile(
     State(ctx): State<AppContext>,
     Json(params): Json<ProfileParams>,
 ) -> Result<Response> {
+    params.validate()?;
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
+    let old_email = user.email.clone();
+    let new_email = params.email.trim().to_lowercase();
+    let email_changed = !new_email.eq_ignore_ascii_case(user.email.trim());
+    if email_changed {
+        let taken = users::Entity::find()
+            .filter(users::Column::Email.eq(new_email.clone()))
+            .filter(users::Column::Id.ne(user.id))
+            .one(&ctx.db)
+            .await?
+            .is_some();
+        if taken {
+            return Err(Error::CustomError(
+                axum::http::StatusCode::CONFLICT,
+                ErrorDetail::new("conflict", "email already in use"),
+            ));
+        }
+    }
     let mut user = user.into_active_model();
     params.update(&mut user);
+    if email_changed {
+        user.email = Set(new_email);
+        // new address must be re-verified
+        user.email_verified_at = Set(None);
+        user.email_verification_token = Set(Some(Uuid::new_v4().to_string()));
+        user.email_verification_sent_at = Set(None);
+    } else {
+        // don't let a case/whitespace-only edit change the stored email
+        user.email = Set(old_email);
+    }
     user.updated_at = ActiveValue::Set(Local::now().naive_local());
     let user = user.update(&ctx.db).await?;
     format::json(CurrentResponse::new(&user))
@@ -420,10 +472,16 @@ pub async fn update_profile(
         ("jwt_token" = [])
     )
 )]
-pub async fn user_block(auth: auth::JWT, Path(pid): Path<String>, State(ctx): State<AppContext>) -> Result<Response> {
+pub async fn user_block(
+    auth: auth::JWT,
+    Path(pid): Path<String>,
+    State(ctx): State<AppContext>,
+) -> Result<Response> {
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
 
-    let target_pid = pid.parse::<Uuid>().map_err(|_| Error::BadRequest("invalid user id".to_string()))?;
+    let target_pid = pid
+        .parse::<Uuid>()
+        .map_err(|_| Error::BadRequest("invalid user id".to_string()))?;
     if user.pid == target_pid {
         return bad_request("cannot block yourself");
     }
@@ -452,10 +510,16 @@ pub async fn user_block(auth: auth::JWT, Path(pid): Path<String>, State(ctx): St
         ("jwt_token" = [])
     )
 )]
-pub async fn user_unblock(auth: auth::JWT, Path(pid): Path<String>, State(ctx): State<AppContext>) -> Result<Response> {
+pub async fn user_unblock(
+    auth: auth::JWT,
+    Path(pid): Path<String>,
+    State(ctx): State<AppContext>,
+) -> Result<Response> {
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
 
-    let target_pid = pid.parse::<Uuid>().map_err(|_| Error::BadRequest("invalid user id".to_string()))?;
+    let target_pid = pid
+        .parse::<Uuid>()
+        .map_err(|_| Error::BadRequest("invalid user id".to_string()))?;
     if user.pid == target_pid {
         return bad_request("cannot block yourself");
     }
@@ -484,10 +548,16 @@ pub async fn user_unblock(auth: auth::JWT, Path(pid): Path<String>, State(ctx): 
         ("jwt_token" = [])
     )
 )]
-pub async fn user_delete(auth: auth::JWT, Path(pid): Path<String>, State(ctx): State<AppContext>) -> Result<Response> {
+pub async fn user_delete(
+    auth: auth::JWT,
+    Path(pid): Path<String>,
+    State(ctx): State<AppContext>,
+) -> Result<Response> {
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
 
-    let target_pid = pid.parse::<Uuid>().map_err(|_| Error::BadRequest("invalid user id".to_string()))?;
+    let target_pid = pid
+        .parse::<Uuid>()
+        .map_err(|_| Error::BadRequest("invalid user id".to_string()))?;
     if user.pid == target_pid {
         return bad_request("cannot delete yourself");
     }
@@ -496,7 +566,7 @@ pub async fn user_delete(auth: auth::JWT, Path(pid): Path<String>, State(ctx): S
         return unauthorized("forbidden");
     }
 
-    let u = users::Model::find_by_pid(&ctx.db, &pid.to_string()).await?;
+    let u = users::Model::find_by_pid(&ctx.db, &pid.clone()).await?;
     u.delete(&ctx.db).await?;
     format::empty()
 }
@@ -517,14 +587,20 @@ pub async fn user_delete(auth: auth::JWT, Path(pid): Path<String>, State(ctx): S
         ("jwt_token" = [])
     )
 )]
-pub async fn user_order_detail(auth: auth::JWT, Path(order_number): Path<String>, State(ctx): State<AppContext>) -> Result<Response> {
+pub async fn user_order_detail(
+    auth: auth::JWT,
+    Path(order_number): Path<String>,
+    State(ctx): State<AppContext>,
+) -> Result<Response> {
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
-    let order = OrderModel::get_order_by_buyer_id_and_order_number(&ctx.db, &user.id, &order_number).await?;
+    let order =
+        OrderModel::get_order_by_buyer_id_and_order_number(&ctx.db, &user.id, &order_number)
+            .await?;
     format::json(order)
 }
 
 #[utoipa::path(
-    get,
+    post,
     path = "/api/user/order/{order_number}/cancel",
     tag = "users",
     responses(
@@ -539,21 +615,24 @@ pub async fn user_order_detail(auth: auth::JWT, Path(order_number): Path<String>
         ("jwt_token" = [])
     )
 )]
-pub async fn user_order_cancel(auth: auth::JWT, Path(order_number): Path<String>, State(ctx): State<AppContext>) -> Result<Response> {
+pub async fn user_order_cancel(
+    auth: auth::JWT,
+    Path(order_number): Path<String>,
+    State(ctx): State<AppContext>,
+) -> Result<Response> {
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
     let order = OrderEntity::find()
         .filter(
             Condition::all()
                 .add(orders::Column::BuyerId.eq(user.id))
-                .add(orders::Column::OrderNumber.eq(order_number))
-        ).one(&ctx.db).await?
+                .add(orders::Column::OrderNumber.eq(order_number)),
+        )
+        .one(&ctx.db)
+        .await?
         .ok_or_else(|| Error::BadRequest("Order not found".into()))?;
 
-    if order.status == OrderStatusEnum::AwaitingPayment && order.buyer_id == user.id {
-        order.into_active_model().set_status_cancelled(&ctx.db).await?;
-        return format::empty();
-    }
-    Err(Error::BadRequest("Only orders awaiting payment can be cancelled".to_string()))
+    crate::models::orders::cancel_and_restore_stock(&ctx.db, order.id).await?;
+    format::empty()
 }
 
 #[utoipa::path(
@@ -714,5 +793,5 @@ pub fn routes() -> Routes {
         .add("/{id}/unblock", post(user_unblock))
         .add("/{id}/delete", delete(user_delete))
         .add("/order/{order_number}", get(user_order_detail))
-        .add("/order/{order_number}/cancel", get(user_order_cancel))
+        .add("/order/{order_number}/cancel", post(user_order_cancel))
 }

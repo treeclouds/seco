@@ -2,22 +2,18 @@
 #![allow(clippy::unnecessary_struct_initialization)]
 #![allow(clippy::unused_async)]
 
+use crate::controllers::products::UnauthorizedResponse;
+use crate::models::_entities::{
+    carts::{self, ActiveModel, Entity, Model},
+    products, users,
+};
+use crate::views::{base::BaseResponse, cart::CartListResponse};
 use axum::http::StatusCode;
 use loco_rs::controller::ErrorDetail;
 use loco_rs::prelude::*;
+use migration::Condition;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-use migration::Condition;
-use crate::models::_entities::{
-    carts::{self, ActiveModel, Entity, Model},
-    users,
-    products,
-};
-use crate::controllers::products::UnauthorizedResponse;
-use crate::views::{
-    base::BaseResponse,
-    cart::CartListResponse,
-};
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
 pub struct CartPostParams {
@@ -26,10 +22,34 @@ pub struct CartPostParams {
 }
 
 impl CartPostParams {
-    fn update(&self, item: &mut ActiveModel) {
+    const fn update(&self, item: &mut ActiveModel) {
         item.product_id = Set(self.product_id);
         item.qty = Set(self.qty);
     }
+}
+
+/// Validate qty and that the product exists and isn't the buyer's own.
+async fn validate_cart_params(
+    ctx: &AppContext,
+    user: &users::Model,
+    params: &CartPostParams,
+) -> Result<()> {
+    if params.qty <= 0 {
+        return Err(Error::BadRequest("qty must be greater than 0".to_string()));
+    }
+    let product = products::Entity::find_by_id(params.product_id)
+        .one(&ctx.db)
+        .await?
+        .ok_or_else(|| Error::NotFound)?;
+    if product.seller_id == user.id {
+        return Err(Error::BadRequest(
+            "You are not allowed to add your own products to the cart".to_string(),
+        ));
+    }
+    if params.qty > product.stock {
+        return Err(Error::BadRequest("qty exceeds available stock".to_string()));
+    }
+    Ok(())
 }
 
 async fn load_item(ctx: &AppContext, id: i32) -> Result<Model> {
@@ -43,11 +63,16 @@ async fn load_item_by_product_id(ctx: &AppContext, user_id: i32, product_id: i32
         .filter(
             Condition::all()
                 .add(carts::Column::UserId.eq(user_id))
-                .add(carts::Column::ProductId.eq(product_id))
+                .add(carts::Column::ProductId.eq(product_id)),
         )
         .one(&ctx.db)
         .await?;
-    item.ok_or_else(|| Error::CustomError(StatusCode::NOT_FOUND, ErrorDetail::new("not_found", &*msg_error)))
+    item.ok_or_else(|| {
+        Error::CustomError(
+            StatusCode::NOT_FOUND,
+            ErrorDetail::new("not_found", &*msg_error),
+        )
+    })
 }
 
 #[utoipa::path(
@@ -86,16 +111,13 @@ pub async fn user_cart_list(auth: auth::JWT, State(ctx): State<AppContext>) -> R
     )
 )]
 #[debug_handler]
-pub async fn user_cart_add(auth: auth::JWT, State(ctx): State<AppContext>, Json(params): Json<CartPostParams>) -> Result<Response> {
+pub async fn user_cart_add(
+    auth: auth::JWT,
+    State(ctx): State<AppContext>,
+    Json(params): Json<CartPostParams>,
+) -> Result<Response> {
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
-    let product = products::Entity::find_by_id(params.product_id)
-        .one(&ctx.db)
-        .await?
-        .ok_or_else(|| Error::NotFound)?;
-
-    if product.seller_id == user.id {
-        return Err(Error::BadRequest("You are not allowed to add your own products to the cart".to_string()));
-    }
+    validate_cart_params(&ctx, &user, &params).await?;
 
     let mut item = ActiveModel {
         user_id: ActiveValue::Set(user.id),
@@ -118,6 +140,7 @@ pub async fn user_cart_update(
     if item.user_id != user.id {
         return Err(Error::NotFound);
     }
+    validate_cart_params(&ctx, &user, &params).await?;
     let mut item = item.into_active_model();
     params.update(&mut item);
     let item = item.update(&ctx.db).await?;
@@ -125,7 +148,11 @@ pub async fn user_cart_update(
 }
 
 #[debug_handler]
-pub async fn user_cart_remove(auth: auth::JWT, Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
+pub async fn user_cart_remove(
+    auth: auth::JWT,
+    Path(id): Path<i32>,
+    State(ctx): State<AppContext>,
+) -> Result<Response> {
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
     let item = load_item(&ctx, id).await?;
     if item.user_id != user.id {
@@ -136,7 +163,11 @@ pub async fn user_cart_remove(auth: auth::JWT, Path(id): Path<i32>, State(ctx): 
 }
 
 #[debug_handler]
-pub async fn get_user_cart_one(auth: auth::JWT, Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
+pub async fn get_user_cart_one(
+    auth: auth::JWT,
+    Path(id): Path<i32>,
+    State(ctx): State<AppContext>,
+) -> Result<Response> {
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
     let item = load_item(&ctx, id).await?;
     if item.user_id != user.id {
@@ -162,14 +193,21 @@ pub async fn get_user_cart_one(auth: auth::JWT, Path(id): Path<i32>, State(ctx):
     )
 )]
 #[debug_handler]
-pub async fn user_cart_delete_by_product_id(auth: auth::JWT, Path(product_id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
+pub async fn user_cart_delete_by_product_id(
+    auth: auth::JWT,
+    Path(product_id): Path<i32>,
+    State(ctx): State<AppContext>,
+) -> Result<Response> {
     // Start checking user validation
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
     // End checking user validation
 
-    load_item_by_product_id(&ctx, user.id, product_id).await?.delete(&ctx.db).await?;
+    load_item_by_product_id(&ctx, user.id, product_id)
+        .await?
+        .delete(&ctx.db)
+        .await?;
     let message = "Cart delete successfully";
-    format::json(BaseResponse::new(&"success".to_string(), &message.to_string()))
+    format::json(BaseResponse::new("success", message))
 }
 
 pub fn routes() -> Routes {
@@ -181,5 +219,8 @@ pub fn routes() -> Routes {
         .add("{id}", delete(user_cart_remove))
         .add("{id}", put(user_cart_update))
         .add("{id}", patch(user_cart_update))
-        .add("/{product_id}/remove", delete(user_cart_delete_by_product_id))
+        .add(
+            "/{product_id}/remove",
+            delete(user_cart_delete_by_product_id),
+        )
 }

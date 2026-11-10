@@ -1,8 +1,8 @@
 use insta::{assert_debug_snapshot, with_settings};
 use loco_rs::testing::prelude::*;
 use rstest::rstest;
-use serial_test::serial;
 use seco::{app::App, models::users};
+use serial_test::serial;
 
 use super::prepare_data;
 
@@ -25,7 +25,8 @@ async fn can_register() {
     request::<App, _, _>(|request, ctx| async move {
         let email = "test@loco.com";
         let payload = serde_json::json!({
-            "name": "loco",
+            "first_name": "loco",
+            "last_name": "loco",
             "email": email,
             "password": "12341234"
         });
@@ -53,7 +54,7 @@ async fn can_register() {
         //     assert_debug_snapshot!(ctx.mailer.unwrap().deliveries());
         // });
     })
-        .await;
+    .await;
 }
 
 #[rstest]
@@ -67,7 +68,8 @@ async fn can_login_with_verify(#[case] test_name: &str, #[case] password: &str) 
     request::<App, _, _>(|request, ctx| async move {
         let email = "test@loco.com";
         let register_payload = serde_json::json!({
-            "name": "loco",
+            "first_name": "loco",
+            "last_name": "loco",
             "email": email,
             "password": "12341234"
         });
@@ -88,9 +90,11 @@ async fn can_login_with_verify(#[case] test_name: &str, #[case] password: &str) 
         let email_verification_token = user
             .email_verification_token
             .expect("Email verification token should be generated");
-        request
-            .get(&format!("/api/auth/verify/{email_verification_token}"))
+        let verify_response = request
+            .post("/api/auth/verify")
+            .json(&serde_json::json!({ "token": email_verification_token }))
             .await;
+        assert_eq!(verify_response.status_code(), 200, "verify should succeed");
 
         //verify user request
         let response = request
@@ -118,7 +122,7 @@ async fn can_login_with_verify(#[case] test_name: &str, #[case] password: &str) 
             assert_debug_snapshot!(test_name, (response.status_code(), response.text()));
         });
     })
-        .await;
+    .await;
 }
 
 #[tokio::test]
@@ -130,7 +134,8 @@ async fn can_login_without_verify() {
         let email = "test@loco.com";
         let password = "12341234";
         let register_payload = serde_json::json!({
-            "name": "loco",
+            "first_name": "loco",
+            "last_name": "loco",
             "email": email,
             "password": password
         });
@@ -168,7 +173,7 @@ async fn can_login_without_verify() {
             assert_debug_snapshot!(login_response.text());
         });
     })
-        .await;
+    .await;
 }
 
 #[tokio::test]
@@ -246,7 +251,7 @@ async fn can_reset_password() {
         //     assert_debug_snapshot!(deliveries.messages);
         // });
     })
-        .await;
+    .await;
 }
 
 #[tokio::test]
@@ -275,7 +280,7 @@ async fn can_get_current_user() {
             assert_debug_snapshot!((response.status_code(), response.text()));
         });
     })
-        .await;
+    .await;
 }
 
 #[tokio::test]
@@ -331,7 +336,7 @@ async fn can_auth_with_magic_link() {
             assert_debug_snapshot!(magic_link_response.text());
         });
     })
-        .await;
+    .await;
 }
 
 #[tokio::test]
@@ -367,5 +372,5 @@ async fn can_reject_invalid_magic_link_token() {
             "Magic link authentication should be rejected"
         );
     })
-        .await;
+    .await;
 }

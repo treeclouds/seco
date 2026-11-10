@@ -16,6 +16,13 @@ pub struct Params {
 }
 
 impl Params {
+    pub(crate) fn validate(&self) -> loco_rs::Result<()> {
+        if self.price < Decimal::ZERO {
+            return Err(loco_rs::Error::BadRequest("price must be >= 0".into()));
+        }
+        Ok(())
+    }
+
     fn update(&self, item: &mut ActiveModel) {
         item.delivery_method_id = Set(self.delivery_method_id);
         item.name = Set(self.name.clone());
@@ -35,10 +42,17 @@ pub async fn delivery_method_service_list(State(ctx): State<AppContext>) -> Resu
 }
 
 #[debug_handler]
-pub async fn delivery_method_service_add(auth: auth::JWT, State(ctx): State<AppContext>, Json(params): Json<Params>) -> Result<Response> {
+pub async fn delivery_method_service_add(
+    auth: auth::JWT,
+    State(ctx): State<AppContext>,
+    Json(params): Json<Params>,
+) -> Result<Response> {
+    params.validate()?;
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
     if !user.is_superuser {
-        return bad_request("You are not allowed to add delivery service. Only superuser can do that.");
+        return bad_request(
+            "You are not allowed to add delivery service. Only superuser can do that.",
+        );
     }
 
     let mut item = ActiveModel {
@@ -56,9 +70,12 @@ pub async fn delivery_method_service_update(
     State(ctx): State<AppContext>,
     Json(params): Json<Params>,
 ) -> Result<Response> {
+    params.validate()?;
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
     if !user.is_superuser {
-        return bad_request("You are not allowed to update delivery service. Only superuser can do that.");
+        return bad_request(
+            "You are not allowed to update delivery service. Only superuser can do that.",
+        );
     }
     let item = load_item(&ctx, id).await?;
     let mut item = item.into_active_model();
@@ -68,17 +85,26 @@ pub async fn delivery_method_service_update(
 }
 
 #[debug_handler]
-pub async fn delivery_method_service_remove(auth: auth::JWT, Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
+pub async fn delivery_method_service_remove(
+    auth: auth::JWT,
+    Path(id): Path<i32>,
+    State(ctx): State<AppContext>,
+) -> Result<Response> {
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
     if !user.is_superuser {
-        return bad_request("You are not allowed to delete delivery service. Only superuser can do that.");
+        return bad_request(
+            "You are not allowed to delete delivery service. Only superuser can do that.",
+        );
     }
     load_item(&ctx, id).await?.delete(&ctx.db).await?;
     format::empty()
 }
 
 #[debug_handler]
-pub async fn get_delivery_method_service_one(Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
+pub async fn get_delivery_method_service_one(
+    Path(id): Path<i32>,
+    State(ctx): State<AppContext>,
+) -> Result<Response> {
     format::json(load_item(&ctx, id).await?)
 }
 

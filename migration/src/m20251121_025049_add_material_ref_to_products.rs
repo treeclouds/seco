@@ -9,9 +9,8 @@ impl MigrationTrait for Migration {
     async fn up(&self, m: &SchemaManager) -> Result<(), DbErr> {
         add_reference(m, "products", "material", "").await?;
         let db = m.get_connection();
-        db.execute_unprepared(
-            "ALTER TABLE products ALTER COLUMN material_id DROP NOT NULL;"
-        ).await?;
+        db.execute_unprepared("ALTER TABLE products ALTER COLUMN material_id DROP NOT NULL;")
+            .await?;
         Ok(())
     }
 

@@ -1,8 +1,8 @@
+use crate::models::_entities::offerings;
+use crate::models::_entities::sea_orm_active_enums::OfferingStatus;
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-use crate::models::_entities::offerings;
-use crate::models::_entities::sea_orm_active_enums::OfferingStatus;
 
 #[derive(Debug, Deserialize, Serialize, ToSchema)]
 pub struct AddNegotiationProductResponse {
@@ -21,7 +21,7 @@ impl crate::views::offering::AddNegotiationProductResponse {
         Self {
             id: offering.id,
             offer_price: offering.offer_price,
-            status: Option::from(offering.status.clone()),
+            status: offering.status,
             firebase_id: offering.firebase_id.clone(),
             product_id: offering.product_id,
         }

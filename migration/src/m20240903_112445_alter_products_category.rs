@@ -1,4 +1,4 @@
-use sea_orm_migration::{prelude::*};
+use sea_orm_migration::prelude::*;
 
 #[derive(DeriveMigrationName)]
 pub struct Migration;
@@ -6,7 +6,6 @@ pub struct Migration;
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-
         let foreign_key_category = TableForeignKey::new()
             .name("fk-products-categories")
             .from_tbl(Products::Table)
@@ -22,7 +21,7 @@ impl MigrationTrait for Migration {
                 Table::alter()
                     .table(Products::Table)
                     .rename_column(Products::Category, Products::CategoriesId)
-                    .to_owned()
+                    .to_owned(),
             )
             .await?;
 
@@ -36,7 +35,7 @@ impl MigrationTrait for Migration {
                 Table::alter()
                     .table(Products::Table)
                     .add_foreign_key(&foreign_key_category)
-                    .to_owned()
+                    .to_owned(),
             )
             .await?;
 
@@ -45,7 +44,7 @@ impl MigrationTrait for Migration {
                 Index::drop()
                     .name("idx-products-category")
                     .table(Products::Table)
-                    .to_owned()
+                    .to_owned(),
             )
             .await?;
 
@@ -53,7 +52,6 @@ impl MigrationTrait for Migration {
     }
 
     async fn down(&self, _manager: &SchemaManager) -> Result<(), DbErr> {
-
         Ok(())
     }
 }
@@ -64,13 +62,10 @@ enum Products {
     Category,
     #[sea_orm(iden = "category_id")]
     CategoriesId,
-
 }
 
 #[derive(DeriveIden)]
 enum Categories {
     Table,
     Id,
-
 }
-

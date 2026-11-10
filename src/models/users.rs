@@ -1,17 +1,21 @@
+pub use super::_entities::{
+    refresh_sessions::{self, Entity as RefreshSessionEntity},
+    users::{self, ActiveModel, Entity, Model},
+};
 use async_trait::async_trait;
-use std::sync::OnceLock;
 use chrono::{offset::Local, Duration};
+use jsonwebtoken::{
+    decode, encode,
+    errors::ErrorKind::{ExpiredSignature, InvalidSignature, InvalidToken},
+    DecodingKey, EncodingKey, Header, Validation,
+};
 use loco_rs::{auth::jwt, hash, prelude::*};
 use sea_orm::{entity::prelude::*, ActiveValue, DatabaseConnection, DbErr, TransactionTrait};
 use serde::{Deserialize, Serialize};
 use serde_json::Map;
-use uuid::Uuid;
+use std::sync::OnceLock;
 use utoipa::ToSchema;
-use jsonwebtoken::{decode, encode, Header, EncodingKey, DecodingKey, Validation, errors::ErrorKind::*};
-pub use super::_entities::{
-    refresh_sessions::{self, Entity as RefreshSessionEntity},
-    users::{self, ActiveModel, Entity, Model}
-};
+use uuid::Uuid;
 
 pub const MAGIC_LINK_LENGTH: i8 = 32;
 pub const MAGIC_LINK_EXPIRATION_MIN: i8 = 5;
@@ -64,7 +68,7 @@ impl Validatable for ActiveModel {
     fn validator(&self) -> Box<dyn Validate> {
         Box::new(Validator {
             first_name: self.first_name.as_ref().to_owned(),
-            last_name: self.last_name.as_ref().to_string(),
+            last_name: self.last_name.as_ref().clone(),
             email: self.email.as_ref().to_owned(),
         })
     }
@@ -82,7 +86,6 @@ fn refresh_secret() -> &'static [u8] {
     })
 }
 
-
 pub async fn verify_refresh(db: &DatabaseConnection, token: &str) -> Result<RefreshClaims> {
     let result = decode::<RefreshClaims>(
         token,
@@ -94,40 +97,37 @@ pub async fn verify_refresh(db: &DatabaseConnection, token: &str) -> Result<Refr
         Ok(data) => data,
         Err(err) => {
             let message = match err.kind() {
-                ExpiredSignature =>
-                    "Refresh token expired",
-                InvalidToken | InvalidSignature  =>
-                    "Invalid refresh token",
-                _ =>
-                    "Failed to verify refresh token",
+                ExpiredSignature => "Refresh token expired",
+                InvalidToken | InvalidSignature => "Invalid refresh token",
+                _ => "Failed to verify refresh token",
             };
-            return bad_request(message)
+            return bad_request(message);
         }
     };
 
     if data.claims.token_type != "refresh" {
-        return bad_request("Token is not refresh token")
+        return bad_request("Token is not refresh token");
     }
 
     let jti = &data.claims.jti;
     let session = refresh_sessions::Entity::find()
-        .filter(refresh_sessions::Column::Jti.eq(jti.to_string()))
+        .filter(refresh_sessions::Column::Jti.eq(jti.clone()))
         .one(db)
         .await
         .map_err(|e| ModelError::Any(e.into()))?;
 
     if session.is_none() {
-        return bad_request("Session not found")
+        return bad_request("Session not found");
     }
 
     let session = session.unwrap();
 
     if session.revoked {
-        return bad_request("Refresh token has been revoked")
+        return bad_request("Refresh token has been revoked");
     }
 
     if session.expires_at < Local::now() {
-        return bad_request("Refresh session expired")
+        return bad_request("Refresh session expired");
     }
 
     Ok(data.claims)
@@ -144,14 +144,11 @@ pub async fn revoke_refresh_session(db: &DatabaseConnection, token: &str) -> Res
         Ok(data) => data,
         Err(err) => {
             let message = match err.kind() {
-                ExpiredSignature =>
-                    "Refresh token expired",
-                InvalidToken | InvalidSignature  =>
-                    "Invalid refresh token",
-                _ =>
-                    "Failed to verify refresh token",
+                ExpiredSignature => "Refresh token expired",
+                InvalidToken | InvalidSignature => "Invalid refresh token",
+                _ => "Failed to verify refresh token",
             };
-            return bad_request(message)
+            return bad_request(message);
         }
     };
 
@@ -159,13 +156,15 @@ pub async fn revoke_refresh_session(db: &DatabaseConnection, token: &str) -> Res
 
     refresh_sessions::Entity::update_many()
         .col_expr(refresh_sessions::Column::Revoked, Expr::value(true))
-        .col_expr(refresh_sessions::Column::RevokedAt, Expr::value(Local::now()))
+        .col_expr(
+            refresh_sessions::Column::RevokedAt,
+            Expr::value(Local::now()),
+        )
         .filter(refresh_sessions::Column::Jti.eq(claims.jti))
         .exec(db)
         .await?;
 
     Ok(())
-
 }
 
 #[async_trait::async_trait]
@@ -305,10 +304,10 @@ impl Model {
         let password_hash =
             hash::hash_password(&params.password).map_err(|e| ModelError::Any(e.into()))?;
         let user = users::ActiveModel {
-            email: ActiveValue::set(params.email.to_string()),
+            email: ActiveValue::set(params.email.clone()),
             password: ActiveValue::set(password_hash),
-            first_name: ActiveValue::set(params.first_name.to_string()),
-            last_name: ActiveValue::set(params.last_name.to_string()),
+            first_name: ActiveValue::set(params.first_name.clone()),
+            last_name: ActiveValue::set(params.last_name.clone()),
             ..Default::default()
         }
         .insert(&txn)
@@ -344,10 +343,10 @@ impl Model {
         let password_hash =
             hash::hash_password(&params.password).map_err(|e| ModelError::Any(e.into()))?;
         let user = users::ActiveModel {
-            email: ActiveValue::set(params.email.to_string()),
+            email: ActiveValue::set(params.email.clone()),
             password: ActiveValue::set(password_hash),
-            first_name: ActiveValue::set(params.first_name.to_string()),
-            last_name: ActiveValue::set(params.last_name.to_string()),
+            first_name: ActiveValue::set(params.first_name.clone()),
+            last_name: ActiveValue::set(params.last_name.clone()),
             phone: ActiveValue::set(params.phone.clone()),
             location: ActiveValue::set(params.location.clone()),
             is_active: ActiveValue::set(params.is_active.unwrap_or(true)),
@@ -373,16 +372,25 @@ impl Model {
             .map_err(ModelError::from)
     }
 
-    pub fn generate_refresh_token_jwt(&self, exp_dt: chrono::DateTime<Local>, jti: String) -> ModelResult<String> {
+    pub fn generate_refresh_token_jwt(
+        &self,
+        exp_dt: chrono::DateTime<Local>,
+        jti: String,
+    ) -> ModelResult<String> {
         let exp = (exp_dt).timestamp() as u64; // 3 hari
 
         let claims = RefreshClaims {
             pid: self.pid.to_string(),
             exp,
             token_type: "refresh".to_string(),
-            jti: jti.clone(),
+            jti,
         };
-        let token = encode(&Header::default(), &claims, &EncodingKey::from_secret(refresh_secret())).map_err(|e| ModelError::Any(e.into()))?;
+        let token = encode(
+            &Header::default(),
+            &claims,
+            &EncodingKey::from_secret(refresh_secret()),
+        )
+        .map_err(|e| ModelError::Any(e.into()))?;
         Ok(token)
     }
 
@@ -423,7 +431,7 @@ impl Model {
     }
 
     #[must_use]
-    pub fn verify_blocked(&self) -> bool {
+    pub const fn verify_blocked(&self) -> bool {
         self.is_blocked
     }
 }

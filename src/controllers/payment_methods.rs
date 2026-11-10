@@ -3,15 +3,15 @@
 #![allow(clippy::unused_async)]
 use loco_rs::prelude::*;
 use serde::{Deserialize, Serialize};
-use utoipa::{ToSchema};
+use utoipa::ToSchema;
 
+use crate::controllers::products::UnauthorizedResponse;
 use crate::models::_entities::{
-    sea_orm_active_enums::{PaymentMethodGatewayEnum, PaymentMethodNameEnum},
     payment_methods::{ActiveModel, Entity, Model},
+    sea_orm_active_enums::{PaymentMethodGatewayEnum, PaymentMethodNameEnum},
     users,
 };
 use crate::views::payment_method::PaymentMethodResponse;
-use crate::controllers::products::UnauthorizedResponse;
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
 pub struct PaymentMethodParams {
@@ -27,11 +27,18 @@ pub struct PaymentMethodParams {
 }
 
 impl PaymentMethodParams {
+    pub(crate) fn validate(&self) -> loco_rs::Result<()> {
+        if self.expiry_time <= 0 {
+            return Err(loco_rs::Error::BadRequest("expiry_time must be > 0".into()));
+        }
+        Ok(())
+    }
+
     fn update(&self, item: &mut ActiveModel) {
-        item.name = Set(self.name.to_owned());
+        item.name = Set(self.name);
         item.description = Set(self.description.clone());
         item.expiry_time = Set(self.expiry_time);
-        item.payment_gateway = Set(self.payment_gateway.clone());
+        item.payment_gateway = Set(self.payment_gateway);
         item.active = Set(self.active);
     }
 }
@@ -73,10 +80,17 @@ pub async fn payment_method_list(State(ctx): State<AppContext>) -> Result<Respon
     )
 )]
 #[debug_handler]
-pub async fn payment_method_add(auth: auth::JWT, State(ctx): State<AppContext>, Json(params): Json<PaymentMethodParams>) -> Result<Response> {
+pub async fn payment_method_add(
+    auth: auth::JWT,
+    State(ctx): State<AppContext>,
+    Json(params): Json<PaymentMethodParams>,
+) -> Result<Response> {
+    params.validate()?;
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
     if !user.is_superuser {
-        return bad_request("You are not allowed to update payment methods. Only superuser can do that.");
+        return bad_request(
+            "You are not allowed to update payment methods. Only superuser can do that.",
+        );
     }
 
     let mut item = ActiveModel {
@@ -100,10 +114,13 @@ pub async fn payment_method_update(
     State(ctx): State<AppContext>,
     Json(params): Json<PaymentMethodParams>,
 ) -> Result<Response> {
-    println!("{:?}", &auth.claims.pid);
+    params.validate()?;
+    println!("{:?}", auth.claims.pid);
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
     if !user.is_superuser {
-        return bad_request("You are not allowed to update payment methods. Only superuser can do that.");
+        return bad_request(
+            "You are not allowed to update payment methods. Only superuser can do that.",
+        );
     }
     let item = load_item(&ctx, id).await?;
     let mut item = item.into_active_model();
@@ -113,17 +130,26 @@ pub async fn payment_method_update(
 }
 
 #[debug_handler]
-pub async fn payment_method_remove(auth: auth::JWT, Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
+pub async fn payment_method_remove(
+    auth: auth::JWT,
+    Path(id): Path<i32>,
+    State(ctx): State<AppContext>,
+) -> Result<Response> {
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
     if !user.is_superuser {
-        return bad_request("You are not allowed to update payment methods. Only superuser can do that.");
+        return bad_request(
+            "You are not allowed to update payment methods. Only superuser can do that.",
+        );
     }
     load_item(&ctx, id).await?.delete(&ctx.db).await?;
     format::empty()
 }
 
 #[debug_handler]
-pub async fn get_payment_method_one(Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
+pub async fn get_payment_method_one(
+    Path(id): Path<i32>,
+    State(ctx): State<AppContext>,
+) -> Result<Response> {
     format::json(load_item(&ctx, id).await?)
 }
 

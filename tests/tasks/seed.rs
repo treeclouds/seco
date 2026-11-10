@@ -16,6 +16,6 @@ async fn test_can_seed_data() {
         Some(&"seed_data".to_string()),
         &task::Vars::default()
     )
-        .await
-        .is_ok());
+    .await
+    .is_ok());
 }

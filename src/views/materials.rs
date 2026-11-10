@@ -1,6 +1,6 @@
+use crate::models::_entities::materials;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-use crate::models::_entities::materials;
 
 #[derive(Debug, Deserialize, Serialize, ToSchema)]
 pub struct MaterialResponse {
@@ -15,8 +15,8 @@ impl MaterialResponse {
     pub fn new(material: &materials::Model) -> Self {
         Self {
             id: material.id,
-            name: material.name.to_string(),
-            code: Option::from(material.code.clone()),
+            name: material.name.clone(),
+            code: material.code.clone(),
             is_active: material.is_active,
         }
     }

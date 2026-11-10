@@ -3,14 +3,14 @@
 #![allow(clippy::unused_async)]
 use loco_rs::prelude::*;
 use serde::{Deserialize, Serialize};
-use utoipa::{ToSchema};
+use utoipa::ToSchema;
 
+use crate::controllers::products::UnauthorizedResponse;
 use crate::models::_entities::{
+    delivery_addresses::{ActiveModel, Entity, Model},
     users,
-    delivery_addresses::{ActiveModel, Entity, Model}
 };
 use crate::views::delivery_address::DeliveryAddressResponse;
-use crate::controllers::products::UnauthorizedResponse;
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
 pub struct DeliveryAddressParams {
@@ -55,7 +55,10 @@ impl DeliveryAddressParams {
     )
 )]
 #[debug_handler]
-pub async fn delivery_address_list(auth: auth::JWT, State(ctx): State<AppContext>) -> Result<Response> {
+pub async fn delivery_address_list(
+    auth: auth::JWT,
+    State(ctx): State<AppContext>,
+) -> Result<Response> {
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
     let delivery_addresses: Vec<Model> = user.find_related(Entity).all(&ctx.db).await?;
     format::json(delivery_addresses)
@@ -74,7 +77,11 @@ pub async fn delivery_address_list(auth: auth::JWT, State(ctx): State<AppContext
     )
 )]
 #[debug_handler]
-pub async fn delivery_address_add(auth: auth::JWT, State(ctx): State<AppContext>, Json(params): Json<DeliveryAddressParams>) -> Result<Response> {
+pub async fn delivery_address_add(
+    auth: auth::JWT,
+    State(ctx): State<AppContext>,
+    Json(params): Json<DeliveryAddressParams>,
+) -> Result<Response> {
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
     let mut item = ActiveModel {
         user_id: ActiveValue::set(user.id),
@@ -137,7 +144,11 @@ pub async fn delivery_address_update(
     )
 )]
 #[debug_handler]
-pub async fn delivery_address_remove(auth: auth::JWT, Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
+pub async fn delivery_address_remove(
+    auth: auth::JWT,
+    Path(id): Path<i32>,
+    State(ctx): State<AppContext>,
+) -> Result<Response> {
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
     let Ok(delivery_address) = Model::find_by_id_and_user_id(&ctx.db, id, user.id).await else {
         let msg_error = String::from("Not found delivery address with this id and user id");
@@ -164,7 +175,11 @@ pub async fn delivery_address_remove(auth: auth::JWT, Path(id): Path<i32>, State
     )
 )]
 #[debug_handler]
-pub async fn get_delivery_address_one(auth: auth::JWT, Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
+pub async fn get_delivery_address_one(
+    auth: auth::JWT,
+    Path(id): Path<i32>,
+    State(ctx): State<AppContext>,
+) -> Result<Response> {
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
     let Ok(delivery_address) = Model::find_by_id_and_user_id(&ctx.db, id, user.id).await else {
         let msg_error = String::from("Not found delivery address with this id and user id");

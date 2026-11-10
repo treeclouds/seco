@@ -1,5 +1,5 @@
+pub use super::_entities::materials::{ActiveModel, Entity, Model};
 use sea_orm::entity::prelude::*;
-pub use super::_entities::materials::{ActiveModel, Model, Entity};
 pub type Materials = Entity;
 
 #[async_trait::async_trait]

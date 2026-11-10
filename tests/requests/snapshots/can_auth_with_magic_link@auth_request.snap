@@ -1,0 +1,6 @@
+---
+source: tests/requests/auth.rs
+assertion_line: 331
+expression: magic_link_response.text()
+---
+"{\"token\":\"TOKEN\",\"refresh_token\":\"TOKEN\",\"pid\":\"PID\",\"first_name\":\"user1\",\"last_name\":\"user1\",\"email\":\"user1@example.com\",\"is_verified\":false}"
