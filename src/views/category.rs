@@ -37,8 +37,8 @@ impl CategoryResponse {
     pub fn new(category: &categories::Model) -> Self {
         Self {
             id: category.id,
-            name: category.name.to_string(),
-            parent_id: Option::from(category.parent_id),
+            name: category.name.clone(),
+            parent_id: category.parent_id,
         }
     }
 }

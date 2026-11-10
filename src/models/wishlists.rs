@@ -12,7 +12,7 @@ impl Model {
     pub async fn get_wishlist_by_user_id(db: &DatabaseConnection, user_id: &i32)  -> ModelResult<Vec<WishlistListResponse>> {
         let products: Vec<WishlistListResponse> = JsonValue::find_by_statement(Statement::from_sql_and_values(
             DbBackend::Postgres,
-            r#"
+            r"
             SELECT
                 w.id, p.id as product_id, p.title, p.category_id, p.description, p.price,
                 p.dimension_width, p.dimension_height, p.dimension_length, p.dimension_weight,
@@ -38,7 +38,7 @@ impl Model {
             LEFT JOIN materials m ON m.id = p.material_id
             WHERE w.user_id = $1 AND w.is_deleted = false
             GROUP BY w.id, p.id, s.pid, s.first_name, s.last_name, s.created_at, s.location
-        "#,
+        ",
             [(*user_id).into()],
         )).into_model::<WishlistListResponse>()
             .all(db)

@@ -26,7 +26,7 @@ pub struct CartPostParams {
 }
 
 impl CartPostParams {
-    fn update(&self, item: &mut ActiveModel) {
+    const fn update(&self, item: &mut ActiveModel) {
         item.product_id = Set(self.product_id);
         item.qty = Set(self.qty);
     }
@@ -181,7 +181,7 @@ pub async fn user_cart_delete_by_product_id(auth: auth::JWT, Path(product_id): P
 
     load_item_by_product_id(&ctx, user.id, product_id).await?.delete(&ctx.db).await?;
     let message = "Cart delete successfully";
-    format::json(BaseResponse::new(&"success".to_string(), &message.to_string()))
+    format::json(BaseResponse::new("success", message))
 }
 
 pub fn routes() -> Routes {

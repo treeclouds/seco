@@ -23,7 +23,7 @@ pub struct WishListPostParams {
 }
 
 impl WishListPostParams {
-    pub(crate) fn update(&self, wishlist: &mut ActiveModel) {
+    pub(crate) const fn update(&self, wishlist: &mut ActiveModel) {
         wishlist.product_id = Set(self.product_id);
     }
 }
@@ -91,7 +91,7 @@ pub async fn user_wishlist_new(auth: auth::JWT, State(ctx): State<AppContext>, J
         let msg_error = String::from("You are not allowed to add your own products to the wishlist.");
         tracing::info!(
             user_pid = user.pid.to_string(),
-            product_name = product.title.to_string(),
+            product_name = product.title.clone(),
             msg_error
         );
         return Err(Error::CustomError(StatusCode::BAD_REQUEST, ErrorDetail::new("bad_request", &*msg_error)));
@@ -106,10 +106,7 @@ pub async fn user_wishlist_new(auth: auth::JWT, State(ctx): State<AppContext>, J
                 .await?;
 
             let message = "Successfully added into wishlist";
-            return format::json(BaseResponse::new(
-                &"success".to_string(),
-                &message.to_string(),
-            ));
+            return format::json(BaseResponse::new("success", message));
         }
         Err(Error::CustomError(status, _)) if status == StatusCode::NOT_FOUND => {
             // not found => continue to create
@@ -124,7 +121,7 @@ pub async fn user_wishlist_new(auth: auth::JWT, State(ctx): State<AppContext>, J
     params.update(&mut wishlist);
     wishlist.insert(&ctx.db).await?;
     let message = "Successfully added into wishlist";
-    format::json(BaseResponse::new(&"success".to_string(), &message.to_string()))
+    format::json(BaseResponse::new("success", message))
 }
 
 #[utoipa::path(
@@ -152,7 +149,7 @@ pub async fn user_wishlist_delete(auth: auth::JWT, Path(product_id): Path<i32>, 
     let wishlist = load_wishlist(&ctx, user.id, product_id).await?;
     wishlist.into_active_model().set_wishlist_deleted(&ctx.db).await?;
     let message = "Wishlist delete successfully";
-    format::json(BaseResponse::new(&"success".to_string(), &message.to_string()))
+    format::json(BaseResponse::new("success", message))
 }
 
 pub fn routes() -> Routes {

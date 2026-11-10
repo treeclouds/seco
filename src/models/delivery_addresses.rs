@@ -1,6 +1,6 @@
 use loco_rs::model::{ModelError, ModelResult};
 use sea_orm::entity::prelude::*;
-use sea_orm::query::*;
+use sea_orm::query::Condition;
 pub use super::_entities::delivery_addresses::{self, ActiveModel, Model, Entity};
 
 #[async_trait::async_trait]

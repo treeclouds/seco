@@ -21,15 +21,15 @@ impl DeliveryAddressResponse {
     pub fn new(delivery_address: &delivery_addresses::Model) -> Self {
         Self {
             id: delivery_address.id,
-            name: delivery_address.name.to_string(),
-            phone: delivery_address.phone.to_string(),
-            email: delivery_address.email.to_string(),
-            city: delivery_address.city.to_string(),
-            postal_code: delivery_address.postal_code.to_string(),
-            address: delivery_address.address.to_string(),
-            notes: Option::from(delivery_address.notes.clone()),
-            latitude: Option::from(delivery_address.latitude.clone()),
-            longitude: Option::from(delivery_address.longitude.clone()),
+            name: delivery_address.name.clone(),
+            phone: delivery_address.phone.clone(),
+            email: delivery_address.email.clone(),
+            city: delivery_address.city.clone(),
+            postal_code: delivery_address.postal_code.clone(),
+            address: delivery_address.address.clone(),
+            notes: delivery_address.notes.clone(),
+            latitude: delivery_address.latitude.clone(),
+            longitude: delivery_address.longitude.clone(),
         }
     }
 }

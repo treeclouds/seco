@@ -35,9 +35,10 @@ async fn load_product(ctx: &AppContext, user: users::Model, id: i32) -> Result<M
 const ALLOWED_IMAGE_EXTENSIONS: &[&str] = &["jpg", "jpeg", "png", "webp", "gif", "heic", "heif"];
 const MAX_IMAGE_BYTES: usize = 10 * 1024 * 1024;
 
-/// Reduce a client-supplied file name to a safe basename with an allowed image
-/// extension. Rejects path separators, `..`, absolute paths, control chars and
-/// unknown extensions. Returns (stem, lowercase extension).
+/// Reduce a client-supplied file name to a safe basename with an allowed image extension.
+///
+/// Rejects path separators, `..`, absolute paths, control chars and unknown
+/// extensions. Returns `(stem, lowercase extension)`.
 pub fn sanitize_image_filename(raw: &str) -> std::result::Result<(String, String), &'static str> {
     if raw.contains('/') || raw.contains('\\') || raw.contains("..") || raw.contains('\0') {
         return Err("invalid file name");
@@ -94,7 +95,7 @@ pub async fn generate_unique_filename(stem: &str, ext: &str, product_id: i32) ->
 /// ## Request Example
 ///
 /// curl -H "Content-Type: multipart/form-data" -F "file=@./test-2.json"
-/// 127.0.0.1:3000/api/upload/{product_id}/product_image_file
+/// `127.0.0.1:3000/api/upload/{product_id}/product_image_file`
 #[utoipa::path(
     post,
     path = "/api/upload/{product_id}/product_image_file",

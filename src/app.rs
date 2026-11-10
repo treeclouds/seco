@@ -154,7 +154,7 @@ impl Modify for SecurityAddon {
                         .bearer_format("JWT")
                         .build(),
                 )
-            )
+            );
         }
     }
 }

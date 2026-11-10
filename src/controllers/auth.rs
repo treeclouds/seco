@@ -217,11 +217,11 @@ async fn login(
     }
 
     let jwt_secret = ctx.config.get_jwt_config()?;
-    let mut exp = jwt_secret.expiration;
-
-    if user.is_superuser {
-        exp = 604800;
-    }
+    let exp = if user.is_superuser {
+        604_800
+    } else {
+        jwt_secret.expiration
+    };
 
     let token = user
         .generate_jwt(&jwt_secret.secret, exp)

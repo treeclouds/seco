@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Map;
 use uuid::Uuid;
 use utoipa::ToSchema;
-use jsonwebtoken::{decode, encode, Header, EncodingKey, DecodingKey, Validation, errors::ErrorKind::*};
+use jsonwebtoken::{decode, encode, Header, EncodingKey, DecodingKey, Validation, errors::ErrorKind::{ExpiredSignature, InvalidToken, InvalidSignature}};
 pub use super::_entities::{
     refresh_sessions::{self, Entity as RefreshSessionEntity},
     users::{self, ActiveModel, Entity, Model}
@@ -64,7 +64,7 @@ impl Validatable for ActiveModel {
     fn validator(&self) -> Box<dyn Validate> {
         Box::new(Validator {
             first_name: self.first_name.as_ref().to_owned(),
-            last_name: self.last_name.as_ref().to_string(),
+            last_name: self.last_name.as_ref().clone(),
             email: self.email.as_ref().to_owned(),
         })
     }
@@ -111,7 +111,7 @@ pub async fn verify_refresh(db: &DatabaseConnection, token: &str) -> Result<Refr
 
     let jti = &data.claims.jti;
     let session = refresh_sessions::Entity::find()
-        .filter(refresh_sessions::Column::Jti.eq(jti.to_string()))
+        .filter(refresh_sessions::Column::Jti.eq(jti.clone()))
         .one(db)
         .await
         .map_err(|e| ModelError::Any(e.into()))?;
@@ -305,10 +305,10 @@ impl Model {
         let password_hash =
             hash::hash_password(&params.password).map_err(|e| ModelError::Any(e.into()))?;
         let user = users::ActiveModel {
-            email: ActiveValue::set(params.email.to_string()),
+            email: ActiveValue::set(params.email.clone()),
             password: ActiveValue::set(password_hash),
-            first_name: ActiveValue::set(params.first_name.to_string()),
-            last_name: ActiveValue::set(params.last_name.to_string()),
+            first_name: ActiveValue::set(params.first_name.clone()),
+            last_name: ActiveValue::set(params.last_name.clone()),
             ..Default::default()
         }
         .insert(&txn)
@@ -344,10 +344,10 @@ impl Model {
         let password_hash =
             hash::hash_password(&params.password).map_err(|e| ModelError::Any(e.into()))?;
         let user = users::ActiveModel {
-            email: ActiveValue::set(params.email.to_string()),
+            email: ActiveValue::set(params.email.clone()),
             password: ActiveValue::set(password_hash),
-            first_name: ActiveValue::set(params.first_name.to_string()),
-            last_name: ActiveValue::set(params.last_name.to_string()),
+            first_name: ActiveValue::set(params.first_name.clone()),
+            last_name: ActiveValue::set(params.last_name.clone()),
             phone: ActiveValue::set(params.phone.clone()),
             location: ActiveValue::set(params.location.clone()),
             is_active: ActiveValue::set(params.is_active.unwrap_or(true)),
@@ -380,7 +380,7 @@ impl Model {
             pid: self.pid.to_string(),
             exp,
             token_type: "refresh".to_string(),
-            jti: jti.clone(),
+            jti,
         };
         let token = encode(&Header::default(), &claims, &EncodingKey::from_secret(refresh_secret())).map_err(|e| ModelError::Any(e.into()))?;
         Ok(token)
@@ -423,7 +423,7 @@ impl Model {
     }
 
     #[must_use]
-    pub fn verify_blocked(&self) -> bool {
+    pub const fn verify_blocked(&self) -> bool {
         self.is_blocked
     }
 }

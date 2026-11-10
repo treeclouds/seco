@@ -1,5 +1,8 @@
 #![allow(elided_lifetimes_in_paths)]
 #![allow(clippy::wildcard_imports)]
+// SeaORM Iden/ActiveEnum variants intentionally mirror DB enum/ident names
+// (e.g. `MintCondition` in enum `Condition`); renaming would risk behavior.
+#![allow(clippy::enum_variant_names)]
 pub use sea_orm_migration::prelude::*;
 
 mod m20220101_000001_users;

@@ -21,7 +21,7 @@ impl crate::views::offering::AddNegotiationProductResponse {
         Self {
             id: offering.id,
             offer_price: offering.offer_price,
-            status: Option::from(offering.status.clone()),
+            status: offering.status,
             firebase_id: offering.firebase_id.clone(),
             product_id: offering.product_id,
         }

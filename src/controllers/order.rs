@@ -52,7 +52,7 @@ pub struct OrderParams {
 }
 
 impl OrderParams {
-    fn update(&self, item: &mut ActiveModel) {
+    const fn update(&self, item: &mut ActiveModel) {
         item.delivery_address_id = Set(self.delivery_address_id);
         item.payment_method_id = Set(self.payment_method_id);
     }
@@ -139,17 +139,14 @@ pub async fn order_add(auth: auth::JWT, State(ctx): State<AppContext>, Json(para
                 "address": delivery_address.address,
             }).to_string())
         },
-        _ => Some("".to_string()),
+        _ => Some(String::new()),
     };
     let payment_method = payment_methods::Entity::find_by_id(params.payment_method_id)
         .one(&ctx.db)
         .await?
         .ok_or_else(|| Error::BadRequest("Payment method not found".into()))?;
 
-    let payment_gateway = match payment_method.payment_gateway {
-        Some(pg) => pg.to_value(),
-        None => "-".to_string(),
-    };
+    let payment_gateway = payment_method.payment_gateway.map_or_else(|| "-".to_string(), |pg| pg.to_value());
     let payment_method_detail = json!({
         "name": payment_method.clone().name,
         "expiry_time": payment_method.clone().expiry_time,
@@ -165,7 +162,6 @@ pub async fn order_add(auth: auth::JWT, State(ctx): State<AppContext>, Json(para
             "notes": m.notes,
         })
     });
-    let meetup_address_detail = meetup_address_detail.map(Into::into);
     let mut order = ActiveModel {
         buyer_id: Set(buyer.id),
         order_number: Set(generate_custom_string(10)),
@@ -187,7 +183,7 @@ pub async fn order_add(auth: auth::JWT, State(ctx): State<AppContext>, Json(para
         product_name: Set(Some(product.title.clone())),
         product_price: Set(product.price),
         product_sku: Set(Some(product.sku.clone())),
-        product_condition: Set(product.condition.as_ref().map(|c| c.to_value())),
+        product_condition: Set(product.condition.as_ref().map(sea_orm::ActiveEnum::to_value)),
         qty: Set(qty),
         seller_id: Set(product.seller_id),
         product_id: Set(params.product_id),
@@ -245,10 +241,7 @@ pub async fn order_update(
             item.delivery_address_id = Set(None);
         }
     }
-    let payment_gateway = match payment_method.payment_gateway {
-        Some(ref pg) => pg.to_value(),
-        None => "-".to_string(),
-    };
+    let payment_gateway = payment_method.payment_gateway.as_ref().map_or_else(|| "-".to_string(), sea_orm::ActiveEnum::to_value);
     item.payment_method_id = Set(payment_method.id);
     item.payment_method_detail = Set(Some(json!({
         "name": payment_method.name,

@@ -15,6 +15,7 @@ pub struct OrderItemResponse {
 }
 
 impl OrderItemResponse {
+    #[must_use]
     pub fn from_model(m: OrderItemsModel) -> Self {
         Self {
             id: m.id,

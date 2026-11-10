@@ -35,10 +35,10 @@ impl PaymentMethodParams {
     }
 
     fn update(&self, item: &mut ActiveModel) {
-        item.name = Set(self.name.to_owned());
+        item.name = Set(self.name);
         item.description = Set(self.description.clone());
         item.expiry_time = Set(self.expiry_time);
-        item.payment_gateway = Set(self.payment_gateway.clone());
+        item.payment_gateway = Set(self.payment_gateway);
         item.active = Set(self.active);
     }
 }
@@ -109,7 +109,7 @@ pub async fn payment_method_update(
     Json(params): Json<PaymentMethodParams>,
 ) -> Result<Response> {
     params.validate()?;
-    println!("{:?}", &auth.claims.pid);
+    println!("{:?}", auth.claims.pid);
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
     if !user.is_superuser {
         return bad_request("You are not allowed to update payment methods. Only superuser can do that.");

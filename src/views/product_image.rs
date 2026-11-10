@@ -14,7 +14,7 @@ impl ProductImageResponse {
     pub fn new(product_image: &Model) -> Self {
         Self {
             id: product_image.id,
-            image: product_image.image.to_string(),
+            image: product_image.image.clone(),
         }
     }
 }

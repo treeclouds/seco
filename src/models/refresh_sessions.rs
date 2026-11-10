@@ -39,7 +39,7 @@ impl Model {
         jti: String,
     ) -> ModelResult<Self> {
         let txn = db.begin().await?;
-        let token_hash = hash_token(&token);
+        let token_hash = hash_token(token);
         let refresh_session = ActiveModel {
             user_id: ActiveValue::set(user_id),
             jti: ActiveValue::set(jti),

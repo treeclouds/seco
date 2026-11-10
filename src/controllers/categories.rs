@@ -35,10 +35,11 @@ async fn load_item(ctx: &AppContext, id: i32) -> Result<Model> {
 }
 
 pub async fn load_parents(State(ctx): State<AppContext>, Query(params): Query<ListParams>) -> Result<Response> {
-    let mut parent_categories = Entity::find().all(&ctx.db).await?;
-    if params.exclude_id.is_some() {
-        parent_categories = Entity::find().filter(categories::Column::Id.ne(params.exclude_id)).all(&ctx.db).await?;
-    }
+    let parent_categories = if params.exclude_id.is_some() {
+        Entity::find().filter(categories::Column::Id.ne(params.exclude_id)).all(&ctx.db).await?
+    } else {
+        Entity::find().all(&ctx.db).await?
+    };
     let response: Vec<ParentCategoryResponse> = parent_categories
         .into_iter()
         .map(|c| ParentCategoryResponse {
@@ -87,9 +88,7 @@ pub async fn get_categories(State(ctx): State<AppContext>) -> Result<Response> {
 #[debug_handler]
 pub async fn category_add(auth: auth::JWT, State(ctx): State<AppContext>, Json(params): Json<CategoryPostParams>) -> Result<Response> {
     crate::controllers::base::require_superuser(&ctx, &auth).await?;
-    let mut item = ActiveModel {
-        ..Default::default()
-    };
+    let mut item = <ActiveModel as std::default::Default>::default();
     params.update(&mut item);
     let item = item.insert(&ctx.db).await?;
     format::json(CategoryResponse::new(&item))

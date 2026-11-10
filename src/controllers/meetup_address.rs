@@ -24,8 +24,8 @@ pub struct Params {
 
 impl Params {
     fn update(&self, item: &mut ActiveModel) {
-      item.date = Set(self.date.clone());
-      item.time = Set(self.time.clone());
+      item.date = Set(self.date);
+      item.time = Set(self.time);
       item.city = Set(self.city.clone());
       item.postal_code = Set(self.postal_code.clone());
       item.address = Set(self.address.clone());

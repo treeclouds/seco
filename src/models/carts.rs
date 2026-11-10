@@ -1,6 +1,6 @@
 use loco_rs::model::ModelResult;
 use sea_orm::entity::prelude::*;
-use sea_orm::{FromQueryResult, DbBackend, JsonValue, Statement, ActiveValue};
+use sea_orm::{FromQueryResult, DbBackend, JsonValue, Statement};
 use crate::views::cart::CartListResponse;
 pub use super::_entities::carts::{ActiveModel, Model, Entity};
 pub type Carts = Entity;
@@ -26,7 +26,7 @@ impl Model {
     pub async fn get_cart_by_user_id(db: &DatabaseConnection, user_id: &i32)  -> ModelResult<Vec<CartListResponse>> {
         let products: Vec<CartListResponse> = JsonValue::find_by_statement(Statement::from_sql_and_values(
             DbBackend::Postgres,
-            r#"
+            r"
             SELECT
                 c.id, p.id as product_id, p.title, p.category_id, p.description, p.price,
                 p.dimension_width, p.dimension_height, p.dimension_length, p.dimension_weight,
@@ -53,7 +53,7 @@ impl Model {
             LEFT JOIN materials m ON m.id = p.material_id
             WHERE c.user_id = $1
             GROUP BY c.id, p.id, s.pid, s.first_name, s.last_name, s.created_at, s.location
-        "#,
+        ",
             [(*user_id).into()],
         )).into_model::<CartListResponse>()
             .all(db)

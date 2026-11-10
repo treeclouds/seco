@@ -35,8 +35,8 @@ pub struct DoParams {
 }
 
 impl DoParams {
-    pub(crate) fn update(&self, offering: &mut ActiveModel) {
-        offering.status = Set(self.status.clone());
+    pub(crate) const fn update(&self, offering: &mut ActiveModel) {
+        offering.status = Set(self.status);
     }
 }
 
@@ -53,7 +53,8 @@ async fn load_offering(ctx: &AppContext, id: i32) -> Result<Model> {
 /// Who may act on (accept/decline/view) an offering:
 /// - offer made by a buyer  -> only the product's seller may accept/decline;
 /// - counter-offer made by the seller -> only a buyer who has an offer in the
-///   same negotiation (firebase_id) may accept/decline.
+///   same negotiation (`firebase_id`) may accept/decline.
+///
 /// The creator can never accept their own offer.
 async fn can_respond(ctx: &AppContext, actor: &users::Model, offering: &Model, product: &ProductModel) -> Result<bool> {
     if actor.id == offering.user_id {
@@ -160,7 +161,7 @@ pub async fn add_negotiation_product(auth: auth::JWT, State(ctx): State<AppConte
         product_condition: ActiveValue::Set(product.condition),
         product_price: ActiveValue::Set(product.price),
         offer_price: ActiveValue::Set(params.offer),
-        action_type: ActiveValue::Set(Option::from(params.action)),
+        action_type: ActiveValue::Set(params.action),
         firebase_id: ActiveValue::Set(Some(firebase_id)),
         status: ActiveValue::Set(Some(OfferingStatus::InProgress)),
         ..Default::default()
@@ -239,7 +240,7 @@ pub async fn get_negotiation(auth: auth::JWT, Path(firebase_id): Path<String>, S
     if !is_party(&ctx, &user, &offering).await? {
         return Err(Error::NotFound);
     }
-    return match offering.status {
+    match offering.status {
         Some(OfferingStatus::InProgress) => format::json(AddNegotiationProductResponse::new(&offering)),
         _ => format::json(())
     }

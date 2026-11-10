@@ -38,8 +38,8 @@ pub struct LocationParams {
 impl LocationParams {
     pub(crate) fn update(&self, item: &mut ActiveModel) {
         item.location = Set(Option::from(self.location.clone()));
-        item.latitude = Set(Option::from(self.latitude.clone()));
-        item.longitude = Set(Option::from(self.longitude.clone()));
+        item.latitude = Set(self.latitude.clone());
+        item.longitude = Set(self.longitude.clone());
     }
 }
 
@@ -66,11 +66,11 @@ impl ProfileParams {
     pub(crate) fn update(&self, item: &mut ActiveModel) {
         item.first_name = Set(self.first_name.clone());
         item.last_name = Set(self.last_name.clone());
-        item.phone = Set(Option::from(self.phone.clone()));
+        item.phone = Set(self.phone.clone());
         item.email = Set(self.email.clone());
         item.location = Set(Option::from(self.location.clone()));
-        item.latitude = Set(Option::from(self.latitude.clone()));
-        item.longitude = Set(Option::from(self.longitude.clone()));
+        item.latitude = Set(self.latitude.clone());
+        item.longitude = Set(self.longitude.clone());
     }
 }
 
@@ -96,7 +96,7 @@ pub struct CreateProductMultipart {
 
     /// File gambar produk (boleh lebih dari satu).
     ///
-    /// Secara OpenAPI ini adalah array of binary files.
+    /// Secara `OpenAPI` ini adalah array of binary files.
     #[schema(value_type = [String], format = Binary)]
     pub files: Option<Vec<String>>,
 }
@@ -178,7 +178,7 @@ pub async fn product_add(auth: auth::JWT, State(ctx): State<AppContext>, mut mul
             Error::BadRequest("could not read multipart".into())
         })?
     {
-        let field_name = field.name().map(|s| s.to_string());
+        let field_name = field.name().map(std::string::ToString::to_string);
 
         match field_name.as_deref() {
             // The text field contains the product JSON
@@ -536,7 +536,7 @@ pub async fn user_delete(auth: auth::JWT, Path(pid): Path<String>, State(ctx): S
         return unauthorized("forbidden");
     }
 
-    let u = users::Model::find_by_pid(&ctx.db, &pid.to_string()).await?;
+    let u = users::Model::find_by_pid(&ctx.db, &pid.clone()).await?;
     u.delete(&ctx.db).await?;
     format::empty()
 }

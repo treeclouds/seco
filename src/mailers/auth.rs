@@ -26,7 +26,7 @@ impl AuthMailer {
             ctx,
             &welcome,
             mailer::Args {
-                to: user.email.to_string(),
+                to: user.email.clone(),
                 locals: json!({
                   "first_name": user.first_name,
                   "last_name": user.last_name,
@@ -51,7 +51,7 @@ impl AuthMailer {
             ctx,
             &forgot,
             mailer::Args {
-                to: user.email.to_string(),
+                to: user.email.clone(),
                 locals: json!({
                   "first_name": user.first_name,
                   "last_name": user.last_name,
@@ -76,7 +76,7 @@ impl AuthMailer {
             ctx,
             &magic_link,
             mailer::Args {
-                to: user.email.to_string(),
+                to: user.email.clone(),
                 locals: json!({
                   "first_name": user.first_name,
                   "last_name": user.last_name,

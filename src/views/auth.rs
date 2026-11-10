@@ -16,7 +16,7 @@ pub struct LoginResponse {
 
 impl LoginResponse {
     #[must_use]
-    pub fn new(user: &users::Model, token: &String, refresh_token: &String) -> Self {
+    pub fn new(user: &users::Model, token: &str, refresh_token: &str) -> Self {
         Self {
             token: token.to_string(),
             refresh_token: refresh_token.to_string(),

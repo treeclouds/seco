@@ -40,8 +40,8 @@ impl ProductResponse {
         Self {
             id: product.id,
             category_id: product.category_id,
-            title: product.title.to_string(),
-            description: product.description.to_string(),
+            title: product.title.clone(),
+            description: product.description.clone(),
             price: product.price,
             dimension_width: product.dimension_width,
             dimension_height: product.dimension_height,
@@ -50,11 +50,11 @@ impl ProductResponse {
             brand_id: product.brand_id,
             material_id: product.material_id,
             stock: product.stock,
-            sku: product.sku.to_string(),
-            tags: product.tags.to_owned(),
-            condition: product.condition.to_owned(),
-            created_at: product.created_at.to_owned(),
-            status: product.status.to_owned(),
+            sku: product.sku.clone(),
+            tags: product.tags.clone(),
+            condition: product.condition,
+            created_at: product.created_at,
+            status: product.status,
         }
     }
 }
@@ -70,7 +70,7 @@ impl ProductImageResponse {
     pub fn new(product_image: &product_images::Model) -> Self {
         Self {
             id: product_image.id,
-            image: product_image.image.to_string(),
+            image: product_image.image.clone(),
         }
     }
 }
@@ -142,8 +142,8 @@ impl ProductDealResponse {
         Self {
             id: product.id,
             category_id: product.category_id,
-            title: product.title.to_string(),
-            description: product.description.to_string(),
+            title: product.title.clone(),
+            description: product.description.clone(),
             price: product.price,
             dimension_width: product.dimension_width,
             dimension_height: product.dimension_height,
@@ -152,13 +152,13 @@ impl ProductDealResponse {
             brand_id: product.brand_id,
             material_id: product.material_id,
             stock: product.stock,
-            sku: product.sku.to_string(),
-            tags: product.tags.to_owned(),
-            condition: product.condition.to_owned(),
-            created_at: product.created_at.to_owned(),
+            sku: product.sku.clone(),
+            tags: product.tags.clone(),
+            condition: product.condition.clone(),
+            created_at: product.created_at,
             images: product.images,
             seller: product.seller,
-            price_deal: Option::from(price_deal),
+            price_deal,
         }
     }
 }
