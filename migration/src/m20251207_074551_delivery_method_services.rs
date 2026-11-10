@@ -13,28 +13,26 @@ enum DeliveryMethodServices {
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, m: &SchemaManager) -> Result<(), DbErr> {
-        create_table(m, "delivery_method_services",
+        create_table(
+            m,
+            "delivery_method_services",
             &[
-            
-            ("id", ColType::PkAuto),
-            
-            ("name", ColType::StringUniq),
-            ("active", ColType::BooleanWithDefault(true)),
+                ("id", ColType::PkAuto),
+                ("name", ColType::StringUniq),
+                ("active", ColType::BooleanWithDefault(true)),
             ],
-            &[
-            ("delivery_method", ""),
-            ]
-        ).await?;
+            &[("delivery_method", "")],
+        )
+        .await?;
 
-        m
-            .create_index(
-                Index::create()
-                    .name("idx-delivery_method_services-name")
-                    .table(DeliveryMethodServices::Table)
-                    .col(DeliveryMethodServices::Name)
-                    .to_owned(),
-            )
-            .await?;
+        m.create_index(
+            Index::create()
+                .name("idx-delivery_method_services-name")
+                .table(DeliveryMethodServices::Table)
+                .col(DeliveryMethodServices::Name)
+                .to_owned(),
+        )
+        .await?;
 
         Ok(())
     }

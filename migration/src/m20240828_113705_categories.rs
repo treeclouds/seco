@@ -30,7 +30,4 @@ enum Categories {
     Id,
     Name,
     ParentId,
-    
 }
-
-

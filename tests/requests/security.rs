@@ -1,8 +1,8 @@
-use seco::app::App;
-use loco_rs::testing::prelude::*;
-use serial_test::serial;
-use serde_json::json;
 use super::prepare_data::*;
+use loco_rs::testing::prelude::*;
+use seco::app::App;
+use serde_json::json;
+use serial_test::serial;
 
 use sea_orm::{ActiveModelTrait, EntityTrait, Set};
 use seco::models::_entities::{products, sea_orm_active_enums::ProductStatus, users};
@@ -25,33 +25,72 @@ async fn offers_validated_and_only_seller_accepts() {
         let new = "/api/offering/negotiations/new";
 
         for amt in [-10, 0] {
-            let res = request.post(new).add_header(bk.clone(), bv.clone()).json(&offer(p.id, amt, "fb-1", "Offer")).await;
+            let res = request
+                .post(new)
+                .add_header(bk.clone(), bv.clone())
+                .json(&offer(p.id, amt, "fb-1", "Offer"))
+                .await;
             assert_eq!(res.status_code(), 400, "offer {amt}");
         }
-        let res = request.post(new).add_header(sk.clone(), sv.clone()).json(&offer(p.id, 50, "fb-own", "Offer")).await;
+        let res = request
+            .post(new)
+            .add_header(sk.clone(), sv.clone())
+            .json(&offer(p.id, 50, "fb-own", "Offer"))
+            .await;
         assert_eq!(res.status_code(), 400, "seller offering on own product");
 
-        let res = request.post(new).add_header(bk.clone(), bv.clone()).json(&offer(p.id, 80, "fb-1", "Offer")).await;
+        let res = request
+            .post(new)
+            .add_header(bk.clone(), bv.clone())
+            .json(&offer(p.id, 80, "fb-1", "Offer"))
+            .await;
         assert_eq!(res.status_code(), 200, "{}", res.text());
         let id = res.json::<serde_json::Value>()["id"].as_i64().unwrap();
 
-        let res = request.post(new).add_header(bk.clone(), bv.clone()).json(&offer(p.id, 70, "fb-1", "Offer")).await;
+        let res = request
+            .post(new)
+            .add_header(bk.clone(), bv.clone())
+            .json(&offer(p.id, 70, "fb-1", "Offer"))
+            .await;
         assert_eq!(res.status_code(), 409, "duplicate open firebase_id");
-        let res = request.post(new).add_header(ok.clone(), ov.clone()).json(&offer(p.id, 70, "fb-1", "Offer")).await;
+        let res = request
+            .post(new)
+            .add_header(ok.clone(), ov.clone())
+            .json(&offer(p.id, 70, "fb-1", "Offer"))
+            .await;
         assert_eq!(res.status_code(), 409, "hijack firebase_id");
 
         let do_url = format!("/api/offering/negotiations/{id}/do");
         let accept = json!({"status": "Accepted"});
-        let res = request.post(&do_url).add_header(bk.clone(), bv.clone()).json(&accept).await;
+        let res = request
+            .post(&do_url)
+            .add_header(bk.clone(), bv.clone())
+            .json(&accept)
+            .await;
         assert_eq!(res.status_code(), 403, "buyer accepts own offer");
-        let res = request.post(&do_url).add_header(ok.clone(), ov.clone()).json(&accept).await;
+        let res = request
+            .post(&do_url)
+            .add_header(ok.clone(), ov.clone())
+            .json(&accept)
+            .await;
         assert_eq!(res.status_code(), 403, "third party accepts");
-        let res = request.get("/api/offering/negotiations/fb-1").add_header(ok, ov).await;
+        let res = request
+            .get("/api/offering/negotiations/fb-1")
+            .add_header(ok, ov)
+            .await;
         assert_eq!(res.status_code(), 404, "third party reads negotiation");
 
-        let res = request.post(&do_url).add_header(sk.clone(), sv.clone()).json(&accept).await;
+        let res = request
+            .post(&do_url)
+            .add_header(sk.clone(), sv.clone())
+            .json(&accept)
+            .await;
         assert_eq!(res.status_code(), 200, "{}", res.text());
-        let res = request.post(&do_url).add_header(sk, sv).json(&json!({"status": "Declined"})).await;
+        let res = request
+            .post(&do_url)
+            .add_header(sk, sv)
+            .json(&json!({"status": "Declined"}))
+            .await;
         assert_eq!(res.status_code(), 400, "closed offer can't change");
     })
     .await;
@@ -93,22 +132,38 @@ async fn drafts_hidden_publicly_and_condition_filter_works() {
         am.status = Set(ProductStatus::Draft);
         am.update(&ctx.db).await.unwrap();
         let mut am: products::ActiveModel = live.clone().into();
-        am.condition = Set(Some(seco::models::_entities::sea_orm_active_enums::Condition::Good));
+        am.condition = Set(Some(
+            seco::models::_entities::sea_orm_active_enums::Condition::Good,
+        ));
         am.update(&ctx.db).await.unwrap();
 
         let res = request.get("/api/products").await;
         assert_eq!(res.status_code(), 200);
         assert!(res.text().contains("LiveProd"));
         assert!(!res.text().contains("DraftSecret"), "draft in public list");
-        assert_eq!(request.get(&format!("/api/product/{}", draft.id)).await.status_code(), 404);
+        assert_eq!(
+            request
+                .get(&format!("/api/product/{}", draft.id))
+                .await
+                .status_code(),
+            404
+        );
         let (k, v) = auth_header_for(&ctx, &seller);
-        let res = request.get(&format!("/api/product/{}", draft.id)).add_header(k, v).await;
+        let res = request
+            .get(&format!("/api/product/{}", draft.id))
+            .add_header(k, v)
+            .await;
         assert_eq!(res.status_code(), 200, "seller still sees own draft");
 
         let res = request.get("/api/products?condition=Good").await;
         assert_eq!(res.status_code(), 200, "{}", res.text());
         let list = res.json::<serde_json::Value>();
-        let titles: Vec<_> = list.as_array().unwrap().iter().map(|p| p["title"].as_str().unwrap().to_string()).collect();
+        let titles: Vec<_> = list
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|p| p["title"].as_str().unwrap().to_string())
+            .collect();
         assert_eq!(titles, vec!["LiveProd".to_string()]);
     })
     .await;

@@ -10,7 +10,7 @@ pub struct BaseResponse {
 
 impl BaseResponse {
     #[must_use]
-    pub fn new(status: &String, message: &String) -> Self {
+    pub fn new(status: &str, message: &str) -> Self {
         Self {
             status: status.to_string(),
             message: message.to_string(),
@@ -19,11 +19,13 @@ impl BaseResponse {
 }
 
 /// Serves the static login page (embedded at compile time).
+#[must_use]
 pub fn home() -> impl IntoResponse {
     Html(include_str!("../../frontend/login.html"))
 }
 
 /// Serves the static admin dashboard (embedded at compile time).
+#[must_use]
 pub fn dashboard() -> impl IntoResponse {
     Html(include_str!("../../frontend/dashboard.html"))
 }

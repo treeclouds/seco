@@ -1,9 +1,9 @@
-mod users;
-mod products;
-mod product_images;
 mod categories;
-mod wishlists;
 mod offerings;
+mod product_images;
+mod products;
+mod users;
+mod wishlists;
 // mod brands; // TODO: model test file never committed (PLAN.md T4.7)
 // mod materials; // TODO: model test file never committed (PLAN.md T4.7)
 // mod delivery_methods; // TODO: model test file never committed (PLAN.md T4.7)

@@ -20,21 +20,23 @@ pub struct Params {
     pub postal_code: String,
     pub address: String,
     pub notes: Option<String>,
-    }
+}
 
 impl Params {
     fn update(&self, item: &mut ActiveModel) {
-      item.date = Set(self.date.clone());
-      item.time = Set(self.time.clone());
-      item.city = Set(self.city.clone());
-      item.postal_code = Set(self.postal_code.clone());
-      item.address = Set(self.address.clone());
-      item.notes = Set(self.notes.clone());
-      }
+        item.date = Set(self.date);
+        item.time = Set(self.time);
+        item.city = Set(self.city.clone());
+        item.postal_code = Set(self.postal_code.clone());
+        item.address = Set(self.address.clone());
+        item.notes = Set(self.notes.clone());
+    }
 }
 
 async fn current_user(ctx: &AppContext, auth: &auth::JWT) -> Result<users::Model> {
-    users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await.map_err(Into::into)
+    users::Model::find_by_pid(&ctx.db, &auth.claims.pid)
+        .await
+        .map_err(Into::into)
 }
 
 /// Load a meetup address owned by `user` (404 if it belongs to someone else).
@@ -58,7 +60,11 @@ pub async fn list(auth: auth::JWT, State(ctx): State<AppContext>) -> Result<Resp
 }
 
 #[debug_handler]
-pub async fn add(auth: auth::JWT, State(ctx): State<AppContext>, Json(params): Json<Params>) -> Result<Response> {
+pub async fn add(
+    auth: auth::JWT,
+    State(ctx): State<AppContext>,
+    Json(params): Json<Params>,
+) -> Result<Response> {
     let user = current_user(&ctx, &auth).await?;
     let mut item = ActiveModel {
         user_id: Set(user.id),
@@ -85,14 +91,22 @@ pub async fn update(
 }
 
 #[debug_handler]
-pub async fn remove(auth: auth::JWT, Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
+pub async fn remove(
+    auth: auth::JWT,
+    Path(id): Path<i32>,
+    State(ctx): State<AppContext>,
+) -> Result<Response> {
     let user = current_user(&ctx, &auth).await?;
     load_item(&ctx, &user, id).await?.delete(&ctx.db).await?;
     format::empty()
 }
 
 #[debug_handler]
-pub async fn get_one(auth: auth::JWT, Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
+pub async fn get_one(
+    auth: auth::JWT,
+    Path(id): Path<i32>,
+    State(ctx): State<AppContext>,
+) -> Result<Response> {
     let user = current_user(&ctx, &auth).await?;
     format::json(load_item(&ctx, &user, id).await?)
 }

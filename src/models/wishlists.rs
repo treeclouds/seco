@@ -1,18 +1,21 @@
+use super::_entities::wishlists::{ActiveModel, Model};
+use crate::views::wishlist::WishlistListResponse;
 use loco_rs::model::ModelResult;
 use sea_orm::entity::prelude::*;
-use sea_orm::{FromQueryResult, DbBackend, JsonValue, Statement, ActiveValue};
-use crate::views::wishlist::WishlistListResponse;
-use super::_entities::wishlists::{ActiveModel, Model};
+use sea_orm::{ActiveValue, DbBackend, FromQueryResult, JsonValue, Statement};
 
 impl ActiveModelBehavior for ActiveModel {
     // extend activemodel below (keep comment for generators)
 }
 
 impl Model {
-    pub async fn get_wishlist_by_user_id(db: &DatabaseConnection, user_id: &i32)  -> ModelResult<Vec<WishlistListResponse>> {
+    pub async fn get_wishlist_by_user_id(
+        db: &DatabaseConnection,
+        user_id: &i32,
+    ) -> ModelResult<Vec<WishlistListResponse>> {
         let products: Vec<WishlistListResponse> = JsonValue::find_by_statement(Statement::from_sql_and_values(
             DbBackend::Postgres,
-            r#"
+            r"
             SELECT
                 w.id, p.id as product_id, p.title, p.category_id, p.description, p.price,
                 p.dimension_width, p.dimension_height, p.dimension_length, p.dimension_weight,
@@ -38,7 +41,7 @@ impl Model {
             LEFT JOIN materials m ON m.id = p.material_id
             WHERE w.user_id = $1 AND w.is_deleted = false
             GROUP BY w.id, p.id, s.pid, s.first_name, s.last_name, s.created_at, s.location
-        "#,
+        ",
             [(*user_id).into()],
         )).into_model::<WishlistListResponse>()
             .all(db)
@@ -48,18 +51,12 @@ impl Model {
 }
 
 impl ActiveModel {
-    pub async fn set_wishlist_deleted(
-        mut self,
-        db: &DatabaseConnection,
-    ) -> ModelResult<Model> {
+    pub async fn set_wishlist_deleted(mut self, db: &DatabaseConnection) -> ModelResult<Model> {
         self.is_deleted = ActiveValue::set(true);
         Ok(self.update(db).await?)
     }
 
-    pub async fn set_wishlist_un_deleted(
-        mut self,
-        db: &DatabaseConnection,
-    ) -> ModelResult<Model> {
+    pub async fn set_wishlist_un_deleted(mut self, db: &DatabaseConnection) -> ModelResult<Model> {
         self.is_deleted = ActiveValue::set(false);
         Ok(self.update(db).await?)
     }

@@ -1,15 +1,14 @@
 use std::path::Path;
 
 use async_trait::async_trait;
-use axum::Router as AxumRouter;
 use axum::routing::get_service;
-use tower_http::services::ServeDir;
+use axum::Router as AxumRouter;
 use loco_rs::{
     app::{AppContext, Hooks, Initializer},
     bgworker::{BackgroundWorker, Queue},
     boot::{create_app, BootResult, StartMode},
-    config::{Config, InMemCacheConfig},
     cache,
+    config::{Config, InMemCacheConfig},
     controller::AppRoutes,
     db::{self, truncate_table},
     environment::Environment,
@@ -18,46 +17,47 @@ use loco_rs::{
     Result,
 };
 use migration::Migrator;
+use tower_http::services::ServeDir;
 
 #[allow(unused_imports)]
 use crate::{
     controllers::{
         self,
-        auth::{self, VerifyParams, ResetParams, ForgotParams, MagicLinkParams},
+        auth::{self, ForgotParams, MagicLinkParams, ResetParams, VerifyParams},
         brands::{self},
-        materials::{self},
-        products::{self as ct_products, ProductPostParams, UnauthorizedResponse},
+        carts::{self},
         categories::{self as ct_categories, CategoryPostParams},
+        delivery_address::{self},
+        delivery_method::{self},
+        materials::{self},
+        offering::{self, AddNegotiationProductParams},
+        order::{self},
+        payment_methods::{self},
+        products::{self as ct_products, ProductPostParams, UnauthorizedResponse},
+        seller::{self},
+        upload::{self},
         user::{self, LocationParams},
         wishlists::{self as ct_wishlists, WishListPostParams},
-        upload::{self},
-        offering::{self, AddNegotiationProductParams},
-        delivery_address::{self},
-        payment_methods::{self},
-        delivery_method::{self},
-        order::{self},
-        seller::{self},
-        carts::{self},
     },
     models::{
+        _entities::{categories, offerings, product_images, products, users, wishlists},
         users::{LoginParams, RegisterParams},
-        _entities::{product_images, products, users, categories, wishlists, offerings},
     },
     tasks,
     views::{
-        category::CategoryResponse,
         auth::LoginResponse,
+        base::BaseResponse,
+        category::CategoryResponse,
+        offering::AddNegotiationProductResponse,
         product::{ProductResponse, ProductsResponse as ProductListResponse},
         user::CurrentResponse,
-        base::BaseResponse,
         wishlist::WishlistListResponse,
-        offering::AddNegotiationProductResponse,
     },
     workers::downloader::DownloadWorker,
 };
 
 use utoipa::{
-    openapi::security::{SecurityScheme, HttpBuilder, HttpAuthScheme},
+    openapi::security::{HttpAuthScheme, HttpBuilder, SecurityScheme},
     Modify, OpenApi,
 };
 use utoipa_swagger_ui::SwaggerUi;
@@ -153,8 +153,8 @@ impl Modify for SecurityAddon {
                         .scheme(HttpAuthScheme::Bearer)
                         .bearer_format("JWT")
                         .build(),
-                )
-            )
+                ),
+            );
         }
     }
 }
@@ -242,10 +242,23 @@ impl Hooks for App {
     }
 
     async fn seed(ctx: &AppContext, base: &Path) -> Result<()> {
-        db::seed::<users::ActiveModel>(&ctx.db, &base.join("users.yaml").display().to_string()).await?;
-        db::seed::<products::ActiveModel>(&ctx.db, &base.join("products.yaml").display().to_string()).await?;
-        db::seed::<product_images::ActiveModel>(&ctx.db, &base.join("product_images.yaml").display().to_string()).await?;
-        db::seed::<categories::ActiveModel>(&ctx.db, &base.join("categories.yaml").display().to_string()).await?;
+        db::seed::<users::ActiveModel>(&ctx.db, &base.join("users.yaml").display().to_string())
+            .await?;
+        db::seed::<products::ActiveModel>(
+            &ctx.db,
+            &base.join("products.yaml").display().to_string(),
+        )
+        .await?;
+        db::seed::<product_images::ActiveModel>(
+            &ctx.db,
+            &base.join("product_images.yaml").display().to_string(),
+        )
+        .await?;
+        db::seed::<categories::ActiveModel>(
+            &ctx.db,
+            &base.join("categories.yaml").display().to_string(),
+        )
+        .await?;
         Ok(())
     }
 

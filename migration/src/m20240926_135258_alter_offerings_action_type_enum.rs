@@ -49,9 +49,8 @@ impl MigrationTrait for Migration {
             .await;
         */
         let db = manager.get_connection();
-        db.execute_unprepared(
-            "ALTER TYPE action_type ADD VALUE 'Offer'"
-        ).await?;
+        db.execute_unprepared("ALTER TYPE action_type ADD VALUE 'Offer'")
+            .await?;
 
         Ok(())
     }
@@ -60,4 +59,3 @@ impl MigrationTrait for Migration {
         Ok(())
     }
 }
-

@@ -2,19 +2,21 @@
 #![allow(clippy::unnecessary_struct_initialization)]
 #![allow(clippy::unused_async)]
 
-use loco_rs::prelude::*;
+use crate::controllers::products::UnauthorizedResponse;
+use crate::models::_entities::{
+    products::{Entity as ProductEntity, Model as ProductModel},
+    users, wishlists,
+    wishlists::{ActiveModel, Entity, Model},
+};
+use crate::views::base::BaseResponse;
+use crate::views::wishlist::WishlistListResponse;
 use axum::debug_handler;
 use axum::http::StatusCode;
 use loco_rs::controller::ErrorDetail;
+use loco_rs::prelude::*;
 use sea_orm::Condition;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-use crate::models::_entities::{products::{Entity as ProductEntity, Model as ProductModel}, users, wishlists, wishlists::{Entity, ActiveModel, Model}};
-use crate::views::{
-    base::BaseResponse,
-};
-use crate::controllers::products::UnauthorizedResponse;
-use crate::views::wishlist::WishlistListResponse;
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
 pub struct WishListPostParams {
@@ -23,7 +25,7 @@ pub struct WishListPostParams {
 }
 
 impl WishListPostParams {
-    pub(crate) fn update(&self, wishlist: &mut ActiveModel) {
+    pub(crate) const fn update(&self, wishlist: &mut ActiveModel) {
         wishlist.product_id = Set(self.product_id);
     }
 }
@@ -31,7 +33,12 @@ impl WishListPostParams {
 async fn load_product(ctx: &AppContext, id: i32) -> Result<ProductModel> {
     let msg_error = String::from("Product not found!");
     let product = ProductEntity::find_by_id(id).one(&ctx.db).await?;
-    product.ok_or_else(|| Error::CustomError(StatusCode::NOT_FOUND, ErrorDetail::new("not_found", &*msg_error)))
+    product.ok_or_else(|| {
+        Error::CustomError(
+            StatusCode::NOT_FOUND,
+            ErrorDetail::new("not_found", &*msg_error),
+        )
+    })
 }
 
 async fn load_wishlist(ctx: &AppContext, user_id: i32, product_id: i32) -> Result<Model> {
@@ -40,11 +47,16 @@ async fn load_wishlist(ctx: &AppContext, user_id: i32, product_id: i32) -> Resul
         .filter(
             Condition::all()
                 .add(wishlists::Column::UserId.eq(user_id))
-                .add(wishlists::Column::ProductId.eq(product_id))
+                .add(wishlists::Column::ProductId.eq(product_id)),
         )
         .one(&ctx.db)
         .await?;
-    wishlist.ok_or_else(|| Error::CustomError(StatusCode::NOT_FOUND, ErrorDetail::new("not_found", &*msg_error)))
+    wishlist.ok_or_else(|| {
+        Error::CustomError(
+            StatusCode::NOT_FOUND,
+            ErrorDetail::new("not_found", &*msg_error),
+        )
+    })
 }
 
 #[utoipa::path(
@@ -61,7 +73,10 @@ async fn load_wishlist(ctx: &AppContext, user_id: i32, product_id: i32) -> Resul
     )
 )]
 #[debug_handler]
-pub async fn user_wishlist_list(auth: auth::JWT, State(ctx): State<AppContext>) -> Result<Response> {
+pub async fn user_wishlist_list(
+    auth: auth::JWT,
+    State(ctx): State<AppContext>,
+) -> Result<Response> {
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
     let wishlists = Model::get_wishlist_by_user_id(&ctx.db, &user.id).await?;
     format::json(wishlists)
@@ -83,18 +98,25 @@ pub async fn user_wishlist_list(auth: auth::JWT, State(ctx): State<AppContext>) 
     )
 )]
 #[debug_handler]
-pub async fn user_wishlist_new(auth: auth::JWT, State(ctx): State<AppContext>, Json(params): Json<WishListPostParams>) -> Result<Response> {
+pub async fn user_wishlist_new(
+    auth: auth::JWT,
+    State(ctx): State<AppContext>,
+    Json(params): Json<WishListPostParams>,
+) -> Result<Response> {
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
     let product = load_product(&ctx, params.product_id).await?;
     if user.id == product.seller_id {
-
-        let msg_error = String::from("You are not allowed to add your own products to the wishlist.");
+        let msg_error =
+            String::from("You are not allowed to add your own products to the wishlist.");
         tracing::info!(
             user_pid = user.pid.to_string(),
-            product_name = product.title.to_string(),
+            product_name = product.title.clone(),
             msg_error
         );
-        return Err(Error::CustomError(StatusCode::BAD_REQUEST, ErrorDetail::new("bad_request", &*msg_error)));
+        return Err(Error::CustomError(
+            StatusCode::BAD_REQUEST,
+            ErrorDetail::new("bad_request", &*msg_error),
+        ));
     }
 
     // Check existing via load_wishlist; if exists -> set is_deleted = false
@@ -106,10 +128,7 @@ pub async fn user_wishlist_new(auth: auth::JWT, State(ctx): State<AppContext>, J
                 .await?;
 
             let message = "Successfully added into wishlist";
-            return format::json(BaseResponse::new(
-                &"success".to_string(),
-                &message.to_string(),
-            ));
+            return format::json(BaseResponse::new("success", message));
         }
         Err(Error::CustomError(status, _)) if status == StatusCode::NOT_FOUND => {
             // not found => continue to create
@@ -124,7 +143,7 @@ pub async fn user_wishlist_new(auth: auth::JWT, State(ctx): State<AppContext>, J
     params.update(&mut wishlist);
     wishlist.insert(&ctx.db).await?;
     let message = "Successfully added into wishlist";
-    format::json(BaseResponse::new(&"success".to_string(), &message.to_string()))
+    format::json(BaseResponse::new("success", message))
 }
 
 #[utoipa::path(
@@ -144,15 +163,22 @@ pub async fn user_wishlist_new(auth: auth::JWT, State(ctx): State<AppContext>, J
     )
 )]
 #[debug_handler]
-pub async fn user_wishlist_delete(auth: auth::JWT, Path(product_id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
+pub async fn user_wishlist_delete(
+    auth: auth::JWT,
+    Path(product_id): Path<i32>,
+    State(ctx): State<AppContext>,
+) -> Result<Response> {
     // Start checking user validation
     let user = users::Model::find_by_pid(&ctx.db, &auth.claims.pid).await?;
     // End checking user validation
 
     let wishlist = load_wishlist(&ctx, user.id, product_id).await?;
-    wishlist.into_active_model().set_wishlist_deleted(&ctx.db).await?;
+    wishlist
+        .into_active_model()
+        .set_wishlist_deleted(&ctx.db)
+        .await?;
     let message = "Wishlist delete successfully";
-    format::json(BaseResponse::new(&"success".to_string(), &message.to_string()))
+    format::json(BaseResponse::new("success", message))
 }
 
 pub fn routes() -> Routes {

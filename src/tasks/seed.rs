@@ -1,4 +1,3 @@
-
 //! This task implements data seeding functionality for initializing new
 //! development/demo environments.
 //!
@@ -10,7 +9,9 @@
 //! ```
 //!
 //! To override existing data and reset the data structure, use the following
-//! command with the `refresh:true` argument: ```sh
+//! command with the `refresh:true` argument:
+//!
+//! ```sh
 //! cargo run task seed_data refresh:true
 //! ```
 use loco_rs::prelude::*;

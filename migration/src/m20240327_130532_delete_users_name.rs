@@ -1,4 +1,4 @@
-use sea_orm_migration::{prelude::*};
+use sea_orm_migration::prelude::*;
 
 #[derive(DeriveMigrationName)]
 pub struct Migration;
@@ -68,4 +68,3 @@ impl MigrationTrait for Migration {
         Ok(())
     }
 }
-

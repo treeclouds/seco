@@ -1,13 +1,16 @@
 use eyre::Context;
 #[allow(unused_imports)]
 use loco_rs::{cli::playground, prelude::*};
-use sea_orm::{FromQueryResult, JoinType, RelationTrait, QuerySelect, Statement, DatabaseBackend, QueryResult, JsonValue, DbBackend};
 use sea_orm::prelude::Decimal;
-use uuid::Uuid;
+use sea_orm::{
+    DatabaseBackend, DbBackend, FromQueryResult, JoinType, JsonValue, QueryResult, QuerySelect,
+    RelationTrait, Statement,
+};
 use seco::app::App;
 use seco::models::_entities::sea_orm_active_enums::Condition;
 use seco::models::products;
 use seco::views::product::ProductsResponse;
+use uuid::Uuid;
 
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
@@ -134,14 +137,16 @@ async fn main() -> eyre::Result<()> {
             INNER JOIN users u ON u.id = p.seller_id
             INNER JOIN categories c ON c.id = p.category_id
         "#;
-    let group_by: String = "GROUP BY p.id, u.pid, u.first_name, u.last_name, u.created_at, u.location".to_owned();
+    let group_by: String =
+        "GROUP BY p.id, u.pid, u.first_name, u.last_name, u.created_at, u.location".to_owned();
     let combine_query = format!("{} {} {}", query, extra_where_clause, group_by);
     println!("===== query {}", combine_query);
-    let products: Vec<ProductsResponse> = JsonValue::find_by_statement(Statement::from_sql_and_values(
-        DbBackend::Postgres, combine_query, [],
-    )).into_model::<ProductsResponse>()
-        .all(&ctx.db)
-        .await?;
+    let products: Vec<ProductsResponse> = JsonValue::find_by_statement(
+        Statement::from_sql_and_values(DbBackend::Postgres, combine_query, []),
+    )
+    .into_model::<ProductsResponse>()
+    .all(&ctx.db)
+    .await?;
     println!("{:?}", products);
 
     // let query_res_vec: Vec<QueryResult> = ctx.db.query_all(

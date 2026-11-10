@@ -1,6 +1,6 @@
+use crate::models::_entities::brands;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-use crate::models::_entities::brands;
 
 #[derive(Debug, Deserialize, Serialize, ToSchema)]
 pub struct BrandResponse {
@@ -15,8 +15,8 @@ impl BrandResponse {
     pub fn new(brand: &brands::Model) -> Self {
         Self {
             id: brand.id,
-            name: brand.name.to_string(),
-            code: Option::from(brand.code.clone()),
+            name: brand.name.clone(),
+            code: brand.code.clone(),
             is_active: brand.is_active,
         }
     }

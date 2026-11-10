@@ -1,9 +1,10 @@
+pub use super::_entities::products::{self, ActiveModel, Entity, Model};
+use crate::models::_entities::sea_orm_active_enums::Condition as ProductConditionEnum;
+use crate::views::product::ProductsResponse;
 use loco_rs::model::ModelResult;
 use sea_orm::entity::prelude::*;
-use sea_orm::{FromQueryResult, JsonValue, Statement, DbBackend, ActiveValue};
-use crate::models::_entities::sea_orm_active_enums::{Condition as ProductConditionEnum};
-use crate::views::product::ProductsResponse;
-pub use super::_entities::products::{self, ActiveModel, Entity, Model};
+use sea_orm::{ActiveValue, DbBackend, FromQueryResult, JsonValue, Statement};
+use std::fmt::Write as _;
 
 #[async_trait::async_trait]
 impl ActiveModelBehavior for ActiveModel {
@@ -11,14 +12,18 @@ impl ActiveModelBehavior for ActiveModel {
 }
 
 impl Model {
-
+    // The raw-SQL branches are huge; rewriting them as `map_or_else` closures
+    // would be a large, error-prone refactor with no runtime benefit.
+    #[allow(clippy::option_if_let_else)]
     pub async fn get_product_by_id(
         db: &DatabaseConnection,
         user_id: Option<&i32>,
-        product_id: &i32
+        product_id: &i32,
     ) -> ModelResult<Option<ProductsResponse>> {
-        let (query, _group_by, values): (String, String, Vec<Value>) = if let Some(user_id) = user_id {
-            let q = r#"
+        let (query, _group_by, values): (String, String, Vec<Value>) = if let Some(user_id) =
+            user_id
+        {
+            let q = r"
                 SELECT p.id, p.title, p.category_id, p.description, p.price, p.dimension_width,
                     p.dimension_height, p.dimension_length, p.dimension_weight, p.brand_id, p.material_id,
                     p.stock, p.sku, p.tags::jsonb, p.condition::text, p.created_at,
@@ -47,12 +52,14 @@ impl Model {
                    AND w.user_id = $1
                    AND w.is_deleted = false
                 WHERE p.id = $2 AND (p.status <> 'Draft' OR p.seller_id = $1)
-            "#.to_string();
+            ".to_string();
 
-            let gb = "GROUP BY p.id, u.pid, u.first_name, u.last_name, u.created_at, u.location, w.id".to_owned();
+            let gb =
+                "GROUP BY p.id, u.pid, u.first_name, u.last_name, u.created_at, u.location, w.id"
+                    .to_owned();
             (q, gb, vec![(*user_id).into(), (*product_id).into()])
         } else {
-            let q = r#"
+            let q = r"
                 SELECT p.id, p.title, p.category_id, p.description, p.price, p.dimension_width,
                     p.dimension_height, p.dimension_length, p.dimension_weight, p.brand_id, p.material_id,
                     p.stock, p.sku, p.tags::jsonb, p.condition::text, p.created_at,
@@ -77,35 +84,40 @@ impl Model {
                 LEFT JOIN brands b ON b.id = p.brand_id
                 LEFT JOIN materials m ON m.id = p.material_id
                 WHERE p.id = $1 AND p.status <> 'Draft'
-            "#.to_string();
+            ".to_string();
 
-            let gb = "GROUP BY p.id, u.pid, u.first_name, u.last_name, u.created_at, u.location".to_owned();
+            let gb = "GROUP BY p.id, u.pid, u.first_name, u.last_name, u.created_at, u.location"
+                .to_owned();
             (q, gb, vec![(*product_id).into()])
         };
 
-        let product: Option<ProductsResponse> = JsonValue::find_by_statement(Statement::from_sql_and_values(
-            DbBackend::Postgres,
-            query,
-            values,
-        ))
-            .into_model::<ProductsResponse>()
-            .one(db)
-            .await?;
+        let product: Option<ProductsResponse> = JsonValue::find_by_statement(
+            Statement::from_sql_and_values(DbBackend::Postgres, query, values),
+        )
+        .into_model::<ProductsResponse>()
+        .one(db)
+        .await?;
 
         Ok(product)
     }
 
+    // The raw-SQL branches are huge; rewriting them as `map_or_else` closures
+    // would be a large, error-prone refactor with no runtime benefit.
+    #[allow(clippy::option_if_let_else)]
     pub async fn get_all_products(
         db: &DatabaseConnection,
         user_id: Option<&i32>,
-        title: &Option<&String>,
-        condition: &Option<&ProductConditionEnum>,
-        location: &Option<&String>,
-        brand: &Option<&String>,
-        category: &Option<&String>,
+        title: Option<&String>,
+        condition: Option<&ProductConditionEnum>,
+        location: Option<&String>,
+        brand: Option<&String>,
+        category: Option<&String>,
     ) -> ModelResult<Vec<ProductsResponse>> {
-        let (query, group_by, values): (String, String, Vec<sea_orm::Value>) = if let Some(user_id) = user_id {
-            let q = r#"
+        let (query, group_by, values): (String, String, Vec<sea_orm::Value>) = if let Some(
+            user_id,
+        ) = user_id
+        {
+            let q = r"
                 SELECT p.id, p.title, p.category_id, p.description, p.price, p.dimension_width,
                     p.dimension_height, p.dimension_length, p.dimension_weight, p.brand_id, p.material_id,
                     p.stock, p.sku, p.tags::jsonb, p.condition::text, p.created_at,
@@ -133,12 +145,14 @@ impl Model {
                     ON w.product_id = p.id
                    AND w.user_id = $1
                    AND w.is_deleted = false
-            "#.to_string();
+            ".to_string();
 
-            let gb = "GROUP BY p.id, u.pid, u.first_name, u.last_name, u.created_at, u.location, w.id".to_owned();
+            let gb =
+                "GROUP BY p.id, u.pid, u.first_name, u.last_name, u.created_at, u.location, w.id"
+                    .to_owned();
             (q, gb, vec![(*user_id).into()])
         } else {
-            let q = r#"
+            let q = r"
                 SELECT p.id, p.title, p.category_id, p.description, p.price, p.dimension_width,
                     p.dimension_height, p.dimension_length, p.dimension_weight, p.brand_id, p.material_id,
                     p.stock, p.sku, p.tags::jsonb, p.condition::text, p.created_at,
@@ -162,9 +176,10 @@ impl Model {
                 INNER JOIN categories c ON c.id = p.category_id
                 LEFT JOIN brands b ON b.id = p.brand_id
                 LEFT JOIN materials m ON m.id = p.material_id
-            "#.to_string();
+            ".to_string();
 
-            let gb = "GROUP BY p.id, u.pid, u.first_name, u.last_name, u.created_at, u.location".to_owned();
+            let gb = "GROUP BY p.id, u.pid, u.first_name, u.last_name, u.created_at, u.location"
+                .to_owned();
             (q, gb, vec![])
         };
 
@@ -172,49 +187,57 @@ impl Model {
         // Placeholder counter starts past any already-bound params (e.g. user_id = $1).
         let mut next_param: usize = values.len() + 1;
 
-        let mut extra_where_clause: String = "WHERE p.seller_id IS NOT NULL AND p.status <> 'Draft'".to_owned();
+        let mut extra_where_clause: String =
+            "WHERE p.seller_id IS NOT NULL AND p.status <> 'Draft'".to_owned();
 
         if let Some(title) = title {
-            extra_where_clause += &format!(" AND p.title ILIKE ${next_param}");
-            values.push(format!("%{}%", title).into());
+            let _ = write!(extra_where_clause, " AND p.title ILIKE ${next_param}");
+            values.push(format!("%{title}%").into());
             next_param += 1;
         }
 
         if let Some(condition) = condition {
-            extra_where_clause += &format!(" AND p.condition::text = ${next_param}");
-            values.push(sea_orm::ActiveEnum::to_value(*condition).into());
+            let _ = write!(extra_where_clause, " AND p.condition::text = ${next_param}");
+            values.push(sea_orm::ActiveEnum::to_value(condition).into());
             next_param += 1;
         }
 
         if let Some(location) = location {
-            extra_where_clause += &format!(" AND LOWER(u.location) = LOWER(${next_param})");
-            values.push(location.to_string().into());
+            let _ = write!(
+                extra_where_clause,
+                " AND LOWER(u.location) = LOWER(${next_param})"
+            );
+            values.push((*location).clone().into());
             next_param += 1;
         }
 
         if let Some(brand) = brand {
-            extra_where_clause += &format!(" AND LOWER(b.name) = LOWER(${next_param})");
-            values.push(brand.to_string().into());
+            let _ = write!(
+                extra_where_clause,
+                " AND LOWER(b.name) = LOWER(${next_param})"
+            );
+            values.push((*brand).clone().into());
             next_param += 1;
         }
 
         if let Some(category) = category {
-            extra_where_clause += &format!(" AND LOWER(c.name) = LOWER(${next_param})");
-            values.push(category.to_string().into());
+            let _ = write!(
+                extra_where_clause,
+                " AND LOWER(c.name) = LOWER(${next_param})"
+            );
+            values.push((*category).clone().into());
         }
 
-        let combine_query = format!("{} {} {}", query, extra_where_clause, group_by);
+        let combine_query = format!("{query} {extra_where_clause} {group_by}");
 
         tracing::debug!(query = %combine_query, "get_all_products combined query");
 
-        let products: Vec<ProductsResponse> = JsonValue::find_by_statement(Statement::from_sql_and_values(
-            DbBackend::Postgres,
-            combine_query,
-            values,
-        ))
-            .into_model::<ProductsResponse>()
-            .all(db)
-            .await?;
+        let products: Vec<ProductsResponse> = JsonValue::find_by_statement(
+            Statement::from_sql_and_values(DbBackend::Postgres, combine_query, values),
+        )
+        .into_model::<ProductsResponse>()
+        .all(db)
+        .await?;
 
         Ok(products)
     }
@@ -222,12 +245,12 @@ impl Model {
     pub async fn get_product_by_id_and_user_id(
         db: &DatabaseConnection,
         product_id: &i32,
-        user_id: &i32
+        user_id: &i32,
     ) -> Result<ProductsResponse, loco_rs::Error> {
         let product: Option<ProductsResponse> = products::Entity::find()
             .from_raw_sql(Statement::from_sql_and_values(
                 DbBackend::Postgres,
-                r#"
+                r"
             SELECT p.id, p.title, p.category_id, p.description, p.price, p.dimension_width,
                 p.dimension_height, p.dimension_length, p.dimension_weight, p.brand_id, p.material_id,
                 p.stock, p.sku, p.tags::jsonb, p.condition::text, p.created_at,
@@ -250,7 +273,7 @@ impl Model {
             INNER JOIN users u ON u.id = p.seller_id
             WHERE p.id = $1 AND u.id = $2
             GROUP BY p.id, u.pid, u.first_name, u.last_name, u.created_at, u.location
-            "#,
+            ",
                 [(*product_id).into(), (*user_id).into()],
             ))
             .into_model::<ProductsResponse>()
@@ -261,11 +284,11 @@ impl Model {
 
     pub async fn get_all_products_by_user_id(
         db: &DatabaseConnection,
-        user_id: &i32
+        user_id: &i32,
     ) -> ModelResult<Vec<ProductsResponse>> {
         let products: Vec<ProductsResponse> = JsonValue::find_by_statement(Statement::from_sql_and_values(
             DbBackend::Postgres,
-            r#"
+            r"
             SELECT p.id, p.title, p.category_id, p.description, p.price, p.dimension_width,
                 p.dimension_height, p.dimension_length, p.dimension_weight, p.brand_id, p.material_id,
                 p.stock, p.sku, p.tags::jsonb, p.condition::text, p.created_at,
@@ -288,7 +311,7 @@ impl Model {
             INNER JOIN users u ON u.id = p.seller_id
             WHERE u.id = $1
             GROUP BY p.id, u.pid, u.first_name, u.last_name, u.created_at, u.location
-        "#,
+        ",
             [(*user_id).into()],
         )).into_model::<ProductsResponse>()
             .all(db)
@@ -298,11 +321,10 @@ impl Model {
 }
 
 impl ActiveModel {
-
     pub async fn set_decrease_stock(
         mut self,
         db: &DatabaseConnection,
-        qty_decrease: i32
+        qty_decrease: i32,
     ) -> ModelResult<Model> {
         self.stock = ActiveValue::set(self.stock.unwrap() - qty_decrease);
         Ok(self.update(db).await?)
@@ -311,7 +333,7 @@ impl ActiveModel {
     pub async fn set_increase_stock(
         mut self,
         db: &DatabaseConnection,
-        qty_increase: i32
+        qty_increase: i32,
     ) -> ModelResult<Model> {
         self.stock = ActiveValue::set(self.stock.unwrap() + qty_increase);
         Ok(self.update(db).await?)

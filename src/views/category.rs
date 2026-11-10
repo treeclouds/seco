@@ -1,7 +1,7 @@
-use serde::{Deserialize, Serialize};
-use sea_orm::{FromQueryResult, JsonValue};
-use utoipa::ToSchema;
 use crate::models::_entities::categories;
+use sea_orm::{FromQueryResult, JsonValue};
+use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 
 #[derive(Debug, Deserialize, Serialize, ToSchema)]
 pub struct CategoryResponse {
@@ -37,8 +37,8 @@ impl CategoryResponse {
     pub fn new(category: &categories::Model) -> Self {
         Self {
             id: category.id,
-            name: category.name.to_string(),
-            parent_id: Option::from(category.parent_id),
+            name: category.name.clone(),
+            parent_id: category.parent_id,
         }
     }
 }

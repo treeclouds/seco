@@ -12,7 +12,7 @@ impl MigrationTrait for Migration {
                 .modify_column(ColumnDef::new(Orders::DeliveryAddressId).integer().null())
                 .to_owned(),
         )
-            .await
+        .await
     }
 
     async fn down(&self, _m: &SchemaManager) -> Result<(), DbErr> {
@@ -25,4 +25,3 @@ enum Orders {
     Table,
     DeliveryAddressId,
 }
-

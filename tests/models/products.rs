@@ -1,14 +1,14 @@
 use insta::assert_debug_snapshot;
+use loco_rs::testing::prelude::*;
+use sea_orm::prelude::Decimal;
+use sea_orm::{ActiveModelTrait, ActiveValue};
+use seco::models::users;
 use seco::{
     app::App,
-    models::_entities::categories,
+    models::_entities::{brands, categories, materials},
     models::products::{self, Model},
 };
-use loco_rs::testing::prelude::*;
-use sea_orm::{ActiveModelTrait, ActiveValue};
 use serial_test::serial;
-use sea_orm::prelude::Decimal;
-use seco::models::users;
 
 macro_rules! configure_insta {
     ($($expr:expr),*) => {
@@ -46,6 +46,24 @@ async fn test_can_validate_product_model() {
     .await
     .expect("failed to insert category");
 
+    let brand = brands::ActiveModel {
+        name: ActiveValue::set("Test brand".to_string()),
+        is_active: ActiveValue::set(true),
+        ..Default::default()
+    }
+    .insert(&boot.app_context.db)
+    .await
+    .expect("failed to insert brand");
+
+    let material = materials::ActiveModel {
+        name: ActiveValue::set("Test material".to_string()),
+        is_active: ActiveValue::set(true),
+        ..Default::default()
+    }
+    .insert(&boot.app_context.db)
+    .await
+    .expect("failed to insert material");
+
     let res = products::ActiveModel {
         seller_id: ActiveValue::set(user.id),
         category_id: ActiveValue::set(Some(category.id)),
@@ -56,8 +74,8 @@ async fn test_can_validate_product_model() {
         dimension_height: ActiveValue::set(5f32),
         dimension_length: ActiveValue::set(3f32),
         dimension_weight: ActiveValue::set(2f32),
-        brand_id: ActiveValue::set(Option::from(1)),
-        material_id: ActiveValue::set(Option::from(1)),
+        brand_id: ActiveValue::set(Some(brand.id)),
+        material_id: ActiveValue::set(Some(material.id)),
         stock: ActiveValue::set(3),
         sku: ActiveValue::set("test sku".to_string()),
         ..Default::default()

@@ -1,8 +1,8 @@
-use loco_rs::model::ModelResult;
-use sea_orm::entity::prelude::*;
-use sea_orm::{FromQueryResult, DbBackend, JsonValue, Statement};
 use super::_entities::categories::{ActiveModel, Model};
 use crate::views::category::{CategoryListResponse, CategoryTree};
+use loco_rs::model::ModelResult;
+use sea_orm::entity::prelude::*;
+use sea_orm::{DbBackend, FromQueryResult, JsonValue, Statement};
 
 impl ActiveModelBehavior for ActiveModel {
     // extend activemodel below (keep comment for generators)
@@ -12,9 +12,10 @@ impl Model {
     pub async fn get_all_categories(
         db: &DatabaseConnection,
     ) -> ModelResult<Vec<CategoryListResponse>> {
-        let categories: Vec<CategoryListResponse> = JsonValue::find_by_statement(Statement::from_sql_and_values(
-            DbBackend::Postgres,
-            r#"
+        let categories: Vec<CategoryListResponse> =
+            JsonValue::find_by_statement(Statement::from_sql_and_values(
+                DbBackend::Postgres,
+                r"
                 SELECT
                     p.id,
                     p.name,
@@ -25,9 +26,10 @@ impl Model {
                 FROM categories p
                 WHERE p.parent_id IS NULL OR p.parent_id = 0
                 GROUP BY p.id, p.name
-            "#,
-            [],
-        )).into_model::<CategoryListResponse>()
+            ",
+                [],
+            ))
+            .into_model::<CategoryListResponse>()
             .all(db)
             .await?;
         Ok(categories)
@@ -36,8 +38,7 @@ impl Model {
     pub async fn get_category_tree(
         db: &DatabaseConnection,
     ) -> Result<Vec<CategoryTree>, sea_orm::DbErr> {
-
-        let sql = r#"
+        let sql = r"
         WITH RECURSIVE cte AS (
             SELECT
                 c.*,
@@ -54,12 +55,13 @@ impl Model {
             INNER JOIN cte ct ON c.parent_id = ct.id
         )
         SELECT * FROM cte ORDER BY path
-    "#;
+    ";
 
-        CategoryTree::find_by_statement(
-            Statement::from_string(DbBackend::Postgres, sql.to_string())
-        )
-            .all(db)
-            .await
+        CategoryTree::find_by_statement(Statement::from_string(
+            DbBackend::Postgres,
+            sql.to_string(),
+        ))
+        .all(db)
+        .await
     }
 }

@@ -2,11 +2,11 @@ use chrono::{offset::Local, Duration};
 use insta::assert_debug_snapshot;
 use loco_rs::testing::prelude::*;
 use sea_orm::{ActiveModelTrait, ActiveValue, IntoActiveModel};
-use serial_test::serial;
 use seco::{
     app::App,
     models::users::{self, Model, RegisterParams},
 };
+use serial_test::serial;
 
 macro_rules! configure_insta {
     ($($expr:expr),*) => {
@@ -82,7 +82,7 @@ async fn handle_create_with_password_with_duplicate() {
             last_name: "framework".to_string(),
         },
     )
-        .await;
+    .await;
 
     assert_debug_snapshot!(new_user);
 }

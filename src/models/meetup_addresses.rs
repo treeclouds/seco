@@ -1,5 +1,5 @@
+pub use super::_entities::meetup_addresses::{ActiveModel, Entity, Model};
 use sea_orm::entity::prelude::*;
-pub use super::_entities::meetup_addresses::{ActiveModel, Model, Entity};
 pub type MeetupAddresses = Entity;
 
 #[async_trait::async_trait]

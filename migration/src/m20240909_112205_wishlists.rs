@@ -49,9 +49,7 @@ enum Wishlists {
     UserId,
     ProductId,
     IsDeleted,
-    
 }
-
 
 #[derive(DeriveIden)]
 enum Users {

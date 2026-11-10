@@ -9,14 +9,14 @@ impl MigrationTrait for Migration {
         let table = table_auto(ProductImages::Table)
             .col(pk_auto(ProductImages::Id))
             .col(integer(ProductImages::ProductsId))
-                .foreign_key(
-                    ForeignKey::create()
+            .foreign_key(
+                ForeignKey::create()
                     .name("fk-product_images-products")
                     .from(ProductImages::Table, ProductImages::ProductsId)
                     .to(Products::Table, Products::Id)
                     .on_delete(ForeignKeyAction::Cascade)
                     .on_update(ForeignKeyAction::Cascade),
-                )
+            )
             .col(string(ProductImages::Image))
             .to_owned();
         manager.create_table(table).await?;
@@ -38,9 +38,7 @@ enum ProductImages {
     #[sea_orm(iden = "product_id")]
     ProductsId,
     Image,
-    
 }
-
 
 #[derive(DeriveIden)]
 enum Products {

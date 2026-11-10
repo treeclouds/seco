@@ -6,7 +6,6 @@ pub struct Migration;
 #[derive(DeriveIden)]
 enum Notes {
     Table,
-
 }
 
 #[async_trait::async_trait]
@@ -54,13 +53,16 @@ impl MigrationTrait for Migration {
             )
             .await;
         */
-        manager.drop_table(Table::drop().table(Notes::Table).to_owned()).await?;
+        manager
+            .drop_table(Table::drop().table(Notes::Table).to_owned())
+            .await?;
         Ok(())
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        manager.drop_table(Table::drop().table(Notes::Table).to_owned()).await?;
+        manager
+            .drop_table(Table::drop().table(Notes::Table).to_owned())
+            .await?;
         Ok(())
     }
 }
-
